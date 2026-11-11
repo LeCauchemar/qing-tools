@@ -1,0 +1,319 @@
+/* 命令面板要占一块真地方，否则超出岛的部分点不到（点击穿透是按键外矩形算的） */
+#stage[data-state="palette"] .island {
+  --isl-w: 560px;
+  --isl-h: 344px;
+  --isl-r: 24px;
+}
+
+/* ---------------------------------------------------------------- 命令面板 */
+/* 背景整块透明：只在中间放一个盒子。以前铺了半透明底 + 模糊，
+   在 760px 高的窗口里看起来就是「整屏蒙了一层灰」（用户反馈过）。 */
+.palette {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 6px;
+  background: transparent;
+  backdrop-filter: none;
+  animation: palIn 160ms ease;
+}
+
+.palette.hidden {
+  display: none;
+}
+
+@keyframes palIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.pal-box {
+  width: 520px;
+  max-width: calc(100% - 16px);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--pop-bg);
+  box-shadow: var(--pop-shadow);
+  border: 1px solid var(--line);
+}
+
+.pal-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.pal-head .ic {
+  width: 15px;
+  height: 15px;
+  color: var(--muted);
+  flex: none;
+}
+
+.pal-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.pal-esc {
+  flex: none;
+  font-size: 10.5px;
+  color: var(--dim);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 1px 5px;
+}
+
+.pal-list {
+  max-height: 268px;
+  overflow-y: auto;
+  padding: 5px;
+}
+
+.pal-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 9px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pal-item .ic {
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+  flex: none;
+}
+
+.pal-item small {
+  margin-left: auto;
+  color: var(--dim);
+  font-size: 11px;
+}
+
+.pal-item.sel,
+.pal-item:hover {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+.pal-item.sel .ic {
+  color: var(--accent);
+}
+
+.pal-empty {
+  padding: 14px 12px;
+  font-size: 12.5px;
+  color: var(--dim);
+}
+
+/* ---------------------------------------------------------------- 待办 */
+.todo-form {
+  display: flex;
+  gap: 6px;
+  margin: 2px 0 8px;
+}
+
+.todo-form .input {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+  color: var(--ink);
+  font-size: 12.5px;
+  font-family: inherit;
+  outline: none;
+}
+
+.todo-form .input:focus {
+  border-color: var(--accent);
+}
+
+.row.todo {
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+}
+
+.check-btn {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.check-btn .ic {
+  width: 15px;
+  height: 15px;
+}
+
+.check-btn:hover {
+  color: var(--accent);
+}
+
+.row.todo.done .row-text {
+  color: var(--dim);
+  text-decoration: line-through;
+}
+
+.row.todo.done .check-btn {
+  color: var(--accent);
+}
+
+.row.todo .row-tools,
+.row.todo .mini {
+  flex: none;
+}
+
+.todo-sep {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 4px;
+  padding: 0 4px;
+  font-size: 11px;
+  color: var(--dim);
+}
+
+.linkish {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* ---------------------------------------------------------------- 划词速递 */
+#stage[data-state="sel"] .island {
+  --isl-w: 604px;
+  --isl-h: 104px;
+  --isl-r: 22px;
+}
+
+.view-sel {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 13px 15px;
+}
+
+.sel-quote {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  max-height: 34px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  padding-left: 9px;
+  border-left: 2px solid var(--accent);
+  word-break: break-word;
+}
+
+.sel-acts {
+  display: flex;
+  gap: 6px;
+}
+
+.sel-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 11px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.sel-btn .ic {
+  width: 13px;
+  height: 13px;
+}
+
+.sel-btn:hover {
+  background: var(--accent-soft);
+  color: var(--ink);
+  border-color: transparent;
+}
+
+.sel-btn.ghost {
+  padding: 0 9px;
+  margin-left: auto;
+}
+
+/* 全局搜索：分组标题与两段式条目 */
+.pal-group {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 10px 13px 3px;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: var(--dim);
+  text-transform: uppercase;
+}
+
+.pal-group span {
+  font-size: 10px;
+  letter-spacing: 0;
+  text-transform: none;
+  opacity: 0.85;
+}
+
+.pal-item .pal-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pal-item .pal-sub {
+  flex: none;
+  max-width: 34%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10.5px;
+  color: var(--dim);
+}

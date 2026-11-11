@@ -1,0 +1,92 @@
+{
+  "name": "dynamic-island",
+  "productName": "Qing Tools",
+  "version": "1.10.11",
+  "private": true,
+  "description": "Windows 顶部灵动岛 / 刘海：邮件推送与阅读、备忘录、剪贴板、文件暂存、双频道小纸条、待办、命令面板",
+  "main": "src/main/main.js",
+  "author": "DSH",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "pack": "electron-builder --dir --win",
+    "dist": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^45.2.3",
+    "electron-builder": "^26.18.0"
+  },
+  "dependencies": {
+    "imapflow": "^2.10.2"
+  },
+  "build": {
+    "appId": "com.dsh.dynamicisland",
+    "productName": "Qing Tools",
+    "copyright": "Copyright 2026 DSH",
+    "asar": true,
+    "compression": "maximum",
+    "afterPack": "build/afterPack.js",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "extraResources": [
+      {
+        "from": "vendor/everything",
+        "to": "everything",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "QingTools-${version}-${arch}.${ext}",
+      "legalTrademarks": "",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Qing Tools",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico",
+      "deleteAppDataOnUninstall": false,
+      "language": "2052",
+      "installerLanguages": [
+        "zh_CN"
+      ],
+      "artifactName": "QingTools-${version}-setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "QingTools-${version}-portable.${ext}"
+    }
+  }
+}

@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Qing Tools — 把屏幕顶部那条缝，变成你的工作台</title>
+<meta name="description" content="Qing Tools 是常驻 Windows 屏幕顶部的灵动岛：邮件主动推送与验证码一键复制、备忘录与桌面便利贴、剪贴板、文件中转站、四人以内的小纸条群聊、计时器与免打扰。">
+<meta name="theme-color" content="#05060b">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css?v=13">
+</head>
+<body>
+<div class="bg" aria-hidden="true">
+  <div class="glow g1"></div><div class="glow g2"></div><div class="glow g3"></div>
+  <div class="grain"></div>
+</div>
+
+<header class="nav" id="nav">
+  <a class="brand" href="#top">
+    <span class="mark" aria-hidden="true"><i></i><b></b></span>
+    <span class="brand-name">Qing Tools</span>
+  </a>
+  <nav class="nav-links" aria-label="页面导航">
+    <a href="#demo">演示</a>
+    <a href="#features">功能</a>
+    <a href="#how">用法</a>
+    <a href="#download">下载</a>
+    <a href="#faq">问答</a>
+    <a href="changelog.html">开发记录</a>
+  </nav>
+  <div class="nav-right">
+    <button class="icon-btn" id="themeBtn" title="切换明暗" aria-label="切换明暗">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path class="sun" d="M12 4v2m0 12v2m8-8h-2M6 12H4m13.7-5.7-1.4 1.4M7.7 16.3l-1.4 1.4m11.4 0-1.4-1.4M7.7 7.7 6.3 6.3"/><circle cx="12" cy="12" r="3.6"/></svg>
+    </button>
+    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.10.11-setup.exe">下载</a>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ───────────── hero -->
+  <section class="hero">
+    <div class="hero-copy">
+      <h1>把屏幕顶部那条缝，<br><span class="grad">变成第二个工作台</span></h1>
+      <p class="lede">
+        邮件来了主动推送、验证码点一下就进剪贴板；随手记的备忘可以钉到桌面上变成便利贴；
+        拖过来的文件先落进暂存箱，再一键上云拿链接；四个人以内还能用匹配码互传小纸条。
+        全都藏在那条细细的药丸里——不想看的时候，它只是一条时间。
+      </p>
+      <div class="actions">
+        <a class="btn btn-primary btn-lg js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.10.11-setup.exe">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11m0 0 4-4m-4 4-4-4M4 18v1.5A1.5 1.5 0 0 0 5.5 21h13A1.5 1.5 0 0 0 20 19.5V18"/></svg>
+          下载安装包 <span class="dim" id="heroSize">100 MB</span>
+        </a>
+        <a class="btn btn-ghost btn-lg js-dl-portable" href="https://qing.ccyyqq.com/island/update/QingTools-1.10.11-portable.exe">便携版（免安装）</a>
+      </div>
+      <p class="fineprint">
+        <span id="heroVer">v1.10.11</span> · 安装后自动开机启动 · 可随时在设置里关掉 ·
+        <a href="https://chat.ccyyqq.com/island/" target="_blank" rel="noopener">小纸条网页版</a>
+      </p>
+    </div>
+
+  </section>
+
+  <!-- ───────────── live demo -->
+  <section class="demo" id="demo">
+    <div class="sec-head">
+      <h2>它就在屏幕顶端动</h2>
+      <p class="sec-sub">不用点，它自己会一段一段演示下去：伸开、看邮件、切小纸条、收起来、再来一条通知。想自己玩也行，鼠标移上去就归你控制。</p>
+    </div>
+
+    <div class="stage" id="stage" data-state="idle" data-style="island">
+      <div class="wall">
+        <div class="wall-clock">
+          <b>13:42</b>
+          <i>11 月 6 日 星期四</i>
+        </div>
+
+        <div class="mock-win">
+          <div class="mw-bar"><i></i><i></i><i></i></div>
+          <div class="mw-body">
+            <span class="w80"></span><span class="w60"></span><span class="w90"></span>
+            <span class="w40"></span><span class="w70"></span>
+          </div>
+        </div>
+
+        <div class="mock-sticky"><b>别忘了</b>14:30 开会</div>
+
+        <div class="cur" id="cur" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22"><path d="M5.2 3.4 19 11.1c.8.4.7 1.6-.2 1.8l-5.6 1.5-2.6 5.2c-.4.8-1.6.6-1.8-.2L5.2 3.4Z" fill="#fff" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/></svg>
+        </div>
+
+        <div class="isl" id="isl">
+          <div class="isl-surface"></div>
+
+          <div class="v v-idle">
+            <i class="v-dot"></i>
+            <span class="v-time" id="dTime">13:42</span>
+            <span class="v-badge red">3</span>
+          </div>
+
+          <div class="v v-compact">
+            <span class="quick"><b>邮件</b><i class="q red">3</i></span>
+            <span class="quick"><b>备忘录</b></span>
+            <span class="quick"><b>剪贴板</b><i class="q">2</i></span>
+            <span class="quick"><b>暂存</b></span>
+            <span class="quick"><b>小纸条</b><i class="q pur">1</i></span>
+          </div>
+
+          <div class="v v-panel">
+            <div class="p-head">
+              <span class="p-brand">Qing Tools</span>
+              <span class="p-clock" id="dClock">13:42</span>
+              <span class="p-ic"><i></i></span>
+              <span class="p-ic"><i></i></span>
+            </div>
+            <div class="p-tabs">
+              <button class="p-tab active" data-pane="mail">邮件<i class="p-dot red"></i></button>
+              <button class="p-tab" data-pane="chat">小纸条</button>
+              <button class="p-tab" data-pane="notes">备忘录</button>
+              <button class="p-tab" data-pane="tools">小工具</button>
+            </div>
+            <div class="p-body">
+              <div class="p-pane on" data-pane="mail">
+                <div class="p-row">
+                  <span class="p-av"></span>
+                  <span class="p-txt"><b>GitHub</b><i>你的验证码是 402913</i></span>
+                  <span class="p-chip code">验证码 402913</span>
+                </div>
+                <div class="p-row">
+                  <span class="p-av blue"></span>
+                  <span class="p-txt"><b>Microsoft 帐户团队</b><i>确认你的安全信息</i></span>
+                  <span class="p-chip link">打开链接</span>
+                </div>
+                <div class="p-row">
+                  <span class="p-av green"></span>
+                  <span class="p-txt"><b>腾讯云</b><i>本月账单已生成</i></span>
+                </div>
+              </div>
+              <div class="p-pane" data-pane="chat">
+                <div class="p-msg them"><span class="p-who">chenyuqing-work</span><span class="p-bub">晚上一起吃饭吗？</span></div>
+                <div class="p-msg me"><span class="p-bub">好，六点半</span></div>
+                <div class="p-msg them"><span class="p-bub img"></span></div>
+              </div>
+              <div class="p-pane" data-pane="notes">
+                <div class="p-note"><b>一、商户：…</b><br>二、账号：…<br>三、备注：换行和缩进都保留</div>
+                <div class="p-note dim">周会要点：把定时拉取改成常连接推送</div>
+              </div>
+              <div class="p-pane" data-pane="tools">
+                <div class="p-tools-row"><span>专注 25 分钟</span><b class="p-run">25:00</b></div>
+                <div class="p-tools-row"><span>免打扰</span><b class="p-on">还有 30 分钟</b></div>
+                <div class="p-tools-row"><span>待办</span><b>3 项</b></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="v v-peek">
+            <span class="pk-ic"></span>
+            <span class="pk-main"><b>验证码 402913</b><i>GitHub · 点一下就能复制</i></span>
+            <span class="pk-hint">点击复制</span>
+          </div>
+
+          <div class="sats">
+            <span class="sat t"><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="s-bg" cx="20" cy="20" r="17"/><circle class="s-fg" id="dRing" cx="20" cy="20" r="17"/></svg><b id="dVal">25:00</b></span>
+            <span class="sat sys">13</span>
+            <span class="sat mail">3</span>
+            <span class="sat chat">1</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────── features -->
+  <section class="features" id="features">
+    <div class="sec-head">
+      <p class="kicker">功能</p>
+      <h2>七个页签，都是你每天真会用的</h2>
+      <p class="sec-sub">没有花架子：每一项都对应一个高频动作，两下之内完成。</p>
+    </div>
+    <div class="grid">
+      <article class="card reveal">
+        <span class="ic i-mail"></span>
+        <h3>邮件：主动推，不用刷</h3>
+        <p>IMAP 长连接实时推送，新邮件秒到。正文里的验证码识别成「⚡ 验证码 402913」，点一下进剪贴板；激活链接变成「↗ 打开链接」。支持 QQ / 163 / Gmail，微软邮箱内置账户授权引导。</p>
+      </article>
+      <article class="card reveal">
+        <span class="ic i-note"></span>
+        <h3>备忘录：能钉到桌面上</h3>
+        <p>随手记一条，重要的点「钉到桌面」——变成一张拟真便利贴贴在屏幕上，能拖动、能缩放、Ctrl+滚轮调字号。取消钉住就收回岛里。</p>
+      </article>
+      <article class="card reveal">
+        <span class="ic i-clip"></span>
+        <h3>剪贴板：图文都留</h3>
+        <p>文本和图片都记，固定住的关键条目连「全部删除」也删不掉。任何一条都能一键发到小纸条，或者直接拖给别的窗口。</p>
+      </article>
+      <article class="card reveal">
+        <span class="ic i-file"></span>
+        <h3>中转站：拖一下就存</h3>
+        <p>文件 / 文件夹拖到岛附近就进暂存箱，不用先开资源管理器。拖的是图片时会分成两半：左边存下，右边直接发小纸条。发出去的文件自动打包，也能一键上云拿链接。</p>
+      </article>
+      <article class="card reveal">
+        <span class="ic i-chat"></span>
+        <h3>小纸条：四个人以内</h3>
+        <p>新建频道得到 12 位匹配码，发给朋友填码就进群，一个频道最多 4 台电脑，每人最多 2 个频道。换电脑输入旧昵称一键顶替，历史记录永久保留。</p>
+      </article>
+      <article class="card reveal">
+        <span class="ic i-tool"></span>
+        <h3>小工具：计时与安静</h3>
+        <p>时/分/秒计时器到点提醒，岛旁边挂一个小圆环倒计时，跟 iPhone 灵动岛一样。免打扰一开，来消息只涨数字不弹条。还有 CPU / 内存 / 网速 / 电量的小圆点。</p>
+      </article>
+      <article class="card reveal">
+        <span class="ic i-gear"></span>
+        <h3>外观：深色 / 浅色 / 两种形态</h3>
+        <p>深色玻璃和白色磨砂两套基调，主题色随便挑或者自己调。形态可选「灵动岛」悬浮，或「刘海」贴着屏幕上边只露一条。按住药丸还能左右拖动。</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- ───────────── how -->
+  <section class="how" id="how">
+    <div class="sec-head">
+      <p class="kicker">用法</p>
+      <h2>学会四个动作就够用</h2>
+    </div>
+    <div class="how-grid">
+      <div class="how-card reveal">
+        <h3>快捷键</h3>
+        <table class="keys">
+          <tr><td><kbd>Ctrl</kbd><kbd>K</kbd></td><td>命令面板：搜功能、开页面、起计时</td></tr>
+          <tr><td><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>X</kbd></td><td>划词速递：选中的文字直接进岛</td></tr>
+          <tr><td><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>A</kbd></td><td>截图：存进暂存箱并复制到剪贴板</td></tr>
+          <tr><td><kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>空格</kbd></td><td>展开 / 收起</td></tr>
+          <tr><td><kbd>Esc</kbd></td><td>一层层往回退</td></tr>
+        </table>
+        <p class="muted small">被别的软件占用时，程序会自动换一个能用的键位，命令面板里显示的就是真实生效的那个。</p>
+      </div>
+      <div class="how-card reveal">
+        <h3>三个拖拽动作</h3>
+        <ul class="dots">
+          <li><b>拖文件到顶部</b>：直接进暂存箱，不发散到别的窗口</li>
+          <li><b>拖图片到顶部</b>：岛变两半，左边存、右边发小纸条</li>
+          <li><b>从暂存箱拖出</b>：拖到资源管理器 / 聊天窗口就是复制</li>
+        </ul>
+        <h3 class="mt">右键藏着的东西</h3>
+        <ul class="dots">
+          <li>聊天里的图片右键 →「查看大图」「添加到表情包」（群里共享）</li>
+          <li>频道标签右键 → 重命名（只存本机），左键点 ⧉ 复制匹配码</li>
+          <li>备忘录行右键 → 复制全文 / 发送到小纸条</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────── download -->
+  <section class="download" id="download">
+    <div class="dl-card reveal">
+      <div class="dl-left">
+        <p class="kicker">下载</p>
+        <h2>装上就是现在这个版本<br><span class="grad" id="dlVer">v1.10.11</span></h2>
+        <p class="sec-sub" id="dlNotes">云端存储接入：聊天图片与表情包上 CDN、暂存箱可一键上云、更新走 CDN。</p>
+        <div class="actions">
+          <a class="btn btn-primary btn-lg js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.10.11-setup.exe">下载安装包 <span class="dim" id="dlSize">100 MB</span></a>
+          <a class="btn btn-ghost btn-lg js-dl-portable" href="https://qing.ccyyqq.com/island/update/QingTools-1.10.11-portable.exe">便携版</a>
+        </div>
+        <ul class="req">
+          <li>Windows 10 / 11（64 位）</li>
+          <li>安装到 <code>%LOCALAPPDATA%\Programs\dynamic-island</code>，约 280 MB</li>
+          <li>首次运行自动写入开机启动，可在设置里关闭</li>
+        </ul>
+        <p class="mirror" id="dlMirror"><span id="dlMirrorText">下载由又拍云 CDN 加速（qing.ccyyqq.com），不占本站带宽。</span>镜像：<a class="js-mirror" href="/download/QingTools-1.10.11-setup.exe">备用下载</a></p>
+      </div>
+      <div class="dl-right">
+        <div class="mini-card">
+          <div class="mc-row"><span>版本</span><b id="mcVer">1.10.9</b></div>
+          <div class="mc-row"><span>大小</span><b id="mcSize">100.0 MB</b></div>
+          <div class="mc-row"><span>发布</span><b id="mcDate">2026-11-07</b></div>
+          <div class="mc-row sha"><span>SHA-256</span><code id="mcSha">8dd5c006…3c5ea</code><button class="icon-btn" id="copySha" title="复制完整校验值">复制</button></div>
+          <div class="mc-tip">没有代码签名证书，第一次运行可能弹「Windows 已保护你的电脑」——点「更多信息 → 仍要运行」即可。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────── faq -->
+  <section class="faq" id="faq">
+    <div class="sec-head">
+      <p class="kicker">问答</p>
+      <h2>几个会被问到的问题</h2>
+    </div>
+    <div class="faq-list">
+      <details class="reveal"><summary>会不会拖慢电脑？占多少内存？</summary>
+        <p>空闲时四个进程合计约 355 MB（Chromium 的固定开销，任务管理器里看起来会小一些），CPU 基本不动。剪贴板图片、聊天记录、邮件正文都做了按需加载和上限控制。已经砍掉 82 MB 的冗余运行时文件，安装包从 121 MB 降到 100 MB。</p></details>
+      <details class="reveal"><summary>为什么提示「Windows 已保护你的电脑」？</summary>
+        <p>因为没买代码签名证书（一年几千块，个人项目没必要）。点「更多信息 → 仍要运行」就行。安装包 SHA-256 会显示在下边区，可以自己核对。</p></details>
+      <details class="reveal"><summary>邮箱怎么配？</summary>
+        <p>设置 → 邮箱，选服务商后填邮箱地址和「授权码」（不是登录密码，QQ / 163 在网页版设置里开 IMAP 时生成）。微软邮箱（Outlook / Hotmail / Live）从 2024 年起停用了密码登录，程序里带 6 步指引，用账户授权（设备码）方式登录一次即可。</p></details>
+      <details class="reveal"><summary>小纸条安全吗？谁能进我的频道？</summary>
+        <p>只有拿到 12 位匹配码的人能进，码是随机大小写字母 + 数字，服务端只存密码学的哈希；每台设备有独立 token，退出或换机后旧设备立刻失效。消息存在自己的服务器上，不走第三方。</p></details>
+      <details class="reveal"><summary>数据存在哪？换电脑会丢吗？</summary>
+        <p>本机 <code>%APPDATA%\DynamicIsland\</code>，包括便签、剪贴板、暂存箱清单和邮箱配置（授权码和 OAuth token 都用 Windows DPAPI 加密）。小纸条的聊天记录存在服务器，换电脑用旧昵称接管就能继续看。</p></details>
+      <details class="reveal"><summary>可以不装、直接用吗？</summary>
+        <p>下载便携版，双击就能跑，不写注册表也不写开机启动。想要开机自启就装安装版。</p></details>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <div class="foot-left">
+      <span class="mark small" aria-hidden="true"><i></i><b></b></span>
+      <span>Qing Tools <span class="dim" id="footVer">v1.10.11</span></span>
+    </div>
+    <div class="foot-right">
+      <span class="stat" id="stat"><i></i>检查服务状态…</span>
+      <a href="iphone.html">iPhone 验证码接入</a>
+      <a href="android.html">安卓 APK</a>
+      <a href="changelog.html">开发记录</a>
+      <a href="https://chat.ccyyqq.com/island/" target="_blank" rel="noopener">小纸条网页版</a>
+      <a href="https://chat.ccyyqq.com/get" target="_blank" rel="noopener">旧下载页</a>
+    </div>
+  </footer>
+</main>
+
+<script src="assets/site.js?v=10" defer></script>
+</body>
+</html>

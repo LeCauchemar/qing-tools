@@ -1,0 +1,9 @@
+{
+  "service": "your-upyun-service",
+  "operator": "your-operator",
+  "password": "your-operator-password",
+  "domain": "https://your-cdn-domain",
+  "prefix": "island",
+  "thumbRule": "default",
+  "appToken": ""
+}

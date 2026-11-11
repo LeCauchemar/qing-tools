@@ -1,0 +1,33 @@
+(async () => {
+  const log = [];
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const note = (S.data.notes || []).find((n) => /MENU-T1/.test(n.text || ''));
+  const id = note.id;
+  S.noteOpen = id;
+  S.noteEdit = id;
+  renderNotes();
+  await sleep(400);
+  const box = document.querySelector('.note-rich[data-id="' + id + '"]');
+  box.focus();
+  const r = document.createRange();
+  r.selectNodeContents(box);
+  r.collapse(false);
+  const sel = getSelection();
+  sel.removeAllRanges();
+  sel.addRange(r);
+  log.push('active ' + (document.activeElement === box));
+  const ok = document.execCommand('insertText', false, '-TAIL');
+  await sleep(80);
+  log.push('exec ' + ok + ' live ' + JSON.stringify(box.innerText));
+  const rect = box.getBoundingClientRect();
+  box.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: rect.left + 30, clientY: rect.top + 12 }));
+  await sleep(120);
+  await api.clips.writeText('PASTED-XYZ');
+  document.querySelector('#editMenu [data-act="edit-paste"]').click();
+  await sleep(1400);
+  const cur = (S.data.notes || []).find((n) => n.id === id);
+  log.push('store ' + JSON.stringify(cur.text));
+  const live2 = document.querySelector('.note-rich[data-id="' + id + '"]');
+  log.push('live2 ' + JSON.stringify(live2 ? live2.innerText : null));
+  return log;
+})()

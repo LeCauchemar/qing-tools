@@ -1,0 +1,12 @@
+﻿
+.fs-tip {
+  padding: 4px 10px 10px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--dim);
+}
+
+.fs-tip b {
+  color: var(--ink-soft);
+  font-weight: 600;
+}

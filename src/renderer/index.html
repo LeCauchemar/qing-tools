@@ -1,0 +1,995 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data: blob: islandclip: https: http:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; connect-src 'self' islandclip: https://chat.ccyyqq.com https://qing.ccyyqq.com https://ipwho.is https://ipinfo.io https://api.ip.sb https://api.open-meteo.com https://geocoding-api.open-meteo.com;"
+    />
+    <title>Qing Tools</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="palette.css" />
+  </head>
+  <body>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <symbol id="i-mail" viewBox="0 0 24 24">
+          <path d="M3.5 7.5A2.5 2.5 0 0 1 6 5h12a2.5 2.5 0 0 1 2.5 2.5v9A2.5 2.5 0 0 1 18 19H6a2.5 2.5 0 0 1-2.5-2.5z" />
+          <path d="m4 7 7.1 5.4a1.5 1.5 0 0 0 1.8 0L20 7" />
+        </symbol>
+        <symbol id="i-note" viewBox="0 0 24 24">
+          <path d="M5 4.5h14v10.6L14.6 19.5H5z" />
+          <path d="M19 15h-4.4v4.5" />
+          <path d="M8.5 9h7M8.5 12.5h4" />
+        </symbol>
+        <symbol id="i-clip" viewBox="0 0 24 24">
+          <rect x="5" y="4.5" width="14" height="15" rx="2.4" />
+          <path d="M9 4.5V3.8A1.3 1.3 0 0 1 10.3 2.5h3.4A1.3 1.3 0 0 1 15 3.8v.7z" />
+          <path d="M8.8 10.5h6.4M8.8 14h4.2" />
+        </symbol>
+        <symbol id="i-files" viewBox="0 0 24 24">
+          <path d="M4 7.6A1.6 1.6 0 0 1 5.6 6h3.1l1.7 2h8A1.6 1.6 0 0 1 20 9.6v7.8A1.6 1.6 0 0 1 18.4 19H5.6A1.6 1.6 0 0 1 4 17.4z" />
+          <path d="M8 12.4h8" />
+        </symbol>
+        <symbol id="i-gear" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3.1" />
+          <path d="M19.2 14.2a1.5 1.5 0 0 0 .3 1.7l.1.1a1.8 1.8 0 1 1-2.6 2.6l-.1-.1a1.5 1.5 0 0 0-2.6 1.1v.2a1.8 1.8 0 1 1-3.6 0v-.1a1.5 1.5 0 0 0-2.6-1.1l-.1.1a1.8 1.8 0 1 1-2.6-2.6l.1-.1a1.5 1.5 0 0 0-1.1-2.6h-.2a1.8 1.8 0 1 1 0-3.6h.1a1.5 1.5 0 0 0 1.1-2.6l-.1-.1a1.8 1.8 0 1 1 2.6-2.6l.1.1a1.5 1.5 0 0 0 2.6-1.1v-.2a1.8 1.8 0 1 1 3.6 0v.1a1.5 1.5 0 0 0 2.6 1.1l.1-.1a1.8 1.8 0 1 1 2.6 2.6l-.1.1a1.5 1.5 0 0 0 1.1 2.6h.2a1.8 1.8 0 1 1 0 3.6h-.1a1.5 1.5 0 0 0-1.4.9z" />
+        </symbol>
+        <symbol id="i-refresh" viewBox="0 0 24 24">
+          <path d="M20 12a8 8 0 1 1-2.6-5.9" />
+          <path d="M20 4.5V9h-4.5" />
+        </symbol>
+        <symbol id="i-pin" viewBox="0 0 24 24">
+          <path d="M14.5 3.5 20 9l-2.2.6-3.3 3.3.6 4.3-2 2-3.4-3.4L4 21l2.2-5.7L2.8 12l2-2 4.3.6L12.4 7z" />
+        </symbol>
+        <symbol id="i-collapse" viewBox="0 0 24 24">
+          <path d="m6 14 6-5.5 6 5.5" />
+        </symbol>
+        <symbol id="i-back" viewBox="0 0 24 24">
+          <path d="m14 6-6 6 6 6" />
+        </symbol>
+        <symbol id="i-plus" viewBox="0 0 24 24">
+          <path d="M12 5.5v13M5.5 12h13" />
+        </symbol>
+        <symbol id="i-x" viewBox="0 0 24 24">
+          <path d="m6.5 6.5 11 11M17.5 6.5l-11 11" />
+        </symbol>
+        <symbol id="i-copy" viewBox="0 0 24 24">
+          <rect x="9" y="9" width="11" height="11" rx="2.2" />
+          <path d="M15 9V6.2A2.2 2.2 0 0 0 12.8 4H6.2A2.2 2.2 0 0 0 4 6.2v6.6A2.2 2.2 0 0 0 6.2 15H9" />
+        </symbol>
+        <symbol id="i-save" viewBox="0 0 24 24">
+          <path d="M12 4v10.5M7.8 10.4 12 14.6l4.2-4.2" />
+          <path d="M4.8 17.2v1.4A1.4 1.4 0 0 0 6.2 20h11.6a1.4 1.4 0 0 0 1.4-1.4v-1.4" />
+        </symbol>
+        <symbol id="i-trash" viewBox="0 0 24 24">
+          <path d="M4.5 6.5h15M9.5 6.5V5a1.5 1.5 0 0 1 1.5-1.5h2A1.5 1.5 0 0 1 14.5 5v1.5" />
+          <path d="M6.5 6.5 7.4 19a1.6 1.6 0 0 0 1.6 1.5h6a1.6 1.6 0 0 0 1.6-1.5l.9-12.5" />
+        </symbol>
+        <symbol id="i-folder" viewBox="0 0 24 24">
+          <path d="M4 7.6A1.6 1.6 0 0 1 5.6 6h3.1l1.7 2h8A1.6 1.6 0 0 1 20 9.6v7.8A1.6 1.6 0 0 1 18.4 19H5.6A1.6 1.6 0 0 1 4 17.4z" />
+        </symbol>
+        <symbol id="i-external" viewBox="0 0 24 24">
+          <path d="M14 4.5h5.5V10" />
+          <path d="M19.5 4.5 11 13" />
+          <path d="M18 14v4.4a1.6 1.6 0 0 1-1.6 1.6H5.6A1.6 1.6 0 0 1 4 18.4V7.6A1.6 1.6 0 0 1 5.6 6H10" />
+        </symbol>
+        <symbol id="i-check" viewBox="0 0 24 24">
+          <path d="m5 12.8 4.4 4.4L19 6.6" />
+        </symbol>
+        <symbol id="i-circle" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="7.4" />
+        </symbol>
+        <symbol id="i-image" viewBox="0 0 24 24">
+          <rect x="3.5" y="4.5" width="17" height="15" rx="2.6" />
+          <circle cx="8.6" cy="9.6" r="1.6" />
+          <path d="m4.5 17 4.7-4.4 3.2 3 3-2.7 4.1 3.9" />
+        </symbol>
+        <symbol id="i-text" viewBox="0 0 24 24">
+          <path d="M5 6.5h14M5 11h14M5 15.5h9" />
+        </symbol>
+        <symbol id="i-search" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="6.5" />
+          <path d="m16 16 4 4" />
+        </symbol>
+        <symbol id="i-drop" viewBox="0 0 24 24">
+          <path d="M12 3.5v9.5" />
+          <path d="m7.5 9 4.5 4.5L16.5 9" />
+          <path d="M4.5 16.5v2A1.5 1.5 0 0 0 6 20h12a1.5 1.5 0 0 0 1.5-1.5v-2" />
+        </symbol>
+        <symbol id="i-bolt" viewBox="0 0 24 24">
+          <path d="M13.2 2.5 5 13.5h5.4L9.8 21.5 19 10.2h-5.6z" />
+        </symbol>
+        <symbol id="i-chat" viewBox="0 0 24 24">
+          <path d="M7 3.5h10A4.5 4.5 0 0 1 21.5 8v6a4.5 4.5 0 0 1-4.5 4.5h-4.6L6.8 21.3A1 1 0 0 1 5.2 20.5V18H7A4.5 4.5 0 0 1 2.5 14V8A4.5 4.5 0 0 1 7 3.5Z" />
+          <path d="M7.5 8h9M7.5 12h5.5" />
+        </symbol>
+        <symbol id="i-send" viewBox="0 0 24 24">
+          <path d="M21.2 3.2 2.9 10.3a.7.7 0 0 0-.1 1.3l6.6 2.9 2.9 6.6a.7.7 0 0 0 1.3-.1z" />
+          <path d="M21.2 3.2 9.4 14.5" />
+        </symbol>
+        <symbol id="i-smile" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M8.5 14.2a4.4 4.4 0 0 0 7 0M9 9.4v.2M15 9.4v.2" />
+        </symbol>
+        <symbol id="i-wifi" viewBox="0 0 24 24">
+          <path d="M2.5 9a15 15 0 0 1 19 0M5.5 12.6a10.6 10.6 0 0 1 13 0M8.6 16.2a6 6 0 0 1 6.8 0" />
+          <path d="M12 20h.01" />
+        </symbol>
+        <symbol id="i-timer" viewBox="0 0 24 24">
+          <circle cx="12" cy="13.5" r="7.5" />
+          <path d="M12 9.8v3.9l2.6 1.6M9.5 2.6h5M12 2.6V6" />
+        </symbol>
+        <symbol id="i-bell" viewBox="0 0 24 24">
+          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M10 21a2 2 0 0 0 4 0" />
+        </symbol>
+        <symbol id="i-calendar" viewBox="0 0 24 24">
+          <rect x="3.5" y="5" width="17" height="16" rx="2" />
+          <path d="M3.5 10h17M8 3v4M16 3v4" />
+        </symbol>
+        <symbol id="i-moon" viewBox="0 0 24 24">
+          <path d="M20.5 14.8A8.6 8.6 0 0 1 9.2 3.5a8.6 8.6 0 1 0 11.3 11.3Z" />
+        </symbol>
+        <symbol id="i-sticky" viewBox="0 0 24 24">
+          <path d="M5 3.5h14a1.5 1.5 0 0 1 1.5 1.5v9.2L15.2 20.5H5A1.5 1.5 0 0 1 3.5 19V5A1.5 1.5 0 0 1 5 3.5Z" />
+          <path d="M20.4 14.3h-4.2a1.5 1.5 0 0 0-1.5 1.5v4.2M7 8h10M7 11.5h6" />
+        </symbol>
+        <symbol id="i-shield" viewBox="0 0 24 24">
+          <path d="M12 3 5 6v6c0 4.2 2.9 7.6 7 9 4.1-1.4 7-4.8 7-9V6l-7-3Z" />
+          <path d="m9 12 2.2 2.2L15.5 10" />
+        </symbol>
+        <symbol id="i-alert" viewBox="0 0 24 24">
+          <path d="M12 4.5 3.5 19h17L12 4.5Z" />
+          <path d="M12 10v4.2M12 16.6v.1" />
+        </symbol>
+        <symbol id="i-scale" viewBox="0 0 24 24">
+          <path d="M12 4v16M6 8h12M8 8l-3 6h6L8 8Zm8 0-3 6h6l-3-6Z" />
+        </symbol>
+        <symbol id="i-chev" viewBox="0 0 24 24">
+          <path d="m6 9.5 6 6 6-6" />
+        </symbol>
+        <symbol id="i-code" viewBox="0 0 24 24">
+          <path d="m8.5 8-4 4 4 4M15.5 8l4 4-4 4" />
+        </symbol>
+        <symbol id="i-cpu" viewBox="0 0 24 24">
+          <rect x="7" y="7" width="10" height="10" rx="2" />
+          <path d="M10 3.5v3M14 3.5v3M10 17.5v3M14 17.5v3M3.5 10h3M3.5 14h3M17.5 10h3M17.5 14h3" />
+        </symbol>
+        <symbol id="i-target" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="6.5" />
+          <path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4" />
+        </symbol>
+        <symbol id="i-heart" viewBox="0 0 24 24">
+          <path d="M12 20.2c-.4 0-8-4.9-8-9.6A4.4 4.4 0 0 1 12 8a4.4 4.4 0 0 1 8 2.6c0 4.7-7.6 9.6-8 9.6Z" />
+        </symbol>
+        <symbol id="i-quote" viewBox="0 0 24 24">
+          <path d="M4 6h7v6H6.5a3.5 3.5 0 0 0 3 3.4M13 6h7v6h-4.5a3.5 3.5 0 0 0 3 3.4" />
+        </symbol>
+      </defs>
+    </svg>
+
+    <div id="stage" data-state="idle" data-tab="mail">
+      <div id="island" class="island">
+        <div class="surface"></div>
+
+        <!-- ================= 待机 ================= -->
+        <div class="view view-idle">
+          <span class="mark" id="idleMark">
+            <span class="mark-core"></span>
+            <span class="mark-ring"></span>
+          </span>
+          <div class="idle-left">
+            <div class="idle-date" id="idleDate">----年--月--日</div>
+            <div class="idle-sub" id="idleSub">农历</div>
+          </div>
+          <div class="idle-right">
+            <span class="idle-now" id="idleNow">--:--</span>
+          </div>
+        </div>
+
+        <!-- ============ 卫星：左（计时 / 系统）· 右（邮件 / 小纸条） ============ -->
+        <div class="sats">
+          <div class="sat timer hidden" id="timerOrb" data-side="left" data-i="0" title="计时中">
+            <svg class="sring" viewBox="0 0 44 44">
+              <circle class="sbg" cx="22" cy="22" r="18.5" />
+              <circle class="sfg" id="timerRing" cx="22" cy="22" r="18.5" />
+            </svg>
+            <b class="sval" id="timerVal">0:00</b>
+          </div>
+
+          <button class="sat sys hidden" id="satSys" data-side="left" data-i="1" title="系统占用">
+            <svg class="sring" viewBox="0 0 44 44">
+              <circle class="sbg" cx="22" cy="22" r="18.5" />
+              <circle class="sfg" id="sysRing" cx="22" cy="22" r="18.5" />
+            </svg>
+            <b class="sval" id="sysVal">0</b>
+          </button>
+
+          <button class="sat mail hidden" id="satMail" data-side="right" data-i="0" title="未读邮件">
+            <b class="snum" id="satMailNum">0</b>
+          </button>
+
+          <button class="sat chat hidden" id="satChat" data-side="right" data-i="1" title="小纸条未读">
+            <b class="snum" id="satChatNum">0</b>
+          </button>
+        </div>
+
+        <!-- ================= 悬停快捷 ================= -->
+        <div class="view view-compact">
+          <button class="quick" data-open="mail">
+            <svg class="ic"><use href="#i-mail" /></svg>
+            <span>邮件</span>
+            <b class="qbadge" id="qMailBadge">0</b>
+          </button>
+          <button class="quick" data-open="notes">
+            <svg class="ic"><use href="#i-note" /></svg>
+            <span>备忘录</span>
+            <b class="qbadge" id="qNoteBadge">0</b>
+          </button>
+          <button class="quick" data-open="clipboard">
+            <svg class="ic"><use href="#i-clip" /></svg>
+            <span>剪贴板</span>
+            <b class="qbadge" id="qClipBadge">0</b>
+          </button>
+          <button class="quick" data-open="files">
+            <svg class="ic"><use href="#i-files" /></svg>
+            <span>文件</span>
+            <b class="qbadge" id="qFileBadge">0</b>
+          </button>
+          <button class="quick" data-open="chat">
+            <svg class="ic"><use href="#i-chat" /></svg>
+            <span>小纸条</span>
+            <b class="qbadge" id="qChatBadge">0</b>
+          </button>
+          <button class="quick" data-open="tools">
+            <svg class="ic"><use href="#i-timer" /></svg>
+            <span>小工具</span>
+            <b class="qbadge dnd hidden" id="qDndBadge">免打扰</b>
+          </button>
+        </div>
+
+        <!-- ================= 拖放 ================= -->
+        <div class="view view-drop" id="viewDrop">
+          <div class="drop-half" data-drop="files" id="dropFiles">
+            <svg class="ic"><use href="#i-files" /></svg>
+            <span class="dh-main">存到文件区</span>
+            <span class="dh-sub">松手即可</span>
+          </div>
+          <div class="drop-half" data-drop="chat" id="dropChat">
+            <svg class="ic"><use href="#i-send" /></svg>
+            <span class="dh-main">发送小纸条</span>
+            <span class="dh-sub" id="dropChatSub">发到当前频道</span>
+          </div>
+        </div>
+
+        <!-- ================= 划词速递 ================= -->
+        <div class="view view-sel" id="viewSel">
+          <div class="sel-quote" id="selQuote"></div>
+          <div class="sel-acts">
+            <button class="sel-btn" data-act="sel-copy" title="复制">
+              <svg class="ic"><use href="#i-copy" /></svg><span>复制</span>
+            </button>
+            <button class="sel-btn" data-act="sel-note" title="存成便笺">
+              <svg class="ic"><use href="#i-note" /></svg><span>存便笺</span>
+            </button>
+            <button class="sel-btn" data-act="sel-chat" title="发送到小纸条">
+              <svg class="ic"><use href="#i-send" /></svg><span>发纸条</span>
+            </button>
+            <button class="sel-btn" data-act="sel-search" title="浏览器里搜索">
+              <svg class="ic"><use href="#i-search" /></svg><span>搜索</span>
+            </button>
+            <button class="sel-btn ghost" data-act="sel-close" title="关闭（Esc）">
+              <svg class="ic"><use href="#i-x" /></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- ================= 面板 ================= -->
+        <div class="view view-panel">
+          <header class="head">
+            <div class="brand">
+              <span class="brand-dot"></span>
+              <span class="brand-name">Qing Tools</span>
+              <span class="brand-sep"></span>
+              <span class="brand-time" id="clock">--:--</span>
+              <span class="brand-sep"></span>
+              <span class="brand-extra" id="headExtra"></span>
+            </div>
+            <div class="head-actions">
+              <button class="icon-btn only-island" id="btnRecenter" title="回到屏幕正中">
+                <svg class="ic"><use href="#i-target" /></svg>
+              </button>
+              <button class="icon-btn" id="btnPin" title="固定展开（不自动收起）">
+                <svg class="ic"><use href="#i-pin" /></svg>
+              </button>
+              <button class="icon-btn" id="btnCollapse" title="收起">
+                <svg class="ic"><use href="#i-collapse" /></svg>
+              </button>
+            </div>
+          </header>
+
+          <nav class="tabs" id="tabs">
+            <span class="glider" id="glider"></span>
+            <button class="tab" data-tab="mail" aria-selected="true">
+              <svg class="ic"><use href="#i-mail" /></svg><span>邮件</span><i class="tab-dot" id="tabDotMail"></i>
+            </button>
+            <button class="tab" data-tab="notes">
+              <svg class="ic"><use href="#i-note" /></svg><span>备忘录</span><i class="tab-dot" id="tabDotNotes"></i>
+            </button>
+            <button class="tab" data-tab="clipboard">
+              <svg class="ic"><use href="#i-clip" /></svg><span>剪贴板</span><i class="tab-dot" id="tabDotClip"></i>
+            </button>
+            <button class="tab" data-tab="files">
+              <svg class="ic"><use href="#i-files" /></svg><span>文件</span><i class="tab-dot" id="tabDotFiles"></i>
+            </button>
+            <button class="tab" data-tab="chat">
+              <svg class="ic"><use href="#i-chat" /></svg><span>小纸条</span><i class="tab-dot" id="tabDotChat"></i>
+            </button>
+            <button class="tab" data-tab="tools">
+              <svg class="ic"><use href="#i-timer" /></svg><span>小工具</span><i class="tab-dot" id="tabDotTools"></i>
+            </button>
+            <button class="tab" data-tab="settings">
+              <svg class="ic"><use href="#i-gear" /></svg><span>设置</span>
+            </button>
+          </nav>
+
+          <main class="body">
+            <!-- 邮件 -->
+            <section class="pane" data-pane="mail">
+              <div class="pane-scroll">
+                <div class="toolbar" id="mailToolbar">
+                  <span class="stat" id="mailStat">未读 0</span>
+                  <span class="sep"></span>
+                  <span class="sub" id="mailSub">未连接邮箱</span>
+                  <span class="grow"></span>
+                  <button class="icon-btn" id="mailRefresh" title="立即刷新">
+                    <svg class="ic"><use href="#i-refresh" /></svg>
+                  </button>
+                  <button class="icon-btn" id="mailToSettings" title="邮箱设置">
+                    <svg class="ic"><use href="#i-gear" /></svg>
+                  </button>
+                </div>
+                <div class="alert hidden" id="mailAlert"></div>
+                <div class="mail-filters" id="mailFilters"></div>
+                <div class="list" id="mailList"></div>
+                <div class="empty hidden" id="mailEmpty">
+                  <div class="empty-ic"><svg class="ic"><use href="#i-mail" /></svg></div>
+                  <p class="empty-title">还没有连接邮箱</p>
+                  <p class="empty-sub">支持 QQ / 163 / Gmail / Outlook 等 IMAP 邮箱，<br />连上后新邮件会直接在岛上提醒。</p>
+                  <button class="btn primary" id="mailSetupBtn">去连接邮箱</button>
+                </div>
+              </div>
+            </section>
+
+            <!-- 备忘录 -->
+            <section class="pane" data-pane="notes">
+              <div class="toolbar">
+                <span class="stat" id="noteStat">0 张备忘录</span>
+                <span class="grow"></span>
+                <button class="btn ghost small" id="noteClear" title="全部删除（钉在桌面上的会保留）">全部删除</button>
+              </div>
+              <div class="composer">
+                <textarea id="noteInput" rows="1" placeholder="记点什么… Ctrl+Enter 保存"></textarea>
+                <button class="btn primary small" id="noteSave">保存</button>
+              </div>
+              <div class="list" id="noteList"></div>
+              <div class="empty hidden" id="noteEmpty">
+                <div class="empty-ic"><svg class="ic"><use href="#i-note" /></svg></div>
+                <p class="empty-title">还没有备忘录</p>
+                <p class="empty-sub">随手记下的事会一直留在这里；点 📌 就能把它钉成一张贴在桌面上的便条。</p>
+              </div>
+            </section>
+
+            <!-- 剪贴板 -->
+            <section class="pane" data-pane="clipboard">
+              <div class="toolbar">
+                <div class="search">
+                  <svg class="ic"><use href="#i-search" /></svg>
+                  <input id="clipSearch" type="text" placeholder="搜索剪贴板…" />
+                </div>
+                <button class="btn ghost small" id="clipClear" title="全部删除（固定的会保留）">全部删除</button>
+              </div>
+              <div class="list" id="clipList"></div>
+              <div class="empty hidden" id="clipEmpty">
+                <div class="empty-ic"><svg class="ic"><use href="#i-clip" /></svg></div>
+                <p class="empty-title">剪贴板是空的</p>
+                <p class="empty-sub">复制文字或图片后会自动出现在这里，点一下就能再次复制。</p>
+              </div>
+            </section>
+
+            <!-- 文件区 -->
+            <section class="pane" data-pane="files">
+              <div class="toolbar">
+                <span class="stat" id="fileStat">0 个项目</span>
+                <span class="grow"></span>
+                <button class="btn ghost small" id="fileCopyAll">
+                  <svg class="ic"><use href="#i-copy" /></svg> 复制到剪贴板
+                </button>
+                <button class="icon-btn" id="filePrune" title="清理失效项（文件已被移动/删除的会自动移除）">
+                  <svg class="ic"><use href="#i-refresh" /></svg>
+                </button>
+                <button class="icon-btn" id="filePick" title="添加文件">
+                  <svg class="ic"><use href="#i-plus" /></svg>
+                </button>
+                <button class="icon-btn" id="fileClear" title="清空">
+                  <svg class="ic"><use href="#i-trash" /></svg>
+                </button>
+              </div>
+              <div class="file-search">
+                <svg class="ic"><use href="#i-search" /></svg>
+                <input id="fileQuery" type="text" placeholder="搜文件名 / 文件夹名 / 文件内容（回车）" spellcheck="false" />
+                <button class="icon-btn" id="fsClear" title="清空搜索">
+                  <svg class="ic"><use href="#i-x" /></svg>
+                </button>
+              </div>
+              <div class="fs-results hidden" id="fsResults"></div>
+              <div class="dropzone" id="dropzone">
+                <svg class="ic"><use href="#i-drop" /></svg>
+                <span>把文件 / 文件夹拖到这里，或直接搜索本地文件</span>
+              </div>
+              <div class="list" id="fileList"></div>
+            </section>
+
+            <!-- 小纸条 -->
+            <section class="pane" data-pane="chat">
+              <!-- 频道（最多两个） -->
+              <div class="rooms hidden" id="chatRooms"></div>
+
+              <!-- 未加入 -->
+              <div class="chat-gate" id="chatGate">
+                <div class="gate-head">
+                  <div class="gate-ic"><svg class="ic"><use href="#i-chat" /></svg></div>
+                  <div>
+                    <p class="gate-title">小纸条</p>
+                    <p class="gate-sub">同一个匹配码最多 4 台电脑，每台最多加入 2 个频道</p>
+                  </div>
+                </div>
+                <div class="gate-form">
+                  <div class="field small">
+                    <span>昵称</span>
+                    <input id="chatName" maxlength="24" placeholder="例如 chenyuqing-life" />
+                  </div>
+                  <div class="gate-join">
+                    <input id="chatCode" class="code-input" maxlength="12" autocomplete="off" spellcheck="false" placeholder="输入 12 位匹配码" />
+                    <button class="btn primary small" id="chatJoin">加入</button>
+                  </div>
+                  <label class="check">
+                    <input type="checkbox" id="chatReplace" />
+                    <span>用这台电脑顶替同昵称的旧设备</span>
+                  </label>
+                  <div class="alert hidden" id="chatErr"></div>
+                </div>
+                <div class="gate-foot">
+                  <span class="gate-hint">还没有匹配码？</span>
+                  <button class="btn ghost small" id="chatCreate">
+                    <svg class="ic"><use href="#i-plus" /></svg>新建一个
+                  </button>
+                  <button class="btn ghost small hidden" id="chatCancelNew">取消</button>
+                </div>
+              </div>
+
+              <!-- 已加入 -->
+              <div class="chat-room hidden" id="chatRoom">
+                <div class="members" id="chatMembers"></div>
+                <div class="votes hidden" id="chatVotes"></div>
+                <div class="msgs" id="chatMsgs"></div>
+                <div class="pending-bar hidden" id="pendingBar"></div>
+                <div class="mtags hidden" id="mentionTags"></div>
+                <div class="reply-bar hidden" id="replyBar"></div>
+                <div class="composer chat-composer">
+                  <button class="icon-btn" data-act="chat-image" title="发送图片 / GIF">
+                    <svg class="ic"><use href="#i-image" /></svg>
+                  </button>
+                  <button class="icon-btn" data-act="chat-emoji" title="表情">
+                    <svg class="ic"><use href="#i-smile" /></svg>
+                  </button>
+                  <button class="icon-btn" data-act="chat-at" title="@ 群里的某个人">
+                    <b class="at-mark">@</b>
+                  </button>
+                  <input id="chatInput" maxlength="500" autocomplete="off" placeholder="说点什么… Enter 发送" />
+                  <button class="icon-btn send" data-act="chat-send" title="发送">
+                    <svg class="ic"><use href="#i-send" /></svg>
+                  </button>
+                </div>
+                <div class="chat-resize" id="chatResize" title="上下拖动，调整小纸条窗口的高度"><i></i></div>
+                <div class="pick-pop hidden" id="pickPop"></div>
+                <div class="emoji-pop hidden" id="emojiPop"></div>
+                <input type="file" id="chatFile" accept="image/*,.heic,.heif,.avif,.webp,.gif,.bmp" hidden />
+              </div>
+            </section>
+
+            <!-- 小工具：计时器 / 待办 / 免打扰 / 开发小工具 / 系统 -->
+            <section class="pane" data-pane="tools">
+              <div class="pane-scroll tools-scroll">
+
+                <div class="tool-card" data-tool="timer">
+                  <button class="tc-head" data-tool-toggle="timer">
+                    <span class="tc-icon"><svg class="ic"><use href="#i-timer"/></svg></span>
+                    <span class="tc-title">计时器</span>
+                    <span class="tc-sum" id="timerSub">没有在计时</span>
+                    <svg class="ic tc-chev"><use href="#i-chev"/></svg>
+                  </button>
+                  <div class="tc-body"><div class="tc-inner">
+                    <div class="chips" id="timerPresets">
+                      <button class="chip" data-timer="1">1 分钟</button>
+                      <button class="chip" data-timer="3">3 分钟</button>
+                      <button class="chip" data-timer="5">5 分钟</button>
+                      <button class="chip" data-timer="10">10 分钟</button>
+                      <button class="chip" data-timer="15">15 分钟</button>
+                      <button class="chip" data-timer="25">25 分钟</button>
+                      <button class="chip" data-timer="45">45 分钟</button>
+                      <button class="chip" data-timer="60">1 小时</button>
+                    </div>
+                    <div class="timer-form">
+                      <div class="hms">
+                        <label class="hms-cell"><input id="timerH" class="num-input" type="number" min="0" max="23" step="1" value="0" /><span>时</span></label>
+                        <label class="hms-cell"><input id="timerM" class="num-input" type="number" min="0" max="59" step="1" value="5" /><span>分</span></label>
+                        <label class="hms-cell"><input id="timerS" class="num-input" type="number" min="0" max="59" step="1" value="0" /><span>秒</span></label>
+                      </div>
+                      <span class="grow"></span>
+                      <button class="btn primary small" id="timerStart">开始计时</button>
+                    </div>
+                    <div class="list compact" id="timerList"></div>
+                    <div class="empty small hidden" id="timerEmpty">
+                      <p class="empty-sub">点预设，或者填上时 / 分 / 秒开始。开始后岛旁边会出现一个小圆圈倒计时。</p>
+                    </div>
+                  </div></div>
+                </div>
+
+                <div class="tool-card" data-tool="todo">
+                  <button class="tc-head" data-tool-toggle="todo">
+                    <span class="tc-icon"><svg class="ic"><use href="#i-check"/></svg></span>
+                    <span class="tc-title">待办</span>
+                    <span class="tc-sum" id="todoSub">0 项</span>
+                    <svg class="ic tc-chev"><use href="#i-chev"/></svg>
+                  </button>
+                  <div class="tc-body"><div class="tc-inner">
+                    <div class="todo-form">
+                      <input id="todoInput" class="input bare" type="text" placeholder="加一条待办，回车保存；写「写周报 25」就是带 25 分钟番茄钟的待办" />
+                      <button class="btn primary small" id="todoAdd">添加</button>
+                    </div>
+                    <div class="list compact" id="todoList"></div>
+                    <div class="empty small hidden" id="todoEmpty">
+                      <p class="empty-sub">待办会一直留着，勾掉就归档。带「25」这类时长的待办可以点小时钟直接开番茄钟。</p>
+                    </div>
+                  </div></div>
+                </div>
+
+                <div class="tool-card" data-tool="remind">
+                  <button class="tc-head" data-tool-toggle="remind">
+                    <span class="tc-icon"><svg class="ic"><use href="#i-bell"/></svg></span>
+                    <span class="tc-title">提醒事项</span>
+                    <span class="tc-sum" id="remSub">0 条</span>
+                    <svg class="ic tc-chev"><use href="#i-chev"/></svg>
+                  </button>
+                  <div class="tc-body"><div class="tc-inner">
+                    <div class="rem-form">
+                      <input id="remText" class="input bare" type="text" placeholder="提醒我做什么…" />
+                      <div class="rem-when">
+                        <select class="select" id="remQuick">
+                          <option value="">快捷：5 分钟后</option>
+                          <option value="5">5 分钟后</option>
+                          <option value="10">10 分钟后</option>
+                          <option value="30">30 分钟后</option>
+                          <option value="60">1 小时后</option>
+                          <option value="180">3 小时后</option>
+                          <option value="1440">明天此时</option>
+                          <option value="custom">自定义时间…</option>
+                        </select>
+                        <input id="remAt" class="input bare" type="datetime-local" step="60" />
+                        <button class="btn primary small" id="remAdd">添加</button>
+                      </div>
+                    </div>
+                    <div class="list compact" id="remList"></div>
+                  </div></div>
+                </div>
+
+                <div class="tool-card" data-tool="countdown">
+                  <button class="tc-head" data-tool-toggle="countdown">
+                    <span class="tc-icon"><svg class="ic"><use href="#i-calendar"/></svg></span>
+                    <span class="tc-title">倒数日</span>
+                    <span class="tc-sum" id="cdSub">发薪日 / 纪念日</span>
+                    <svg class="ic tc-chev"><use href="#i-chev"/></svg>
+                  </button>
+                  <div class="tc-body"><div class="tc-inner">
+                    <div class="cd-row">
+                      <span class="cd-label">每月发薪日</span>
+                      <select class="select" id="cdPayday">
+                        <option value="0">未设置</option>
+                      </select>
+                      <span class="cd-next" id="cdPaydayNext"></span>
+                    </div>
+                    <div class="cd-row cd-head">
+                      <span class="cd-label">重要日子（生日 / 纪念日）</span>
+                    </div>
+                    <div class="cd-form">
+                      <input id="cdName" class="input bare" type="text" placeholder="名字，如「老婆生日」" />
+                      <input id="cdDate" class="input bare" type="date" />
+                      <select class="select" id="cdRepeat">
+                        <option value="yearly">每年</option>
+                        <option value="once">只这一次</option>
+                      </select>
+                      <button class="btn primary small" id="cdAdd">加</button>
+                    </div>
+                    <div class="list compact" id="cdList"></div>
+                  </div></div>
+                </div>
+
+                <div class="tool-card" data-tool="dnd">
+                  <button class="tc-head" data-tool-toggle="dnd">
+                    <span class="tc-icon"><svg class="ic"><use href="#i-moon"/></svg></span>
+                    <span class="tc-title">免打扰</span>
+                    <span class="tc-sum" id="dndState">未开启</span>
+                    <svg class="ic tc-chev"><use href="#i-chev"/></svg>
+                  </button>
+                  <div class="tc-body"><div class="tc-inner">
+                    <label class="setting flush">
+                      <span class="setting-main"><b>开启免打扰</b><i>来消息只在岛上改数字，不弹提示条</i></span>
+                      <input type="checkbox" class="switch" id="setDnd" />
+                    </label>
+                    <div class="chips" id="dndChips">
+                      <button class="chip" data-dnd="15">15 分钟</button>
+                      <button class="chip" data-dnd="30">30 分钟</button>
+                      <button class="chip" data-dnd="60">1 小时</button>
+                      <button class="chip" data-dnd="120">2 小时</button>
+                      <button class="chip" data-dnd="0">直到我关掉</button>
+                    </div>
+                    <div class="hint" id="dndHint">免打扰期间：新邮件、新小纸条只累加未读数，岛的提示条不会展开。</div>
+                  </div></div>
+                </div>
+
+                <div class="tool-card" data-tool="dev">
+                  <button class="tc-head" data-tool-toggle="dev">
+                    <span class="tc-icon"><svg class="ic"><use href="#i-code"/></svg></span>
+                    <span class="tc-title">开发小工具</span>
+                    <span class="tc-sum" id="devSub">时间戳 · Base64 · JSON</span>
+                    <svg class="ic tc-chev"><use href="#i-chev"/></svg>
+                  </button>
+                  <div class="tc-body"><div class="tc-inner">
+                    <div class="dv-tabs" id="dvTabs">
+                      <button class="dv-tab active" data-dv="ts">时间戳</button>
+                      <button class="dv-tab" data-dv="b64">Base64</button>
+                      <button class="dv-tab" data-dv="json">JSON</button>
+                      <button class="dv-tab" data-dv="uuid">UUID</button>
+                      <button class="dv-tab" data-dv="hash">哈希</button>
+                      <button class="dv-tab" data-dv="rand">随机</button>
+                    </div>
+                    <textarea class="dv-in" id="dvIn" spellcheck="false" placeholder="粘一段文字、时间戳或 JSON…"></textarea>
+                    <div class="dv-acts" id="dvActs"></div>
+                    <div class="dv-out hidden" id="dvOutWrap">
+                      <textarea class="dv-out" id="dvOut" readonly spellcheck="false"></textarea>
+                      <button class="mini dv-copy" data-act="dv-copy">复制</button>
+                    </div>
+                  </div></div>
+                </div>
+
+                <div class="tool-card" data-tool="mail">
+                  <button class="tc-head" data-tool-toggle="mail">
+                    <span class="tc-icon"><svg class="ic"><use href="#i-mail" /></svg></span>
+                    <span class="tc-title">邮件账户</span>
+                    <span class="tc-sum" id="mailCardSub">未连接</span>
+                    <svg class="ic tc-chev"><use href="#i-chev" /></svg>
+                  </button>
+                  <div class="tc-body"><div class="tc-inner">
+                  <label class="setting flush">
+                    <span class="setting-main"><b>检查邮件间隔</b><i>太频繁可能被邮箱服务器限流</i></span>
+                    <select class="select" id="setPoll">
+                      <option value="1">1 分钟</option>
+                      <option value="3">3 分钟</option>
+                      <option value="5">5 分钟</option>
+                      <option value="10">10 分钟</option>
+                      <option value="30">30 分钟</option>
+                    </select>
+                  </label>
+                  <div class="acc-list" id="accList"></div>
+                  <div class="row-actions acc-add">
+                    <button class="btn ghost small" id="mailAdd">＋ 添加邮箱</button>
+                    <span class="group-sub" id="mailAddHint">可以登录多个邮箱，邮件页可切换只看其中一个</span>
+                  </div>
+                  <div class="providers" id="providers">
+                    <button class="chip" data-provider="qq">QQ 邮箱</button>
+                    <button class="chip" data-provider="163">163</button>
+                    <button class="chip" data-provider="gmail">Gmail</button>
+                    <button class="chip" data-provider="outlook">Outlook</button>
+                    <button class="chip" data-provider="custom">自定义</button>
+                  </div>
+                  <div class="form">
+                    <label class="field"><span>邮箱地址</span><input id="mUser" type="text" placeholder="you@qq.com" spellcheck="false" /></label>
+                    <label class="field"><span>授权码 / 密码</span><input id="mPass" type="password" placeholder="QQ/163 请用授权码" /></label>
+                    <label class="field"><span>IMAP 服务器</span><input id="mHost" type="text" placeholder="imap.qq.com" spellcheck="false" /></label>
+                    <label class="field small"><span>端口</span><input id="mPort" type="text" value="993" /></label>
+                  </div>
+                  <div class="hint" id="mailHint">提示：QQ、163 邮箱需要在网页端开启 IMAP 并使用「授权码」。</div>
+                  <div class="row-actions">
+                    <button class="btn ghost small" id="mailTest">测试连接</button>
+                    <button class="btn primary small" id="mailSave">保存并同步</button>
+                    <button class="btn ghost small danger hidden" id="mailDisconnect">断开</button>
+                  </div>
+                  <div class="alert hidden" id="mailTestMsg"></div>
+
+                  <div class="oauth-box hidden" id="msOauthBox">
+                    <div class="oauth-head">
+                      <span class="oauth-title"><svg class="ic"><use href="#i-shield" /></svg>微软邮箱要用账户授权登录</span>
+                      <button class="btn ghost small" id="msGuideToggle">开通指引</button>
+                    </div>
+                    <p class="oauth-sub">Outlook / Hotmail 从 2024 年 9 月起不再接受密码或授权码登录 IMAP，必须用微软账户授权（OAuth）。</p>
+                    <ol class="oauth-guide hidden" id="msGuide">
+                      <li>打开 <b>portal.azure.com</b> 并用微软账户登录 → 搜索「<b>Microsoft Entra ID</b>」→ 左侧「<b>应用注册</b>」→「<b>新注册</b>」。</li>
+                      <li>名称随便填（例如 <b>Qing Tools</b>）；「受支持的账户类型」选「<b>任何组织目录中的账户和个人 Microsoft 账户</b>」；重定向 URL 留空 →「注册」。</li>
+                      <li>在应用概览页复制「<b>应用程序(客户端) ID</b>」，粘贴到下面输入框。整台机器只需做一次，之后所有装这个软件的人共用同一个 ID。</li>
+                      <li>左侧「<b>身份验证</b>」→ 拉到最下面「<b>允许公共客户端流</b>」选「<b>是</b>」→「保存」。</li>
+                      <li>左侧「<b>API 权限</b>」→「添加权限」→ 选「<b>Office 365 Exchange Online</b>」→「委托的权限」→ 勾选 <b>IMAP.AccessAsUser.All</b> →「添加权限」。</li>
+                      <li>回到这里点「用微软账户登录」，把弹出的代码填进网页即可，之后会自动同步。</li>
+                    </ol>
+                    <div class="oauth-row">
+                      <input id="msClientId" class="mono" type="text" placeholder="应用(客户端) ID（留空则用内置）" spellcheck="false" />
+                      <button class="btn primary small" id="msLogin">用微软账户登录</button>
+                      <button class="btn ghost small" id="msPortal">打开 Azure</button>
+                    </div>
+                    <div class="oauth-code hidden" id="msCode">
+                      <div class="oauth-code-main">
+                        <b id="msCodeVal">--------</b>
+                        <span id="msCodeState">等待你在网页里输入…</span>
+                      </div>
+                      <div class="oauth-code-actions">
+                        <button class="btn ghost small" id="msCodeCopy">复制代码</button>
+                        <button class="btn ghost small" id="msCodeOpen">打开登录页</button>
+                        <button class="btn ghost small" id="msCodeCancel">取消</button>
+                      </div>
+                    </div>
+                  </div>
+                  </div></div>
+                </div>
+
+                <div class="tool-card" data-tool="sms">
+                  <button class="tc-head" data-tool-toggle="sms">
+                    <span class="tc-icon"><svg class="ic"><use href="#i-shield" /></svg></span>
+                    <span class="tc-title">手机验证码同步</span>
+                    <span class="tc-sum" id="smsCardSub">检测中…</span>
+                    <svg class="ic tc-chev"><use href="#i-chev" /></svg>
+                  </button>
+                  <div class="tc-body"><div class="tc-inner">
+                    <div class="card-note" id="smsSub"></div>
+                    <div class="setting flush">
+                      <span class="setting-main"><b>短信验证码</b><i>手机收到验证码会弹到岛上，点一下就能复制</i></span>
+                      <span class="update-actions"><button class="btn ghost small" id="smsCopy">手机端配置</button></span>
+                    </div>
+                    <div class="setting flush">
+                      <span class="setting-main"><b>手机密钥</b><i>每台手机一把，只属于这台电脑：别人电脑上看不到你的手机，你也看不到别人的</i></span>
+                      <span class="update-actions">
+                        <input class="input sms-key" id="smsDevName" placeholder="设备名，如 小米" spellcheck="false" />
+                        <button class="btn ghost small" id="smsDevAdd">新建密钥</button>
+                      </span>
+                    </div>
+                    <div class="sms-devs" id="smsDevList"></div>
+                    <div class="setting flush">
+                      <span class="setting-main"><b>服务器主密钥</b><i>24 位，只在第一次绑定这台电脑时填一次；绑定后本机用自己的身份，和别人互不可见</i></span>
+                      <span class="update-actions">
+                        <input class="input sms-key" id="smsRead" placeholder="粘贴服务器主密钥" spellcheck="false" />
+                        <button class="btn ghost small" id="smsReadSave">绑定</button>
+                        <button class="btn ghost small" id="smsRebind">重新绑定</button>
+                      </span>
+                    </div>
+                  </div></div>
+                </div>
+
+                <div class="tool-card" data-tool="sys">
+                  <button class="tc-head" data-tool-toggle="sys">
+                    <span class="tc-icon"><svg class="ic"><use href="#i-cpu"/></svg></span>
+                    <span class="tc-title">系统</span>
+                    <span class="tc-sum" id="sysSub">每 3 秒刷新</span>
+                    <svg class="ic tc-chev"><use href="#i-chev"/></svg>
+                  </button>
+                  <div class="tc-body"><div class="tc-inner">
+                    <div class="sys-bars" id="sysRows"></div>
+                  </div></div>
+                </div>
+
+              </div>
+            </section>
+
+            <!-- 设置 -->
+            <section class="pane" data-pane="settings">
+              <div class="pane-scroll">
+                <div class="group">
+                  <div class="group-title">通用</div>
+                  <label class="setting">
+                    <span class="setting-main"><b>开机自动启动</b><i>登录 Windows 后自动在后台运行</i></span>
+                    <input type="checkbox" class="switch" id="setAutoStart" />
+                  </label>
+                  <label class="setting">
+                    <span class="setting-main"><b>新邮件通知</b><i>收到新邮件时弹出系统通知</i></span>
+                    <input type="checkbox" class="switch" id="setNotify" />
+                  </label>
+                  <label class="setting">
+                    <span class="setting-main"><b>记录剪贴板</b><i>复制内容自动收录（仅保存在本机）</i></span>
+                    <input type="checkbox" class="switch" id="setClip" />
+                  </label>
+                  <div class="setting">
+                    <span class="setting-main"><b>天气城市</b><i id="wxSub">还没获取</i></span>
+                    <div class="wx-row">
+                      <input id="wxCity" class="input bare" type="text" placeholder="留空 = 按 IP 自动" />
+                      <button class="mini" id="wxSave">保存</button>
+                    </div>
+                  </div>
+                  <div class="setting">
+                    <span class="setting-main"><b>基调</b><i>深色胶囊 / 浅色玻璃</i></span>
+                    <div class="seg" id="themeSeg">
+                      <button class="seg-btn" data-theme="dark">深色</button>
+                      <button class="seg-btn" data-theme="light">浅色</button>
+                    </div>
+                  </div>
+                  <div class="setting">
+                    <span class="setting-main"><b>外观样式</b><i>灵动岛：悬浮在顶部 / 刘海：贴着屏幕上边，平时缩成一条</i></span>
+                    <div class="seg" id="styleSeg">
+                      <button class="seg-btn" data-style="island">灵动岛</button>
+                      <button class="seg-btn" data-style="notch">刘海</button>
+                    </div>
+                  </div>
+                  <div class="setting">
+                    <span class="setting-main"><b>主题色</b><i>影响高亮与徽标颜色</i></span>
+                    <div class="swatches" id="accentRow">
+                      <button class="swatch" data-accent="violet" style="--c: #8f7bff"></button>
+                      <button class="swatch" data-accent="teal" style="--c: #35d7b0"></button>
+                      <button class="swatch" data-accent="amber" style="--c: #ffb547"></button>
+                      <button class="swatch" data-accent="rose" style="--c: #ff6f91"></button>
+                      <label class="swatch custom" title="自定义颜色">
+                        <input type="color" id="accentCustom" value="#8f7bff" />
+                      </label>
+                    </div>
+                  </div>
+                  <div class="setting">
+                    <span class="setting-main"><b>工具条位置</b><i>按住顶部药丸左右拖动即可移动</i></span>
+                    <button class="btn ghost small" id="islandRecenter">回到正中</button>
+                  </div>
+                  <div class="setting">
+                    <span class="setting-main">
+                      <b>文件搜索（Everything）</b>
+                      <i id="evSub">检测中…</i>
+                    </span>
+                    <span class="update-actions">
+                      <button class="btn ghost small" id="evConnect">连接</button>
+                      <button class="btn ghost small hidden" id="evInstall">安装 Everything</button>
+                    </span>
+                  </div>
+                  <div class="setting">
+                    <span class="setting-main">
+                      <b>软件更新</b>
+                      <i id="updateSub">当前版本 <span id="updateVer">-</span> · 有新版本可以直接下载升级</i>
+                    </span>
+                    <span class="update-actions">
+                      <button class="btn ghost small" id="updateCheck">检查更新</button>
+                      <button class="btn primary small hidden" id="updateInstall">下载并安装</button>
+                    </span>
+                  </div>
+                </div>
+
+                <div class="group">
+                  <div class="group-title">关于</div>
+                  <div class="about">
+                    <p>快捷键：<b>Ctrl+Alt+Space</b> 展开 / 收起 · <b>Ctrl+Alt+D</b> 投递文件 · <b>Ctrl+Alt+H</b> 隐藏</p>
+                    <p>版本 <span id="appVersion">1.0.0</span> · 数据目录 <a href="#" id="openData">打开</a></p>
+                    <div class="row-actions">
+                      <button class="btn ghost small" id="btnQuit">退出程序</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </main>
+        </div>
+
+        <!-- ================= 频道即将解散 ================= -->
+        <div class="view view-warn" id="viewWarn">
+          <div class="warn-ic"><svg class="ic"><use href="#i-alert" /></svg></div>
+          <div class="warn-main">
+            <div class="warn-top"><b id="warnTitle">这个频道要被解散了</b><span id="warnCount">3 天</span></div>
+            <div class="warn-sub" id="warnSub">已经 30 天没人说话了</div>
+            <div class="warn-tip" id="warnTip">只要有人发一句话，倒计时立刻取消；否则到期会把群里的消息和图片全部清掉。</div>
+          </div>
+          <button class="btn ghost small warn-ok" data-act="warn-close">知道了</button>
+        </div>
+
+        <!-- ================= 通知条 ================= -->
+        <div class="view view-peek" id="viewPeek">
+          <div class="peek-ic" id="peekIc"><svg class="ic"><use href="#i-mail" /></svg></div>
+          <div class="peek-main">
+            <div class="peek-top"><b id="peekTitle">新邮件</b><span id="peekTime"></span></div>
+            <div class="peek-sub" id="peekSub">来自某人</div>
+          </div>
+          <div class="peek-thumb hidden" id="peekThumb"></div>
+          <span class="peek-hint" id="peekHint">点击复制</span>
+          <div class="peek-bar"><i id="peekBar"></i></div>
+        </div>
+      </div>
+
+      <div id="toast" class="toast"></div>
+
+      <!-- 命令面板：Ctrl+K 呼出，输入即筛选 -->
+      <div id="palette" class="palette hidden">
+        <div class="pal-box">
+          <div class="pal-head">
+            <svg class="ic"><use href="#i-search" /></svg>
+            <input id="palInput" class="pal-input" type="text" placeholder="输入命令：邮件 / 便笺 / 计时 25 / 截图 …" />
+            <kbd class="pal-esc">Esc</kbd>
+          </div>
+          <div class="pal-list" id="palList"></div>
+        </div>
+      </div>
+
+      <!-- 聊天图片右键菜单：放在岛外面，否则会被 .island 的 transform/overflow 裁掉 -->
+      <div class="msg-menu hidden" id="msgMenu">
+        <button class="mini" data-act="msg-reply">回复这条</button>
+        <button class="mini" data-act="msg-copy">复制选中文字</button>
+        <button class="mini" data-act="msg-copy-all">复制整条消息</button>
+        <button class="mini" data-act="msg-open-link">打开里面的链接</button>
+        <button class="mini" data-act="msg-view">查看大图</button>
+        <button class="mini" data-act="msg-fav">添加到表情包</button>
+      </div>
+      <div class="msg-menu hidden" id="noteMenu">
+        <button class="mini" data-act="note-menu-edit">编辑内容</button>
+        <button class="mini" data-act="note-menu-paste">粘贴到这里</button>
+        <button class="mini" data-act="note-menu-copy">复制</button>
+        <button class="mini" data-act="note-menu-chat">发送到小纸条</button>
+        <button class="mini" data-act="note-menu-pin">钉到桌面</button>
+        <button class="mini danger" data-act="note-menu-del">删除</button>
+      </div>
+      <div class="msg-menu hidden" id="editMenu">
+        <button class="mini" data-act="edit-cut">剪切</button>
+        <button class="mini" data-act="edit-copy">复制</button>
+        <button class="mini" data-act="edit-paste">粘贴</button>
+        <button class="mini" data-act="edit-paste-img">粘贴图片</button>
+        <button class="mini" data-act="edit-selectall">全选</button>
+      </div>
+
+      <!-- 文件搜索结果右键菜单：同样放在岛外面 -->
+      <div class="fs-menu hidden" id="fsMenu">
+        <button class="fs-item" data-fs-act="stash"><svg class="ic"><use href="#i-files" /></svg>发送到文件区</button>
+        <button class="fs-item" data-fs-act="all"><svg class="ic"><use href="#i-check" /></svg>全选</button>
+        <button class="fs-item" data-fs-act="none"><svg class="ic"><use href="#i-x" /></svg>取消选择</button>
+      </div>
+
+      <!-- 图片预览：整屏遮罩 -->
+      <div id="lightbox" class="lightbox hidden">
+        <div class="lb-bar">
+          <span class="lb-name" id="lbName">图片</span>
+          <span class="lb-zoom" id="lbZoom">100%</span>
+          <div class="lb-tools">
+            <button class="lb-btn" data-act="lb-fav" title="添加到表情包">
+              <svg class="ic"><use href="#i-smile" /></svg>
+            </button>
+            <button class="lb-btn" data-act="lb-copy" title="复制图片">
+              <svg class="ic"><use href="#i-copy" /></svg>
+            </button>
+            <button class="lb-btn" data-act="lb-save" title="另存为…">
+              <svg class="ic"><use href="#i-save" /></svg>
+            </button>
+            <button class="lb-btn" data-act="lb-close" title="关闭（Esc）">
+              <svg class="ic"><use href="#i-x" /></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="lb-stage" id="lbStage">
+          <img id="lbImg" alt="图片预览" draggable="false" />
+        </div>
+        <div class="lb-hint">右键可复制 / 另存为 · Ctrl+C 复制 · Ctrl+S 另存 · Esc 关闭</div>
+        <div class="lb-menu hidden" id="lbMenu">
+          <button class="lb-item" data-act="lb-copy"><svg class="ic"><use href="#i-copy" /></svg>复制图片</button>
+          <button class="lb-item" data-act="lb-save"><svg class="ic"><use href="#i-save" /></svg>另存为…</button>
+          <button class="lb-item" data-act="lb-close"><svg class="ic"><use href="#i-x" /></svg>关闭</button>
+        </div>
+      </div>
+      <div id="dropOverlay" class="drop-overlay hidden">
+        <div class="drop-overlay-inner">
+          <svg class="ic"><use href="#i-drop" /></svg>
+          <b>松手即可存入文件区</b>
+          <span>文件 / 文件夹</span>
+        </div>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

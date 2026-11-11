@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data: islandclip: https:; style-src 'self' 'unsafe-inline'; script-src 'self'"
+    />
+    <title>看大图</title>
+    <link rel="stylesheet" href="viewer.css" />
+  </head>
+  <body>
+    <div class="win">
+      <header class="bar">
+        <span class="name" id="name">图片</span>
+        <span class="zoom" id="zoom">100%</span>
+        <button class="x" id="btnClose" title="关闭（Esc）">
+          <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></svg>
+        </button>
+      </header>
+      <div class="stage" id="stage">
+        <img id="img" alt="图片" draggable="false" />
+      </div>
+      <div class="hint">滚轮缩放 · 拖动平移 · 双击还原 · Esc 关闭</div>
+    </div>
+    <script src="viewer.js"></script>
+  </body>
+</html>

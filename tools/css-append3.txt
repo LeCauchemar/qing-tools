@@ -1,0 +1,78 @@
+﻿
+/* ============================================================
+   扁平化：去掉高光 / 内阴影 / 发光 / 毛玻璃，只留纯色 + 细描边
+   （深色浅色统一）
+   ============================================================ */
+
+#stage .island {
+  box-shadow: var(--isl-shadow) !important;
+}
+
+.surface::after,
+.sheen {
+  display: none !important;
+}
+
+.row,
+.card,
+.quick,
+.tab,
+.btn,
+.icon-btn,
+.chip,
+.tag,
+.field,
+.seg,
+.glider,
+.toast,
+.emoji-pop,
+.msg-menu,
+.pick-pop,
+.acc-row,
+.drop-half,
+.fs-results,
+.mini,
+.lb-btn,
+.lb-menu,
+.code-chip,
+.room-chip,
+.pending-bar,
+.badge,
+.qbadge,
+.dropzone,
+.mr-body.html,
+.timer-row,
+.hms-cell,
+.num-input,
+.mf-chip,
+.acc-dot,
+.sat,
+.swatch {
+  box-shadow: none !important;
+}
+
+.toast,
+.emoji-pop,
+.msg-menu,
+.pick-pop,
+.lb-menu,
+.lb-stage img,
+.fs-head,
+.pick-item,
+.dropzone,
+.surface {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* 深色下也用纯色底，别再有半透明叠加的高光感 */
+.toast {
+  background: var(--toast-bg, #1c2030) !important;
+}
+
+.emoji-pop,
+.msg-menu,
+.pick-pop,
+.lb-menu {
+  background: var(--pop-bg, #1c2030) !important;
+}

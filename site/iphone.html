@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>iPhone 短信验证码接入 · Qing Tools</title>
+<meta name="description" content="用 iPhone 自带的快捷指令，把收到的短信自动转发到电脑上的 Qing Tools：验证码进剪贴板、岛弹一条通知，不用再低头看手机。">
+<meta name="theme-color" content="#05060b">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css?v=12">
+</head>
+<body>
+<div class="bg" aria-hidden="true">
+  <div class="glow g1"></div><div class="glow g2"></div><div class="glow g3"></div>
+  <div class="grain"></div>
+</div>
+
+<header class="nav" id="nav">
+  <a class="brand" href="index.html">
+    <span class="mark" aria-hidden="true"><i></i><b></b></span>
+    <span class="brand-name">Qing Tools</span>
+  </a>
+  <nav class="nav-links" aria-label="页面导航">
+    <a href="index.html#demo">演示</a>
+    <a href="index.html#features">功能</a>
+    <a href="index.html#how">用法</a>
+    <a href="index.html#download">下载</a>
+    <a href="android.html">安卓接入</a>
+    <a href="changelog.html">开发记录</a>
+  </nav>
+  <div class="nav-right">
+    <button class="icon-btn" id="themeBtn" title="切换明暗" aria-label="切换明暗">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path class="sun" d="M12 4v2m0 12v2m8-8h-2M6 12H4m13.7-5.7-1.4 1.4M7.7 16.3l-1.4 1.4m11.4 0-1.4-1.4M7.7 7.7 6.3 6.3"/><circle cx="12" cy="12" r="3.6"/></svg>
+    </button>
+    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.10.0-setup.exe">下载</a>
+  </div>
+</header>
+
+<main>
+  <section class="cl-hero">
+    <p class="kicker">手机接入 · iPhone</p>
+    <h1>让 iPhone 把短信<br><span class="grad">自己寄到电脑上</span></h1>
+    <p class="lede">
+      不用装任何 App，也不用越狱：iPhone 自带的「快捷指令」里有一个「我收到信息时」的自动化触发器，
+      它能把短信正文原样交给下一步。配一次，以后验证码到手机的那一刻，电脑上的岛就会弹出来，验证码已经躺在剪贴板里了。
+    </p>
+    <div class="cl-stats">
+      <div><b>0</b><span>个第三方 App</span></div>
+      <div><b>3</b><span>分钟配完</span></div>
+      <div><b>1</b><span>个自动化动作</span></div>
+      <div><b>可撤销</b><span>每台手机一把密钥</span></div>
+    </div>
+  </section>
+
+  <section class="cl-main">
+    <article class="cl-item v1">
+      <div class="cl-side"><b>第 1 步</b><i>电脑上</i></div>
+      <div class="cl-body">
+        <h3>先给这台手机发一把密钥</h3>
+        <ul class="cl-list">
+          <li>打开岛 → <b>小工具</b> → <b>手机验证码同步</b>：填个设备名（比如「我的 iPhone」），点「<b>新建密钥</b>」。</li>
+          <li>建好后配置会<b>自动复制</b>到剪贴板，里面有一段 POST 地址和一把只属于这台手机的密钥（形如 <code>f3a91c2e7b40…</code>）。设备列表里点「复制」可以再来一次。</li>
+          <li>这把密钥随时能单独撤销，撤销后别的手机不受影响；同一张卡片上还会显示每台手机「最近上报」的时间，配好之后回来确认一眼就知道通不通。</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="cl-item v2">
+      <div class="cl-side"><b>第 2 步</b><i>iPhone 上</i></div>
+      <div class="cl-body">
+        <h3>新建一个「收到信息」自动化</h3>
+        <ul class="cl-list">
+          <li>打开<b>快捷指令</b> App → 底部<b>自动化</b> → 右上角 <b>+</b>。</li>
+          <li>选「<b>我收到符合以下条件的信息时</b>」（英文是 <i>When I Receive a Message</i>）。这一步是关键：只有这个触发器能把短信正文传进来，「信息」里的普通操作拿不到正文。</li>
+          <li>「信息包含」可以留空表示全部短信，也可以填 <code>验证码</code>、<code>校验码</code> 之类只挑有用的转发。发件人留空即可。</li>
+          <li>把「运行前询问」关掉，选择<b>立即运行</b>。否则每次都要你先点一下确认，等于没用。</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="cl-item v3">
+      <div class="cl-side"><b>第 3 步</b><i>拼动作</i></div>
+      <div class="cl-body">
+        <h3>加一个「获取 URL 内容」，POST 过去</h3>
+        <ul class="cl-list">
+          <li>动作搜索「<b>获取 URL 内容</b>」（Get Contents of URL）。</li>
+          <li>URL 填：<code>https://chat.ccyyqq.com/island/api/hook/sms?token=你的手机密钥</code>。注意<b>密钥放在网址参数里</b>，不要额外套一层「URL 编码」——那会把整条网址当成文字编码掉，服务端只看到一串乱码。</li>
+          <li>点开「显示更多」→ 方法选 <b>POST</b> → 请求体选 <b>JSON</b>，加两个文本字段：
+            <pre class="g-code">text   →  快捷指令输入      （就是短信正文，必填）
+from   →  信息的发件人       （可选，用来显示是谁发的）</pre>
+          </li>
+          <li>「快捷指令输入」在变量面板的「快捷指令输入」分类里；如果找不到，也可以先加一个「获取快捷指令输入」动作再引用它。</li>
+          <li>保存。第一次运行时 iOS 会问「是否允许访问 chat.ccyyqq.com」，选<b>允许</b>（并在设置里允许它访问网络），以后就不再问了。</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="cl-item v4">
+      <div class="cl-side"><b>第 4 步</b><i>验证</i></div>
+      <div class="cl-body">
+        <h3>用另一台手机发一条试试</h3>
+        <ul class="cl-list">
+          <li>给自己发一条带 6 位数字的短信。几秒内电脑上的岛应该弹出一条通知条，验证码已经复制好，点一下就能粘。</li>
+          <li>没反应就先看电脑端「手机验证码同步」里那台手机的「最近上报」时间有没有变——变了说明网络通了，是抽取规则没匹配上；没变说明自动化没跑，回去看第 2 步的「立即运行」有没有开。</li>
+          <li>验证码抽取只认 4–8 位连续数字，并优先取靠近「验证码 / 校验码 / 动态码 / 一次性代码」这些词的那一串；纯广告短信即使转发了也不会弹。</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="cl-item v5">
+      <div class="cl-side"><b>补充</b><i>安全</i></div>
+      <div class="cl-body">
+        <h3>它到底传了什么出去</h3>
+        <ul class="cl-list">
+          <li>只传短信正文和（可选的）发件人，走 HTTPS，落到你自己的服务器上；不传通讯录、不传相册、不传位置。</li>
+          <li>服务端按「电脑身份」隔离：别人的手机密钥推上来的短信，不会出现在你的岛上。</li>
+          <li>想彻底停掉：电脑端撤销这台手机的密钥，再在 iPhone 的「自动化」里把那条关掉，两边任意一边断开都不会再收到。</li>
+          <li>安卓手机不用这么绕：直接装 APK 就行，见 <a href="android.html">安卓接入</a>。</li>
+        </ul>
+      </div>
+    </article>
+  </section>
+
+  <section class="cl-notes">
+    <div class="sec-head">
+      <p class="kicker">下一步</p>
+      <h2>配好了，回去看它在你屏幕顶上动</h2>
+    </div>
+    <div class="cl-cards">
+      <article class="card"><h4>下载 Qing Tools</h4><p>Windows 10 / 11，装完自动开机启动。100 MB 左右，没签名，第一次运行点「仍要运行」。</p><p><a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.10.0-setup.exe">下载安装包</a></p></article>
+      <article class="card"><h4>安卓手机</h4><p>APK 直接转发短信，不用快捷指令。装完填服务器地址和手机密钥即可。</p><p><a class="btn btn-ghost btn-sm" href="android.html">看安卓接入</a></p></article>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <div class="foot-left">
+      <span class="mark small" aria-hidden="true"><i></i><b></b></span>
+      <span>Qing Tools <span class="dim" id="footVer">v1.10.0</span></span>
+    </div>
+    <div class="foot-right">
+      <a href="index.html">首页</a>
+      <a href="android.html">安卓接入</a>
+      <a href="changelog.html">开发记录</a>
+      <a href="https://chat.ccyyqq.com/island/" target="_blank" rel="noopener">小纸条网页版</a>
+    </div>
+  </footer>
+</main>
+
+<script src="assets/site.js?v=9" defer></script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+﻿
+/* ============================================================
+   文件区：本地搜索
+   ============================================================ */
+
+.file-search {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 9px;
+  height: 33px;
+  margin-bottom: 8px;
+  border-radius: calc(var(--isl-r, 18px) / 2 + 6px);
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+  flex: none;
+}
+
+.file-search > .ic {
+  width: 14px;
+  height: 14px;
+  color: var(--dim);
+  flex: none;
+}
+
+.file-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 12.5px;
+}
+
+.file-search input::placeholder {
+  color: var(--dim);
+}
+
+.fs-mode {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  flex: none;
+}
+
+.fs-m {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.fs-m.on {
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
+  color: var(--ink);
+}
+
+.fs-results {
+  flex: none;
+  max-height: 44%;
+  overflow-y: auto;
+  margin-bottom: 8px;
+  border-radius: 11px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+}
+
+.fs-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  position: sticky;
+  top: 0;
+  backdrop-filter: blur(8px);
+  background: color-mix(in srgb, var(--panel, #12141d) 82%, transparent);
+}
+
+.fs-info {
+  font-size: 11.5px;
+  color: var(--muted);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fs-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  padding: 6px 9px;
+  cursor: pointer;
+  border-top: 1px solid color-mix(in srgb, var(--ink) 5%, transparent);
+}
+
+.fs-row:hover {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+.fs-row.sel {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.fs-name {
+  font-size: 12.5px;
+  color: var(--ink);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fs-meta {
+  font-size: 10.5px;
+  color: var(--dim);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fs-line {
+  flex-basis: 100%;
+  font-size: 10.5px;
+  color: var(--muted);
+  font-family: var(--mono, ui-monospace, monospace);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

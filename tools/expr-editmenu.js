@@ -1,0 +1,38 @@
+(async () => {
+  const log = [];
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const made = await api.notes.add('MENU-T1 第一行');
+  const id = made && made.note ? made.note.id : made && made.id;
+  log.push('id ' + id);
+  setTab('notes');
+  setMode('panel', true);
+  S.noteOpen = id;
+  S.noteEdit = id;
+  renderNotes();
+  await sleep(500);
+  const box = document.querySelector('.note-rich[data-id="' + id + '"]');
+  log.push('box ' + !!box);
+  if (!box) return log;
+  box.focus();
+  const r = document.createRange();
+  r.selectNodeContents(box);
+  r.collapse(false);
+  const sel = getSelection();
+  sel.removeAllRanges();
+  sel.addRange(r);
+  document.execCommand('insertText', false, '-TAIL');
+  await sleep(60);
+  const rect = box.getBoundingClientRect();
+  box.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: rect.left + 30, clientY: rect.top + 12 }));
+  await sleep(120);
+  const menu = document.querySelector('#editMenu');
+  log.push('menuOpen ' + (menu && !menu.classList.contains('hidden')) + ' target ' + S.editTarget);
+  log.push('acts ' + [...menu.querySelectorAll('[data-act]')].map((b) => b.dataset.act).join(','));
+  await api.clips.writeText('PASTED-XYZ');
+  menu.querySelector('[data-act="edit-paste"]').click();
+  await sleep(500);
+  const cur = (S.data.notes || []).find((n) => n.id === id);
+  log.push('text ' + JSON.stringify(cur ? cur.text : null));
+  log.push('notes ' + (S.data.notes || []).length);
+  return log;
+})()

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: islandclip:; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+    <title>便条</title>
+    <link rel="stylesheet" href="sticky.css" />
+  </head>
+  <body>
+    <div class="paper" id="paper">
+      <div class="tape"></div>
+      <div class="grip" id="grip"></div>
+      <div class="tools">
+        <button class="tool" id="btnFontMinus" title="缩小字体（Ctrl + 滚轮也可以）">A−</button>
+        <button class="tool" id="btnFontPlus" title="放大字体（Ctrl + 滚轮也可以）">A+</button>
+        <button class="tool" id="btnUnpin" title="取消钉在桌面">
+          <svg viewBox="0 0 24 24"><path d="M12 17v5" /><path d="M9 3h6l-1 6 3 3v2H7v-2l3-3z" /></svg>
+        </button>
+        <button class="tool" id="btnDelete" title="删除这张便条">
+          <svg viewBox="0 0 24 24"><path d="M4 7h16" /><path d="M9 7V5h6v2" /><path d="M6 7l1 13h10l1-13" /></svg>
+        </button>
+      </div>
+      <div class="note" id="note" contenteditable="true" spellcheck="false" data-placeholder="写点什么…"></div>
+      <div class="foot">
+        <span class="dot"></span>
+        <span id="stamp">已保存</span>
+      </div>
+      <div class="rz rz-r" data-rz="x" title="拖动调整宽度"></div>
+      <div class="rz rz-b" data-rz="y" title="拖动调整高度"></div>
+      <div class="rz rz-br" data-rz="xy" title="拖动调整大小">
+        <i></i><i></i><i></i>
+      </div>
+    </div>
+    <script src="sticky.js"></script>
+  </body>
+</html>

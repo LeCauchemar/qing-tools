@@ -1,0 +1,169 @@
+/* 看大图窗口：暗底、圆角、可拖动标题栏 */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  font-family: "Microsoft YaHei", system-ui, sans-serif;
+  color: #f3f5fb;
+  user-select: none;
+}
+
+body {
+  padding: 10px; /* 给投影和圆角留边，避免贴着屏幕直角 */
+}
+
+.win {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(18, 21, 30, 0.97), rgba(11, 13, 19, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 20px 60px rgba(0, 0, 0, 0.55);
+  animation: winIn 200ms cubic-bezier(0.22, 1.1, 0.36, 1) both;
+}
+
+@keyframes winIn {
+  from {
+    opacity: 0;
+    transform: scale(0.975);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 8px 0 14px;
+  flex: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  -webkit-app-region: drag;
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  letter-spacing: 0.2px;
+  color: rgba(236, 240, 250, 0.72);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zoom {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(236, 240, 250, 0.45);
+  min-width: 44px;
+  text-align: right;
+}
+
+.x {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(236, 240, 250, 0.8);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.x:hover {
+  background: #ff5f57;
+  color: #fff;
+}
+
+.x svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  cursor: grab;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.05), transparent 60%),
+    repeating-conic-gradient(rgba(255, 255, 255, 0.028) 0% 25%, transparent 0% 50%) 0 0 / 18px 18px;
+}
+
+.stage.dragging {
+  cursor: grabbing;
+}
+
+.stage img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  max-width: none;
+  max-height: none;
+  transform-origin: 50% 50%;
+  transform: translate(-50%, -50%) translate(0px, 0px) scale(1);
+  will-change: transform;
+  -webkit-user-drag: none;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.stage.smooth img {
+  transition: transform 170ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.stage.loading::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  border-top-color: #7b8cff;
+  animation: spin 700ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.hint {
+  flex: none;
+  height: 30px;
+  line-height: 30px;
+  text-align: center;
+  font-size: 11px;
+  color: rgba(236, 240, 250, 0.34);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}

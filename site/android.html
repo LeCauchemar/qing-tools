@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>安卓短信转发 APK · Qing Tools</title>
+<meta name="description" content="下载安卓 APK：手机收到的验证码短信自动转到电脑上的 Qing Tools，验证码进剪贴板、岛弹一条通知。">
+<meta name="theme-color" content="#05060b">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css?v=12">
+</head>
+<body>
+<div class="bg" aria-hidden="true">
+  <div class="glow g1"></div><div class="glow g2"></div><div class="glow g3"></div>
+  <div class="grain"></div>
+</div>
+
+<header class="nav" id="nav">
+  <a class="brand" href="index.html">
+    <span class="mark" aria-hidden="true"><i></i><b></b></span>
+    <span class="brand-name">Qing Tools</span>
+  </a>
+  <nav class="nav-links" aria-label="页面导航">
+    <a href="index.html#demo">演示</a>
+    <a href="index.html#features">功能</a>
+    <a href="index.html#how">用法</a>
+    <a href="index.html#download">下载</a>
+    <a href="iphone.html">iPhone 接入</a>
+    <a href="changelog.html">开发记录</a>
+  </nav>
+  <div class="nav-right">
+    <button class="icon-btn" id="themeBtn" title="切换明暗" aria-label="切换明暗">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path class="sun" d="M12 4v2m0 12v2m8-8h-2M6 12H4m13.7-5.7-1.4 1.4M7.7 16.3l-1.4 1.4m11.4 0-1.4-1.4M7.7 7.7 6.3 6.3"/><circle cx="12" cy="12" r="3.6"/></svg>
+    </button>
+    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.10.0-setup.exe">下载</a>
+  </div>
+</header>
+
+<main>
+  <section class="cl-hero">
+    <p class="kicker">手机接入 · 安卓</p>
+    <h1>装一个小 App，<br><span class="grad">验证码就自己走到电脑上</span></h1>
+    <p class="lede">
+      安卓这边不用绕：APK 装好、地址和密钥填一次，之后手机收到的验证码短信会自动发到你自己的服务器，
+      电脑上的岛弹一条通知、验证码直接进剪贴板。App 只读取短信，不碰通讯录和相册。
+    </p>
+    <div class="cl-stats">
+      <div><b>1.4</b><span>APK 版本</span></div>
+      <div><b>&lt; 200 KB</b><span>安装包</span></div>
+      <div><b>Android 6+</b><span>系统要求</span></div>
+      <div><b>可撤销</b><span>每台手机一把密钥</span></div>
+    </div>
+    <div class="actions" style="margin-top:22px">
+      <a class="btn btn-primary btn-lg" href="https://qing.ccyyqq.com/island/update/QingToolsSMS.apk">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11m0 0 4-4m-4 4-4-4M4 18v1.5A1.5 1.5 0 0 0 5.5 21h13A1.5 1.5 0 0 0 20 19.5V18"/></svg>
+        下载 APK
+      </a>
+      <a class="btn btn-ghost btn-lg" href="iphone.html">我用的是 iPhone</a>
+    </div>
+    <p class="fineprint">下载由又拍云 CDN 加速；本站镜像 <a href="/download/QingToolsSMS.apk">/download/QingToolsSMS.apk</a>。APK 没有上架应用商店，安装时系统会提示「未知来源」。</p>
+  </section>
+
+  <section class="cl-main">
+    <article class="cl-item v1">
+      <div class="cl-side"><b>第 1 步</b><i>电脑上</i></div>
+      <div class="cl-body">
+        <h3>拿一份「手机端配置」</h3>
+        <ul class="cl-list">
+          <li>打开岛 → <b>小工具</b> → <b>手机验证码同步</b>：填个设备名（比如「小米 14」），点「<b>新建密钥</b>」。</li>
+          <li>建好后这段配置会<b>自动复制</b>到剪贴板，里面是接口地址加这把手机专属的密钥；设备列表里点「复制」也能再来一次。</li>
+          <li>密钥只对这台手机有效，列表里能单独「撤销」，撤销后这台手机立刻发不进来，别的设备不受影响。</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="cl-item v2">
+      <div class="cl-side"><b>第 2 步</b><i>手机上</i></div>
+      <div class="cl-body">
+        <h3>装 APK，粘贴配置</h3>
+        <ul class="cl-list">
+          <li>在手机上打开本页，点上面的<b>下载 APK</b>。浏览器提示「这类文件可能会损害你的设备」时选<b>仍要下载</b>。</li>
+          <li>点开安装包，允许「安装未知应用」→ 安装。它会申请<b>读取短信</b>权限，这是它唯一需要的敏感权限。</li>
+          <li>打开 App，点「<b>从剪贴板粘贴配置</b>」——地址和密钥会一起填好。手填也行，接口地址默认就是 <code>https://chat.ccyyqq.com/island/api/hook/sms</code>。</li>
+          <li>点「保存并测试」，状态栏出现「已连通」就说明电脑那边能收到了。</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="cl-item v3">
+      <div class="cl-side"><b>第 3 步</b><i>别被系统杀掉</i></div>
+      <div class="cl-body">
+        <h3>给后台留一条活路</h3>
+        <ul class="cl-list">
+          <li>App 用<b>前台服务</b>常驻（通知栏会有一条「正在监听短信」的常驻通知），这是安卓允许长期运行的正规方式，别把它划掉。</li>
+          <li><b>小米 / Redmi</b>：设置 → 应用设置 → 应用管理 → Qing Tools → 省电策略选「无限制」，并允许「自启动」。</li>
+          <li><b>OPPO / 一加 / realme</b>：设置 → 电池 → 应用耗电管理 → Qing Tools → 允许后台运行、允许自启动。</li>
+          <li><b>华为 / 荣耀</b>：设置 → 应用 → 应用启动管理 → 关掉「自动管理」，手动勾上「自启动 / 关联启动 / 后台活动」。</li>
+          <li>手机重启后 App 会自己恢复（有开机广播），不用手动打开。</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="cl-item v4">
+      <div class="cl-side"><b>第 4 步</b><i>验证</i></div>
+      <div class="cl-body">
+        <h3>发一条短信试试</h3>
+        <ul class="cl-list">
+          <li>用另一台手机发一条带 6 位数字的短信。几秒内电脑上的岛会弹条，验证码已复制。</li>
+          <li>没反应：先看手机上 App 的状态行有没有「最近转发」，再看电脑端那张卡片里这台手机的「最近上报」时间。</li>
+          <li>默认只转发含「验证码 / 代码 / 口令」这类词的短信；App 里有个「全部转发」的开关，打开就什么都转（不建议，广告太多）。</li>
+          <li>重复的短信会被去重，同一条不会推两次。</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="cl-item v5">
+      <div class="cl-side"><b>补充</b><i>隐私</i></div>
+      <div class="cl-body">
+        <h3>它读什么、传什么</h3>
+        <ul class="cl-list">
+          <li>只在收到短信时读这一条；不读历史短信、不读通讯录、不读相册、不申请定位。</li>
+          <li>转发走 HTTPS，落到你自己的服务器；服务端按电脑身份隔离，别人的手机推的东西不会出现在你的岛上。</li>
+          <li>想彻底停掉：电脑端撤销密钥，或在手机上直接卸载——两者任一都立即生效。</li>
+          <li>用 iPhone 的话看 <a href="iphone.html">iPhone 接入</a>，那边不用装 App，用系统自带的快捷指令。</li>
+        </ul>
+      </div>
+    </article>
+  </section>
+
+  <section class="cl-notes">
+    <div class="sec-head">
+      <p class="kicker">下一步</p>
+      <h2>电脑上还没装？</h2>
+    </div>
+    <div class="cl-cards">
+      <article class="card"><h4>下载 Qing Tools</h4><p>Windows 10 / 11，装完自动开机启动。100 MB 左右，没签名，第一次运行点「仍要运行」。</p><p><a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.10.0-setup.exe">下载安装包</a></p></article>
+      <article class="card"><h4>iPhone 用户</h4><p>不装 App，用「快捷指令 → 我收到信息时」把短信正文 POST 过来，三分钟配完。</p><p><a class="btn btn-ghost btn-sm" href="iphone.html">看 iPhone 接入</a></p></article>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <div class="foot-left">
+      <span class="mark small" aria-hidden="true"><i></i><b></b></span>
+      <span>Qing Tools <span class="dim" id="footVer">v1.10.0</span></span>
+    </div>
+    <div class="foot-right">
+      <a href="index.html">首页</a>
+      <a href="iphone.html">iPhone 接入</a>
+      <a href="changelog.html">开发记录</a>
+      <a href="https://chat.ccyyqq.com/island/" target="_blank" rel="noopener">小纸条网页版</a>
+    </div>
+  </footer>
+</main>
+
+<script src="assets/site.js?v=9" defer></script>
+</body>
+</html>

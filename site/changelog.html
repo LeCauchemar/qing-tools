@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>开发记录 · Qing Tools 从 1.0 到 1.10.11</title>
+<meta name="description" content="Qing Tools 七天五十六个版本的开发过程：从一条会伸缩的药丸，到能收邮件、短信验证码、文件和群聊的常驻小面板。">
+<meta name="theme-color" content="#05060b">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css?v=12">
+</head>
+<body>
+<div class="bg" aria-hidden="true">
+  <div class="glow g1"></div><div class="glow g2"></div><div class="glow g3"></div>
+  <div class="grain"></div>
+</div>
+
+<header class="nav" id="nav">
+  <a class="brand" href="index.html">
+    <span class="mark" aria-hidden="true"><i></i><b></b></span>
+    <span class="brand-name">Qing Tools</span>
+  </a>
+  <nav class="nav-links" aria-label="页面导航">
+    <a href="index.html#demo">演示</a>
+    <a href="index.html#features">功能</a>
+    <a href="index.html#how">用法</a>
+    <a href="index.html#download">下载</a>
+    <a href="changelog.html" class="on">开发记录</a>
+  </nav>
+  <div class="nav-right">
+    <button class="icon-btn" id="themeBtn" title="切换明暗" aria-label="切换明暗">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path class="sun" d="M12 4v2m0 12v2m8-8h-2M6 12H4m13.7-5.7-1.4 1.4M7.7 16.3l-1.4 1.4m11.4 0-1.4-1.4M7.7 7.7 6.3 6.3"/><circle cx="12" cy="12" r="3.6"/></svg>
+    </button>
+    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.10.11-setup.exe">下载</a>
+  </div>
+</header>
+
+<main>
+
+  <section class="cl-hero">
+    <p class="kicker">开发记录</p>
+    <h1>七天，四十来个版本，<br><span class="grad">一条缝长成了一个工作台</span></h1>
+    <p class="lede">
+      1.0 的时候它只会伸缩和显示未读；到 1.10.11，它替你收邮件、抽验证码、接手机短信、暂存文件、
+      在群里发一句就走。下面是中间每一步到底改了什么、为什么改。
+    </p>
+    <div class="cl-stats">
+      <div><b>56</b><span>个可安装版本（1.0 → 1.10.11）</span></div>
+      <div><b>7</b><span>天（11-05 → 11-11）</span></div>
+      <div><b>100 MB</b><span>安装包（砍过 21 MB）</span></div>
+      <div><b>7</b><span>个页签</span></div>
+    </div>
+    <article class="cl-item v5">
+      <div class="cl-side"><b>1.10.11</b><i>11-11</i></div>
+      <div class="cl-body">
+        <h3>提醒事项的日期时间看得见了，标题栏也不空着了</h3>
+        <ul>
+          <li>原生 <code>datetime-local</code> 之前按浅色 scheme 画，深色面板上是黑字黑底 —— 现在 <code>color-scheme</code> 跟着主题走，两套主题都清清楚楚。</li>
+          <li>日期框统一 26px 高、等宽数字，日历图标 hover 变亮，聚焦有强调色描边。</li>
+          <li>删掉提醒卡下面那段长提示，空状态不再占地方。</li>
+          <li>面板标题栏在时间右边补上「11月11日 周三 · 十月初三 · 11° 晴」，日期、农历/节日、天气一眼看全。</li>
+          <li>通知条上的「刚刚」放大到 12.5px 并靠右对齐；小纸条的昵称、气泡正文（14.5px）、时间、系统提示统一调大一档。</li>
+        </ul>
+      </div>
+    </article>
+    <article class="cl-item v4">
+      <div class="cl-side"><b>1.10.9</b><i>11-11</i></div>
+      <div class="cl-body">
+        <h3>安装包改走又拍云 CDN，连不通再回自己服务器</h3>
+        <ul class="cl-list">
+          <li><b>小工具里点「检查更新」下载的是 CDN。</b>100 MB 的安装包不再从 chat.ccyyqq.com 走，改成先拉 qing.ccyyqq.com（又拍云）；服务器只负责发几百字节的 latest.json，带宽留给别的事。</li>
+          <li><b>连不通会自动换地址。</b>每个来源下完都算一遍 SHA-256 和 latest.json 对一遍，不一致或者网络错误就换下一个：CDN → 清单来源的服务器 → 服务器固定地址，三条都不行才报失败。</li>
+          <li><b>官网的按钮也一样。</b>页面加载时先探一下 CDN 的 latest.json，探不通就把三个下载按钮和「备用下载」对调，下面那行字会标成「已自动切到本站镜像」。</li>
+          <li><b>清单仍然是服务器优先。</b>又拍云会把 latest.json 缓存好几天，所以「有没有新版本」还是问自己服务器，发布即生效。</li>
+        </ul>
+      </div>
+    </article>
+
+  </section>
+
+  <section class="cl-main">
+    <div class="cl-legend">
+      <span><i class="dot v1"></i>骨架</span>
+      <span><i class="dot v2"></i>做顺</span>
+      <span><i class="dot v3"></i>上云</span>
+      <span><i class="dot v4"></i>联动</span>
+      <span><i class="dot v5"></i>打磨</span>
+    </div>
+
+    <article class="cl-item v1">
+      <div class="cl-side"><b>1.0</b><i>11-05</i></div>
+      <div class="cl-body">
+        <h3>立骨架：先让它能装、能开、不崩</h3>
+        <ul class="cl-list">
+          <li><b>选 Electron。</b>透明无边框 + 置顶 + GPU 合成 + 托盘 + 开机自启 + NSIS，全都是一等能力；同样的「液态形变」用 WPF 做代价大得多。</li>
+          <li><b>五种形态。</b>空闲 178×34、快捷条、面板 576×448、通知条、拖放态；靠 CSS 变量 + <code>data-state</code> 切换，动画交给 GPU。</li>
+          <li><b>点击穿透。</b>窗口铺满屏宽但鼠标穿透，主进程 32 ms 轮询光标，命中岛矩形才收事件。第一版因为拿到旧 bounds，鼠标根本点不上去。</li>
+          <li><b>能用的功能。</b>邮件 IMAP 推送（验证码/链接自动变芯片）、备忘录、剪贴板、文件暂存、小纸条群聊（12 位匹配码进房）、托盘、开机自启、安装包 + 便携版。</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="cl-item v1">
+      <div class="cl-side"><b>1.2 · 1.3</b><i>11-05</i></div>
+      <div class="cl-body">
+        <h3>把流程做顺，少一点手滑</h3>
+        <ul class="cl-list">
+          <li>「固定」重做：面板不会被鼠标一移开就抢走。</li>
+          <li>拖放分两区 —— 上半进文件、下半发小纸条，落点决定结果；列表行内出现 ➤ 可以直接把内容甩进聊天。</li>
+          <li>切频道只是切频道，复制匹配码单独给一个 ⧉；岛右侧的数字只算小纸条未读。</li>
+          <li>聊天图片点开进岛内遮罩，可放大、右键复制/另存，不再拉拉浏览器。</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="cl-item v1">
+      <div class="cl-side"><b>1.4 · 1.5</b><i>11-05</i></div>
+      <div class="cl-body">
+        <h3>小工具、能拖能收、能登微软</h3>
+        <ul class="cl-list">
+          <li>计时器（时:分:秒，到点响铃 + 弹条）与免打扰（免打扰时只涨数字不弹条）；运行中的计时器在药丸右边挂一个小圆环。</li>
+          <li>备忘录的「固定」升级成「钉到桌面」：一张拟真便利贴浮在桌面上，随手写、自动存。</li>
+          <li>按住药丸沿屏幕顶部左右拖，位置记进设置；移开一会儿自动收，切窗口或点别处立刻收。</li>
+          <li>微软邮箱 2024 年起停用密码登录，IMAP 直接回 <code>Basic authentication is disabled</code> → 自己实现 OAuth 设备码，并把 Azure 注册的 6 步指引做进设置页。</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="cl-item v2">
+      <div class="cl-side"><b>1.6</b><i>11-05</i></div>
+      <div class="cl-body">
+        <h3>一轮大改：表情包、浅色主题、能编辑的备忘录</h3>
+        <ul class="cl-list">
+          <li>聊天图片右键「添加到表情包」，群内共享，像微信那样直接发；表情包能和文字混排。</li>
+          <li>浅色主题 + 自定义主题色；统一走 <code>--*</code> 变量，两套皮只换变量。</li>
+          <li>删掉伸缩时那条白色扫光；去掉 3D 变换（非整数缩放时文字发虚的主因）；整体字号 +1px。</li>
+          <li>备忘录点一下展开，保留原始换行与制表符，能拖选、右键复制、把选中句发到小纸条；桌面便利贴可自由改大小、Ctrl+滚轮缩放字号。</li>
+          <li>上传放宽到 30 MB，支持 png/jpg/gif/webp/avif/heic/heif/bmp。</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="cl-item v2">
+      <div class="cl-side"><b>1.7</b><i>11-05</i></div>
+      <div class="cl-body">
+        <h3>读得到，也装得小</h3>
+        <ul class="cl-list">
+          <li>邮件点开进阅读页：发件人、完整时间、正文按原始 HTML 渲染（白纸底 + 净化脚本 + 图片懒加载），也能切纯文本。</li>
+          <li>新增「刘海」外观：贴着屏幕顶，平时只露一条，悬停伸开。</li>
+          <li>安装包 121 → <b>100 MB</b>：裁掉用不到的 Chromium 组件与 51 个语言包，剪贴板图片不再常驻 base64，面板改懒渲染，聊天 DOM 只留最近 80 条。</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="cl-item v2">
+      <div class="cl-side"><b>1.8</b><i>11-05</i></div>
+      <div class="cl-body">
+        <h3>快：命令面板、划词、截图、待办</h3>
+        <ul class="cl-list">
+          <li>Ctrl+K 命令面板，18 条命令，输入即筛。</li>
+          <li>划词速递：任何程序里选中文字按热键，岛里伸出一条横栏，复制 / 存便笺 / 发纸条 / 搜索。</li>
+          <li>热键截当前屏直接进剪贴板与文件区；待办输入「写周报 25」就自带 25 分钟番茄钟。</li>
+          <li>岛两侧挂四颗卫星：计时环、系统占用、未读邮件、纸条未读。</li>
+          <li>全局热键被占用时自动降级到备用组合，并把实际生效的键位显示在界面上。</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="cl-item v3">
+      <div class="cl-side"><b>1.9.0 · 1.9.1</b><i>11-06</i></div>
+      <div class="cl-body">
+        <h3>上云：又拍云接管所有文件</h3>
+        <ul class="cl-list">
+          <li>聊天图、表情包、文件中转站、更新包全走 CDN；缩略图用 <code>!default</code> 规则，原图去掉后缀就是原图。</li>
+          <li>签名踩了半天：<code>HMAC-SHA1(MD5(password), "METHOD&amp;URI&amp;DATE&amp;Content-MD5")</code> —— key 是密码的 MD5，签名串里没有 Content-Length。</li>
+          <li>正式域名过审后切 <code>qing.ccyyqq.com</code>，历史图片全量迁到云端并留了回滚清单。</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="cl-item v3">
+      <div class="cl-side"><b>1.9.2 – 1.9.8</b><i>11-06</i></div>
+      <div class="cl-body">
+        <h3>修：都是自己用出来的 bug</h3>
+        <ul class="cl-list">
+          <li>浅色主题下提示条「黑底黑字」看不见 —— 根因是主题只在设置页渲染时才应用，而面板改成懒渲染后根本没应用。</li>
+          <li>点「发图片」时系统文件框让窗口失焦 → 岛收回去；选图期间改成忽略失焦。</li>
+          <li>小工具页打开后鼠标移开也不收：数字输入框被当成「正在编辑」。</li>
+          <li>自动更新装完不重启：从 Electron 里 <code>spawn powershell -File</code> 实测不执行，改成生成 <code>apply-update.cmd</code> 用 cmd 跑。</li>
+          <li>CDN 把 <code>latest.json</code> 缓存八天且 purge 一直 401，于是更新清单改成「服务器优先、CDN 兜底」。</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="cl-item v4">
+      <div class="cl-side"><b>1.9.9 – 1.9.14</b><i>11-06</i></div>
+      <div class="cl-body">
+        <h3>质感：抖动、彩虹、扁平化</h3>
+        <ul class="cl-list">
+          <li>拍一拍：被拍的人刘海掉下来变灵动岛，像小狗抖水那样左右上下抖；被 @ 时整条通知跑彩虹，文字垫白色半透明底板。</li>
+          <li>表情包点选后进待发区，和文字一起发成一条消息（正文只写 <code>[[st:&lt;id&gt;]]</code>，老版本最多看到一小段标记）。</li>
+          <li>邮件多账户 + 顶部筛选条；文件区改名「文件」，接入 Everything 风格的整机搜索（文件名/文件夹/内容，复选框 + 划框多选 + 右键暂存）。</li>
+          <li>全界面扁平化：纯色 + 1px 描边，去掉高光、内阴影、发光、毛玻璃。</li>
+          <li>待机态改成「年月日 + 农历节气」在左、大号时间在右；备忘录支持就地编辑与右键五项菜单。</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="cl-item v4">
+      <div class="cl-side"><b>1.9.15 – 1.9.22</b><i>11-06</i></div>
+      <div class="cl-body">
+        <h3>手机联动：短信验证码直接落到电脑</h3>
+        <ul class="cl-list">
+          <li>剪贴板图片「发送到小纸条」点了没反应：渲染层 fetch 自定义协议被跨域拦，改成主进程 IPC 取字节再拼 Blob。</li>
+          <li>验证码抽不出来：正文里有两个六位数时有歧义、关键词表缺「一次性代码」→ 补关键词、压平数字、就近取码。</li>
+          <li><b>短信通道</b>：安卓写了个 APK（短信广播 + 前台常驻服务 + 开机自启 + 补发收件箱）；iPhone 用快捷指令「收到信息」自动化 POST 到 hook 接口，实测可全自动。</li>
+          <li>密钥三层递进：共用主密钥 → 推送/读取双密钥 → 每台手机一把可撤销 → 每台电脑一个身份（多租户，互相看不到对方的手机与消息）。</li>
+          <li>SSE 会永久 CLOSED 不重连，加了 30 秒看门狗；验证码改成 keep 写入，能留在剪贴板历史里。</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="cl-item v4">
+      <div class="cl-side"><b>1.9.23</b><i>11-06</i></div>
+      <div class="cl-body">
+        <h3>群的生命周期</h3>
+        <ul class="cl-list">
+          <li>自主退出频道（二次确认）。</li>
+          <li>投票踢人：按「除被踢者以外」的人数过半生效，被踢者当场断开。</li>
+          <li>闲置解散：30 天没人说话 → 进 3 天倒计时（每次启动弹一次、持续 1 分钟）→ 到期自动解散，并清掉该群的聊天记录、原图、缩略图、表情包（严格按 <code>room_id</code> 过滤，不碰别的群）。</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="cl-item v5">
+      <div class="cl-side"><b>1.9.24 – 1.9.28</b><i>11-07</i></div>
+      <div class="cl-body">
+        <h3>最后一轮：颜色、图标、节气、能复制</h3>
+        <ul class="cl-list">
+          <li>四颗卫星各自上色，随后把色相拉开到两两 ≥72°（邮件洋红、计时明黄），紧急态统一红。</li>
+          <li>应用图标只留中间那枚黑药丸 + 左右四颗小色点，去掉外框。</li>
+          <li>节气改按太阳视黄经计算 —— 之前那张 1900 年起的近似表把立冬算晚了一天。</li>
+          <li>去掉过时的「接收所有手机」开关（多租户隔离后不需要了）。</li>
+          <li>小纸条文字终于能选中复制，右键多了「复制选中 / 复制整条 / 打开链接」。</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="cl-item v5">
+      <div class="cl-side"><b>1.9.29 – 1.9.31</b><i>11-08</i></div>
+      <div class="cl-body">
+        <h3>小工具改卡片、Ctrl+K 全域搜索、待机显示天气</h3>
+        <ul class="cl-list">
+          <li>小工具页从一整页表单改成五张可折叠卡片（计时器 / 待办 / 免打扰 / 开发小工具 / 系统），一次只展开一张、默认全收起，一屏放得下。</li>
+          <li>卡片 hover 的底色放到整张卡上、只画一圈描边 —— 早先给标题行单独铺底色，两块底色会贴在一起压住分割线。</li>
+          <li><code>Ctrl+K</code> 从「命令面板」升级成全域搜索：命令、备忘录、剪贴板、邮件、整机文件五组一起搜，文件结果防抖 260 ms。</li>
+          <li>按 <code>Ctrl+K</code> 输入框就是真聚焦：系统级快捷键弹出的窗口刻意不抢焦点，所以还得让主进程把窗口切到前台再重试聚焦。</li>
+          <li>待机第二行加天气：三家 IP 库并发定位、城市名少数服从多数（有一家把天津认成北京），Open-Meteo 取温度，缓存 30 分钟。</li>
+          <li>小工具页补上「开发小工具」：时间戳、Base64、JSON、UUID、SHA；系统面板改成条形图 + 元信息。</li>
+          <li>命令面板下面那层整屏灰纱去掉了，只剩中间那个盒子。</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="cl-item v5">
+      <div class="cl-side"><b>1.10.0</b><i>11-09</i></div>
+      <div class="cl-body">
+        <h3>十七处细节：引用回复、投票、@ 名单、能拖高的聊天窗</h3>
+        <ul class="cl-list">
+          <li>剪贴板置顶后内容不见了 —— 置顶只该多加一行「固定」，正文照常显示。</li>
+          <li>备忘录可以粘图片，图片进正文、点开能看大图。</li>
+          <li>短信验证码、手机密钥、服务器主密钥、邮箱账户与拉取间隔全部搬进小工具页（共七张卡）；卡头会写摘要，比如「3 封未读 · 2 个账户」。</li>
+          <li>小纸条支持 <b>引用回复</b>：右键「回复这条」，被引用的原文用小一号浅色字挂在气泡下面，点一下跳回原消息。</li>
+          <li>投票规则收紧：除被投者以外人数过半才算通过（4 人房 3 票、3 人房 2 票），两人房不用投；投完即从界面撤掉，5 分钟没投完自动判失败。</li>
+          <li>输入 <code>@</code> 直接弹成员名单；删掉 @ 文本，上面的标签也跟着消失。</li>
+          <li>聊天窗底部加了拖高的横条，切到别的页签自动恢复默认高度。</li>
+          <li>频道 chip 改成「复制码 → 频道名 → 退出」，退出要连点两次；拍一拍改成双击成员名字。</li>
+          <li>「回到正中」挪到面板右上角，只在灵动岛外观下出现，刘海外观隐藏。</li>
+          <li>表情面板两页改成空心笑脸 / 空心爱心两个图标 tab，格子左浮动而不是平分。</li>
+          <li>官网补了 <a href="iphone.html">iPhone 快捷指令</a> 与 <a href="android.html">安卓 APK</a> 两篇接入引导。</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="cl-item v5">
+      <div class="cl-side"><b>1.10.1 · 1.10.2</b><i>11-09</i></div>
+      <div class="cl-body">
+        <h3>把「不跟手」全部修掉</h3>
+        <ul class="cl-list">
+          <li>拖高小横条一顿一顿：岛本身带 0.46 s 弹簧过渡，每一帧都在追动画 —— 拖动期间直接关掉过渡、移动合并到 <code>requestAnimationFrame</code>，并且只写一个 CSS 变量。</li>
+          <li>拖到 800 px 就拖不动：窗口高度原本写死 620，现在跟着面板一起长高（上限是屏幕工作区减 8 px），切页签再收回默认高度。</li>
+          <li>左右拖动同样发飘：拖动时不再每次走 IPC 上报矩形（改成 120 ms 节流），松手才落库。</li>
+          <li>灵动岛外观下任意页签都能拖：面板态把顶部标题栏（Qing Tools + 时间那一行）当把手，其它形态整块可拖；刘海外观仍然锁在正中。</li>
+          <li>备忘录里的截图不显示：编辑态补 54 px 缩略图条，查看态按正文顺序渲染大图。</li>
+          <li>粘贴图片后光标丢失：插入前后各补一个换行（图片独占一行），存盘后把焦点与光标位置放回去。</li>
+          <li>去掉「图片已插在光标处」这类多余提示；右键菜单加「粘贴到这里」。</li>
+          <li>钉到桌面的便利贴也能显示这些图片，保存时原样写回标记。</li>
+          <li>小纸条顶部那行状态与「双击成员名字可以拍一拍」整行去掉，消息区整体上移。</li>
+          <li>待机行的节气只在交节当天显示，其它日子显示节日（春节 / 中秋 / 国庆 / 劳动节……），同一天优先节日。</li>
+          <li>新邮件到达时验证码没带上：原来趁 IMAP 连接还没断开就去抓详情，同账号并发被拒、错误被静默吞掉；改成断开之后再抓，失败重试并可从标题兜底。</li>
+          <li><code>@</code> 不用先敲空格；按一次退格删掉整个名字。</li>
+        </ul>
+      </div>
+    </article>
+  </section>
+
+  <section class="cl-notes">
+    <div class="sec-head">
+      <p class="kicker">几个绕不过去的决定</p>
+      <h2>后来被证明值得的选择</h2>
+    </div>
+    <div class="cl-cards">
+      <div class="card">
+        <div class="ic">≈</div>
+        <h4>100 MB 是这类应用的现实下限</h4>
+        <p>Electron 的 Chromium 解包后就 ~240 MB。能砍的是语言包、软件渲染 Vulkan、调试符号；再小就得换 WebView2（Tauri / Wails），但透明分层窗口、逐窗口阴影那些坑要自己填。</p>
+      </div>
+      <div class="card">
+        <div class="ic">▣</div>
+        <h4>更新器用 cmd，不用 PowerShell</h4>
+        <p>从 Electron 里 <code>spawn('powershell.exe', ['-File', …])</code> 没有任何报错，也不执行。换成 <code>cmd.exe /c apply-update.cmd</code> 一次就过，日志落在同目录。</p>
+      </div>
+      <div class="card">
+        <div class="ic">!d</div>
+        <h4>缩略图靠 <code>!default</code></h4>
+        <p>CDN 按后缀规则出一张缩略图：地址加 <code>!default</code> 是缩略图，去掉就是原图。客户端一个字段管两个用途，列表里也不会一次拉几 MB 的原图。</p>
+      </div>
+      <div class="card">
+        <div class="ic">↺</div>
+        <h4>清单优先取服务器</h4>
+        <p>CDN 把 <code>latest.json</code> 缓存八天，覆盖同名对象也不刷新，purge 接口签不过。所以更新检查先问服务器（发布即生效），CDN 只用来发安装包。</p>
+      </div>
+    </div>
+    <article class="cl-item v5">
+      <div class="cl-side"><b>1.10.3</b><i>11-10</i></div>
+      <div class="cl-body">
+        <h3>备忘录变成真正的富文本：图片长在文字中间</h3>
+        <ul class="cl-list">
+          <li><b>粘贴不再另起一条。</b>根因是编辑态用的是 <code>&lt;textarea&gt;</code>，塞不进图片，旧代码只能把图片存成一条新备忘录。改成 <code>contenteditable</code> 富文本后，图片留在光标处，条目还是那一条。</li>
+          <li><b>插入要等异步。</b>存图要几百毫秒，等回来时选区早没了 —— 先在光标处插一个零宽占位文本节点，图存好再把它换成图片，光标落在图下一行，可以接着写。</li>
+          <li><b>粘贴跟着当前那条走。</b>焦点不在编辑框里（比如停在上面的新建输入框、或刚点过别处）时，图片也会插回正在编辑 / 展开的那条，并回到上次的光标位置，不会再凭空多出一条。</li>
+          <li><b>编辑时不重建 DOM。</b>重渲染会把光标顶掉，所以正在编辑的富文本框直接跳过重建；停止输入 800ms 自动存一次，<code>Ctrl+Enter</code> 立即保存退出。</li>
+          <li><b>图片尺寸。</b>行是纵向 flex，不写 <code>align-self: flex-start</code>，小图会被拉成整行宽；现在小图保持原尺寸，大截图按 132px 高缩略，点开仍是全屏遮罩。</li>
+          <li><b>桌面便签同样显示。</b>钉到桌面的便利贴里，图片按原文位置显示（上限 240px 高、完整不裁切），在便签里继续打字、插图都会原样存回去。</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="cl-item v5">
+      <div class="cl-side"><b>1.10.4</b><i>11-10</i></div>
+      <div class="cl-body">
+        <h3>编辑框里也有了右键菜单，粘贴不再跑到下面那条</h3>
+        <ul class="cl-list">
+          <li><b>编辑框右键菜单。</b>剪切 / 复制 / 粘贴 / 粘贴图片 / 全选，图片插在光标处；以前 Electron 里编辑框右键什么都不会弹。</li>
+          <li><b>不会再丢字。</b>重绘前先把编辑框里的内容落盘（<code>flushLiveNote()</code>），刚打的字不会被旧数据覆盖。</li>
+          <li><b>条目不会在你手底下跳。</b>编辑中把这一条钉在原来的位置，不因为自动保存更新了时间就重排 —— 以前看起来就像图片「跑到下面那条」。</li>
+          <li><b>粘贴只认当前那条。</b>编辑框里、展开的那条、上次光标所在的条目，优先级依次递减；都没有才新建。</li>
+          <li><b>便签里的图。</b>按完整比例显示（<code>object-fit: contain</code>，上限 240px），不再被裁成一条。</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="cl-item v5">
+      <div class="cl-side"><b>1.10.5</b><i>11-10</i></div>
+      <div class="cl-body">
+        <h3>新建框里写的字和刚贴的图，合成同一条</h3>
+        <ul class="cl-list">
+          <li><b>先打字再贴图，不会再被拆成两条。</b>以前在顶部新建框里写了一半、再按 <code>Ctrl+V</code>，图被单独存成一条，字还留在框里，一保存又多一条。现在合成同一条：图接在文字下面一行，条目直接进入编辑态。</li>
+          <li><b>结论按「这次在哪个框里按的」来判。</b>新建框里有字就以新建框为准；新建框是空的，才退回正在编辑 / 展开的那条 —— 两条反馈看起来矛盾，其实是同一个判断没做对。</li>
+          <li><b>右键「粘贴图片」同样生效。</b>以前菜单一关就把粘贴目标清掉了，判断永远失效；现在先记下目标再关菜单，图和字照样合成一条。</li>
+          <li><b>图片一律缩略图。</b>正文里按行内缩略显示，点开是整屏遮罩看原图；钉到桌面的便签里按完整比例显示，不裁切。</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="cl-item v5">
+      <div class="cl-side"><b>1.10.6</b><i>11-10</i></div>
+      <div class="cl-body">
+        <h3>通知条底部的进度线，收回到药丸里面</h3>
+        <ul class="cl-list">
+          <li><b>线不再贴在药丸下沿。</b>收到消息弹出来的那条通知，底部有一根 2px 的倒计时进度线，原来是从窗口左边缘拉到右边缘、紧贴圆角下沿，看上去像一条浮在桌面上的细线；现在左右各缩 18px、抬高 7px、圆头 3px，整根都在深色药丸里面。</li>
+          <li><b>配色跟着主题走。</b>进度用主题色混一点深色（82%），轨道只有 9% 的墨色 —— 深色主题不刺眼，浅色主题也不会消失。</li>
+          <li><b>行为没变。</b>点击通知条仍按类型打开邮箱 / 小纸条，验证码那类点一下复制；进度线只是把「还能停留多久」画清楚。</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="cl-item v5">
+      <div class="cl-side"><b>1.10.7</b><i>11-11</i></div>
+      <div class="cl-body">
+        <h3>桌面便条：图片能点开看大图，纸也能拖着走、拉着改大小</h3>
+        <ul class="cl-list">
+          <li><b>点图片看大图。</b>便条里的截图以前只能看缩略图，现在点一下弹出一个独立的「看大图」窗口：滚轮以光标为中心缩放、按住拖动平移、双击回到适应大小、Esc 或 ✕ 关闭，窗口自己也能拖着标题栏移动。</li>
+          <li><b>整张纸都能拖着走。</b>以前只有顶部那一条（还被胶带挡住一半）能拖，现在纸边、留白、底部都能拖，正文区专门留给打字和选字。</li>
+          <li><b>右下角能改大小。</b>透明无边框窗口在 Windows 上没有系统缩放边框，所以自己做了右边、下边、右下角三条把手；拖完的尺寸会记住，下次打开还是这么大。</li>
+        </ul>
+      </div>
+    </article>
+
+    <div class="cl-item v3">
+      <div class="cl-side"><b>1.10.9</b><span>11-11</span></div>
+      <div class="cl-main">
+        <h3>两张新卡：提醒事项 + 倒数日；开发小工具加随机面板</h3>
+        <ul>
+          <li>小工具页从 7 张卡涨到 9 张：新加「提醒事项」和「倒数日」，还是折叠式的、默认全收起。</li>
+          <li>提醒事项：写一句话 + 选个时间（快捷 5/10/30 分钟、1 小时、明天此时，或自定义 datetime-local），到点会像拍一拍那样抖一下，岛的<b>边缘</b>跑彩虹灯（不铺满、不盖内容）。支持推迟 5 分钟、勾完成。</li>
+          <li>倒数日：每月发薪日（自己选 1-31）、下一个法定假日（春节/五一/国庆/中秋…）、自定义纪念日（每年重复或一次性），到了那天首次启动会弹条提醒。</li>
+          <li>开发小工具新增「随机」tab：抛硬币、掷骰子、1-100 随机数、抽签（每行一个选项随机挑一个）。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="cl-item v4">
+      <div class="cl-side"><b>1.10.10</b><span>11-11</span></div>
+      <div class="cl-main">
+        <h3>两套主题的次要文字统一了，提醒的彩虹边真的会跑圈</h3>
+        <ul>
+          <li>倒计时 / 提醒卡片里的灰色小字（「每月 20 号」「还有 9 天」这类）原来在深色下偏白、浅色下偏灰，两边可读性都不稳。现在全部按主题文字色混出来，两套主题各自等比缩放。</li>
+          <li>提醒到点的彩虹边，之前其实是「一条斜渐变」被窗口圆角裁掉一半，看着像贴在顶边的光条；改成 conic 渐变绕边旋转，现在是真的沿着一圈跑马灯。</li>
+          <li>顺手加了一条 reduced-motion 保护：系统开了「减少动画」时不转，只留静态彩边。</li>
+        </ul>
+      </div>
+    </div>
+
+  </section>
+
+  <footer class="foot">
+    <div class="foot-left">
+      <span class="mark small" aria-hidden="true"><i></i><b></b></span>
+      <span>Qing Tools <span class="dim">v1.10.11</span></span>
+    </div>
+    <div class="foot-right">
+      <a href="index.html">回到首页</a>
+      <a href="index.html#download">下载</a>
+      <a href="https://chat.ccyyqq.com/island/" target="_blank" rel="noopener">小纸条网页版</a>
+    </div>
+  </footer>
+</main>
+
+<script>
+(function () {
+  var saved = localStorage.getItem('qt-theme');
+  if (saved === 'light' || saved === 'dark') document.documentElement.dataset.theme = saved;
+  var btn = document.getElementById('themeBtn');
+  if (btn) btn.addEventListener('click', function () {
+    var next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+    document.documentElement.dataset.theme = next;
+    localStorage.setItem('qt-theme', next);
+  });
+})();
+</script>
+</body>
+</html>

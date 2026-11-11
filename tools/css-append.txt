@@ -1,0 +1,137 @@
+﻿
+/* ============================================================
+   多账户邮箱：顶部过滤条 + 设置页账户列表
+   ============================================================ */
+
+.mail-filters {
+  display: flex;
+  gap: 6px;
+  padding: 0 0 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex: none;
+}
+
+.mail-filters::-webkit-scrollbar {
+  height: 0;
+}
+
+.mf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 150ms, background 150ms, border-color 150ms;
+}
+
+.mf-chip:hover {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+.mf-chip.on {
+  color: var(--ink);
+  border-color: var(--line-strong);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.mf-n {
+  font-variant-numeric: tabular-nums;
+  font-size: 10.5px;
+  color: var(--dim);
+}
+
+.mf-chip.on .mf-n {
+  color: var(--ink-soft);
+}
+
+.acc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 4px 0 8px;
+}
+
+.acc-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+}
+
+.acc-row.active {
+  border-color: color-mix(in srgb, var(--accent) 46%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.acc-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--dim);
+  flex: none;
+}
+
+.acc-row.online .acc-dot {
+  background: #38d39f;
+}
+
+.acc-main {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.acc-name {
+  font-size: 12.5px;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acc-sub {
+  font-size: 11px;
+  color: var(--dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acc-n {
+  font-variant-numeric: tabular-nums;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  padding: 0 2px;
+  flex: none;
+}
+
+.acc-empty {
+  font-size: 12px;
+  color: var(--dim);
+  padding: 6px 2px 2px;
+}
+
+.acc-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 2px;
+}
+
+.acc-actions .btn {
+  flex: none;
+}

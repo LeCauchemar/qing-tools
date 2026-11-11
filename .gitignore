@@ -1,0 +1,42 @@
+# ---------- 依赖 / 构建产物（体积大，绝不入库） ----------
+node_modules/
+dist/
+dist-*/
+dist-v*/
+build.log
+*.log
+
+# ---------- 本机临时 / 误产生的杂物 ----------
+.tmp-upyun/
+.trash-*/
+_smoke.log
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+.idea/
+
+# ---------- 凭据：绝对不要提交 ----------
+upyun.local.json
+deploy/upyun.json
+*.local.json
+*.local.yml
+.env
+.env.*
+
+# ---------- 截图：只留 README 里引用的 9 张 ----------
+shots/*
+!shots/01-idle.png
+!shots/02-compact.png
+!shots/03-mail.png
+!shots/04-notes.png
+!shots/05-clip.png
+!shots/06-files.png
+!shots/07-settings.png
+!shots/31-chat-room.png
+!shots/96-tools-hms.png
+
+# ---------- 手机端构建产物 ----------
+mobile/android/build/
+mobile/android/*.apk
+mobile/harmony/**/build/

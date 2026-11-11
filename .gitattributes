@@ -1,0 +1,15 @@
+# 统一换行，避免 Windows 上每次 add 都报 LF/CRLF 警告
+* text=auto
+
+# 二进制文件不要做换行转换
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.exe binary
+*.dll binary
+*.apk binary
+*.zip binary
+*.asar binary

@@ -1,5 +1,12 @@
 # Qing Tools · Windows 顶部灵动岛
 
+![platform](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-29d3c0)
+![electron](https://img.shields.io/badge/Electron-45-5ac8fa)
+![license](https://img.shields.io/badge/license-MIT-ffc531)
+![installer](https://img.shields.io/badge/installer-~100%20MB-7b8cff)
+
+> **一句话**：Windows 顶部常驻的「灵动岛」—— 一条细缝里收发邮件、看验证码、记便笺、管剪贴板、暂存文件、在小纸条里和朋友聊天，还能当番茄钟、倒数日和随机抽签。Electron + 原生 CSS 动画，支持开机自启、全局快捷键、深浅主题与多账户，Win10/11 即装即用。
+
 在 Windows 屏幕顶部常驻一个 iPhone 灵动岛 / 刘海风格的悬浮条：平时是一条极窄的药丸，鼠标靠近就展开成快捷岛，点进去是完整面板 —— 邮件、备忘录、剪贴板、临时文件暂存、小纸条群聊、小工具，全部在一个会呼吸的小岛里完成。
 
 ![空闲态](shots/01-idle.png)

@@ -40,3 +40,6 @@ shots/*
 mobile/android/build/
 mobile/android/*.apk
 mobile/harmony/**/build/
+
+# 临时发布载荷
+.tmp-release.json

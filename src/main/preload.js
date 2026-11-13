@@ -56,6 +56,19 @@ contextBridge.exposeInMainWorld('island', {
 
   pruneFiles: () => invoke('files:prune'),
 
+  account: {
+    status: () => invoke('account:status'),
+    check: (username) => invoke('account:check', { username }),
+    register: (payload) => invoke('account:register', payload),
+    login: (payload) => invoke('account:login', payload),
+    recover: (payload) => invoke('account:recover', payload),
+    me: () => invoke('account:me'),
+    revokeSession: (id) => invoke('account:revokeSession', { id }),
+    logout: () => invoke('account:logout'),
+    logoutAll: () => invoke('account:logoutAll'),
+    remove: (payload) => invoke('account:remove', payload)
+  },
+
   sticky: {
     open: (id) => invoke('sticky:open', id),
     unstuck: (id) => invoke('sticky:unstuck', id)

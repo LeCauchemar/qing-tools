@@ -1,0 +1,26 @@
+# HANDOFF — 交接日志（最新在最上面）
+
+> 规则见 [`AGENTS.md`](AGENTS.md) §8。**每个 Agent 改完东西都要在顶部追加一条**，只追加不改历史。
+> 时间用 Asia/Shanghai，版本号写当时 `package.json` 的版本。
+
+## 2026-11-13 12:42 · 1.11.0 · DeepSeekRuntime
+- 改了什么：`server/upyun.mjs` 的 `putObject()` 从 `fetch` 换成 `node:https` 直发（新增 `putRaw()`，`timeout: 0`）；`AGENTS.md` §4 加第 13 条。
+- 为什么：`publish.ps1` 里又拍云步骤报 `undici … HeadersTimeoutError`（300s 超时）+ `ECONNRESET`，导致 CDN 停在 1.10.11、`latest.json` MISMATCH。本机到又拍云上行约 110KB/s，101MB 安装包要 15 分钟，`fetch` 的 headers 超时必然会先炸。
+- 怎么验证：`node tools/upyun-publish.mjs 1.11.0 "<notes>"` 直接跑通；portable（97MB）实测 873,927ms 上传成功，返回 `https://qing.ccyyqq.com/island/update/QingTools-1.11.0-portable.exe`。
+- 下一步 / 已知问题：换机器或换网络后如果又报 300s 超时，先确认 `putRaw()` 没被改回去；`chat.ccyyqq.com/island/update/*.exe` 对 **HEAD 请求返回 404**（node 只处理 GET），用带 `Range: bytes=0-15` 的 GET 验证（会返回 206 + 完整 content-range）。
+## 2026-11-13 11:40 · 1.11.0 · DeepSeekRuntime
+- 改了什么：账号 M2（客户端）。新增 `src/main/account.js`（登录态 DPAPI 加密落盘、`account:*` 十个 IPC、401 自动清态）；`src/main/main.js` 挂 `registerAccountIpc()`；`src/main/preload.js` 暴露 `api.account`；`src/renderer/index.html` 设置页顶部新增「账号」组（登录/注册/恢复码/设备列表/找回/注销）；`src/renderer/app.js` 新增 `accStamp/accMsg/accRenderDevices/accPaint/accLoadStatus/accFetchSessions/accBusy/accShowCode/accHideCode/accDoLogin/accDoRegister/accDoRecover/accDoLogout/accDoDelete/bindAccountUi`，`bindUi()` 首行调 `bindAccountUi()`、`renderSettings()` 调 `accPaint()`、`boot()` 400ms 后 `accLoadStatus()`；`src/renderer/styles.css` 末尾新增「账号（1.11.0）」段。
+- 为什么：账号化里程碑 M2 —— 让用户能注册/登录、看到并踢掉别的设备、换电脑也能找回（M1 只做了服务端）。
+- 怎么验证：dev 实例（CDP 9371）走完整链路 —— 注册（恢复码 `9GFZ-BPKB-H3ET`，「完成」在勾选前 disabled）→ 设备列表显示「chenyuqing-life / 这台 / 今天 11:28」→ 退出本机（`accOut` 复现）→ 登录 → 用恢复码换密码（新码 `EAMA-H3FH-3G97`、旧会话被撤销）→ 注销（`check` 返回 `reserved: true`）→ 再注册 `m2keep` 后重启应用自动恢复登录（`signedIn: true`、sessions 1）→ 第二次登录造出 2 个会话、点「移除」回到 1。`tools/probe-account-file.js` 确认 `account.json` 里 `tokenEnc` 是 `dpapi:`、无明文 token。测试账号已从生产库删除（`users` 归 0）。
+- 下一步 / 已知问题：本地数据仍是单 `state.json`（本地模式），`local\` 与 `accounts\<uid>\` 分区 + 「归属」卡片按方案放到 M3 一起做（现在切账号不会隔离备忘录/待办，属预期）。截图 `shots\acct-1.png`。
+## 2026-11-13 10:55 · 1.10.11 · DeepSeekRuntime
+- 改了什么：新增跨 Agent 协作文件 —— `AGENTS.md`（项目唯一事实来源：目录、命令、10 条硬性约束、代码地图、发版流程）、`CLAUDE.md` 与 `.github/copilot-instructions.md`（只做入口指针）、本 `HANDOFF.md`（交接日志）。
+- 为什么：用户会在 Codex / Claude Code / Kimi / z-code / DeepSeekRuntime 之间轮换干活，需要一份任何客户端都能读、且**强制要求写交接**的约定。
+- 怎么验证：`Get-ChildItem AGENTS.md,CLAUDE.md,HANDOFF.md,.github/copilot-instructions.md` 都在；本文件即第一条记录。
+- 下一步：开始账号化 M2（客户端登录/注册/找回、设备列表、本地数据分区）。
+
+## 2026-11-12 17:45 · 1.10.11 · DeepSeekRuntime
+- 改了什么：`server/index.mjs` 新增「账号体系」整段 + 6 张表（`users/sessions/bindings/shares/items/changes`）+ 9 个接口（`/api/auth/check|register|login|recover|logout|logout-all`、`/api/me` GET/DELETE、`/api/me/sessions/:id` DELETE）；新增 `tools/test-auth.mjs`（20 项断言）。
+- 为什么：账号化 M1（服务端），方案见 `docs/qing-account-plan.md`。
+- 怎么验证：本地临时库 20/20 通过；部署到生产后又跑一遍 **20 passed / 0 failed**；线上 `sqlite3 .tables` 可见 16 张表；清理测试账号后数据无损（rooms 5 / messages 385 / devices 10 / stickers 1）。
+- 下一步 / 坑：恢复码必须用**密码的 salt** 存 hash（独立 salt 没存过会导致找回永远失败，已修）。M2 客户端待做。

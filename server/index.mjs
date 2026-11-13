@@ -188,6 +188,78 @@ CREATE TABLE IF NOT EXISTS sms_owners (
 );
 `);
 
+/* ---------------------------------------------------- 账号 / 会话 / 事项 */
+// 用户名不释放：注销时只清空凭据、保留 username_lc 占位，避免被顶替注册
+db.exec(`
+CREATE TABLE IF NOT EXISTS users (
+  id            TEXT PRIMARY KEY,
+  username      TEXT NOT NULL,
+  username_lc   TEXT NOT NULL UNIQUE,
+  nick          TEXT NOT NULL DEFAULT '',
+  password_hash TEXT NOT NULL,
+  password_salt TEXT NOT NULL,
+  recovery_hash TEXT NOT NULL,
+  created_at    INTEGER NOT NULL,
+  updated_at    INTEGER NOT NULL,
+  deleted_at    INTEGER
+);
+CREATE TABLE IF NOT EXISTS sessions (
+  id          TEXT PRIMARY KEY,
+  user_id     TEXT NOT NULL,
+  token_hash  TEXT NOT NULL UNIQUE,
+  device_name TEXT NOT NULL DEFAULT '',
+  ua          TEXT NOT NULL DEFAULT '',
+  created_at  INTEGER NOT NULL,
+  last_seen   INTEGER NOT NULL,
+  expires_at  INTEGER NOT NULL,
+  revoked_at  INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+CREATE TABLE IF NOT EXISTS bindings (
+  id         TEXT PRIMARY KEY,
+  from_user  TEXT NOT NULL,
+  to_user    TEXT NOT NULL,
+  status     TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  acted_at   INTEGER,
+  UNIQUE(from_user, to_user)
+);
+CREATE TABLE IF NOT EXISTS shares (
+  id          TEXT PRIMARY KEY,
+  from_user   TEXT NOT NULL,
+  to_user     TEXT NOT NULL,
+  source_item TEXT NOT NULL,
+  snapshot    TEXT NOT NULL,
+  new_item_id TEXT,
+  created_at  INTEGER NOT NULL,
+  read_at     INTEGER
+);
+CREATE TABLE IF NOT EXISTS items (
+  id         TEXT PRIMARY KEY,
+  owner_id   TEXT NOT NULL,
+  kind       TEXT NOT NULL,
+  text       TEXT NOT NULL DEFAULT '',
+  images     TEXT NOT NULL DEFAULT '[]',
+  done       INTEGER NOT NULL DEFAULT 0,
+  pinned     INTEGER NOT NULL DEFAULT 0,
+  sort_at    INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  origin     TEXT,
+  deleted_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_items_owner ON items(owner_id, deleted_at, sort_at DESC);
+CREATE TABLE IF NOT EXISTS changes (
+  seq       INTEGER PRIMARY KEY AUTOINCREMENT,
+  owner_id  TEXT NOT NULL,
+  entity    TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  op        TEXT NOT NULL,
+  at        INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_changes_owner ON changes(owner_id, seq);
+`);
+
 // 多租户：每台电脑自己一个 owner，只看得到自己名下的手机
 {
   const devCols = db.prepare('PRAGMA table_info(sms_devices)').all().map((c) => c.name);
@@ -650,7 +722,30 @@ const q = {
   putBallot: db.prepare(
     'INSERT INTO vote_ballots (vote_id, device_id, yes, at) VALUES (?, ?, ?, ?) ON CONFLICT(vote_id, device_id) DO UPDATE SET yes = excluded.yes, at = excluded.at'
   ),
-  allRooms: db.prepare('SELECT * FROM rooms')
+  allRooms: db.prepare('SELECT * FROM rooms'),
+  // 账号
+  userById: db.prepare('SELECT * FROM users WHERE id = ?'),
+  userByName: db.prepare('SELECT * FROM users WHERE username_lc = ?'),
+  insertUser: db.prepare(
+    'INSERT INTO users (id, username, username_lc, nick, password_hash, password_salt, recovery_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ),
+  updateUserCreds: db.prepare(
+    'UPDATE users SET password_hash = ?, password_salt = ?, recovery_hash = ?, updated_at = ? WHERE id = ?'
+  ),
+  updateUserNick: db.prepare('UPDATE users SET nick = ?, updated_at = ? WHERE id = ?'),
+  tombstoneUser: db.prepare(
+    "UPDATE users SET password_hash = '', password_salt = '', recovery_hash = '', nick = '', deleted_at = ? WHERE id = ?"
+  ),
+  // 会话
+  insertSession: db.prepare(
+    'INSERT INTO sessions (id, user_id, token_hash, device_name, ua, created_at, last_seen, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+  ),
+  sessionByHash: db.prepare('SELECT * FROM sessions WHERE token_hash = ?'),
+  sessionById: db.prepare('SELECT * FROM sessions WHERE id = ?'),
+  sessionsOf: db.prepare('SELECT * FROM sessions WHERE user_id = ? AND revoked_at IS NULL ORDER BY last_seen DESC'),
+  touchSession: db.prepare('UPDATE sessions SET last_seen = ? WHERE id = ?'),
+  revokeSession: db.prepare('UPDATE sessions SET revoked_at = ? WHERE id = ?'),
+  revokeAllSessions: db.prepare('UPDATE sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL')
 };
 
 /* --------------------------------------------------------------- utils */
@@ -686,8 +781,8 @@ function uniqueCode() {
 function cors() {
   return {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, X-Island-Device, X-Island-Token',
+    'Access-Control-Allow-Methods': 'GET,POST,DELETE,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, X-Island-Device, X-Island-Token, Authorization, X-Island-Session',
     'Access-Control-Max-Age': '86400'
   };
 }
@@ -1673,6 +1768,278 @@ function serveWeb(res, file) {
 
 /* ------------------------------------------------------------ routing */
 
+/* ------------------------------------------------------------- 账号体系 */
+// 密码与恢复码都用 scrypt（Node 内置，不引入原生依赖）
+const SCRYPT = { N: 1 << 15, r: 8, p: 1, maxmem: 128 * 1024 * 1024 };
+const SESSION_TTL = 90 * DAY;
+const REC_ALPHABET = '23456789ABCDEFGHJKMNPQRSTVWXYZ';
+const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
+const MIN_PW = 8;
+
+function scryptHash(secret, salt = crypto.randomBytes(16).toString('hex')) {
+  const buf = crypto.scryptSync(String(secret).normalize('NFKC'), salt, 32, SCRYPT);
+  return { salt, hash: buf.toString('hex') };
+}
+
+function scryptCheck(secret, salt, expected) {
+  if (!salt || !expected) return false;
+  let buf;
+  try {
+    buf = crypto.scryptSync(String(secret).normalize('NFKC'), salt, 32, SCRYPT);
+  } catch {
+    return false;
+  }
+  const a = Buffer.from(String(expected), 'hex');
+  return a.length === buf.length && crypto.timingSafeEqual(a, buf);
+}
+
+function newRecoveryCode() {
+  const buf = crypto.randomBytes(12);
+  const ch = [...buf].map((b) => REC_ALPHABET[b % REC_ALPHABET.length]);
+  return [ch.slice(0, 4).join(''), ch.slice(4, 8).join(''), ch.slice(8, 12).join('')].join('-');
+}
+
+const normRecovery = (s) => String(s || '').toUpperCase().replace(/[^0-9A-Z]/g, '');
+
+function ipOf(req) {
+  const fwd = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  return fwd || req.socket.remoteAddress || 'unknown';
+}
+
+// 简易滑动窗口限流：key → 最近命中时间
+const authHits = new Map();
+function tooMany(key, max, winMs) {
+  const t = now();
+  const arr = (authHits.get(key) || []).filter((x) => t - x < winMs);
+  if (arr.length >= max) {
+    authHits.set(key, arr);
+    return true;
+  }
+  arr.push(t);
+  authHits.set(key, arr);
+  if (authHits.size > 5000) authHits.clear();
+  return false;
+}
+
+// 同一用户名连续错 5 次 → 锁 15 分钟
+const loginLocks = new Map();
+function loginLocked(lc) {
+  const l = loginLocks.get(lc);
+  if (!l) return 0;
+  if (l.until && l.until > now()) return l.until;
+  if (l.until && l.until <= now()) loginLocks.delete(lc);
+  return 0;
+}
+function loginFail(lc) {
+  const l = loginLocks.get(lc) || { fails: [], until: 0 };
+  l.fails = l.fails.filter((t) => now() - t < 15 * 60000);
+  l.fails.push(now());
+  if (l.fails.length >= 5) {
+    l.until = now() + 15 * 60000;
+    l.fails = [];
+  }
+  loginLocks.set(lc, l);
+}
+function loginOk(lc) {
+  loginLocks.delete(lc);
+}
+
+function publicUser(u, self = false) {
+  const out = { id: u.id, username: u.username, nick: u.nick || u.username, createdAt: u.created_at };
+  if (self) out.deletedAt = u.deleted_at || 0;
+  return out;
+}
+
+function publicSession(s, currentId) {
+  return {
+    id: s.id,
+    deviceName: s.device_name || '未命名设备',
+    createdAt: s.created_at,
+    lastSeen: s.last_seen,
+    current: s.id === currentId
+  };
+}
+
+function bearerOf(req) {
+  const h = String(req.headers.authorization || '');
+  if (/^Bearer\s+/i.test(h)) return h.replace(/^Bearer\s+/i, '').trim();
+  return String(req.headers['x-island-session'] || '').trim();
+}
+
+function requireUser(req, res) {
+  const raw = bearerOf(req);
+  if (!raw) {
+    fail(res, 'unauthorized', '请先登录', 401);
+    return null;
+  }
+  const s = q.sessionByHash.get(hash(raw));
+  if (!s || s.revoked_at || s.expires_at < now()) {
+    fail(res, 'unauthorized', '登录已过期，请重新登录', 401);
+    return null;
+  }
+  const u = q.userById.get(s.user_id);
+  if (!u || u.deleted_at) {
+    fail(res, 'unauthorized', '账号不可用', 401);
+    return null;
+  }
+  q.touchSession.run(now(), s.id);
+  return { user: u, session: s };
+}
+
+function newSession(userId, deviceName, ua) {
+  const raw = crypto.randomBytes(32).toString('base64url');
+  const id = 'ses_' + rid(6);
+  q.insertSession.run(
+    id,
+    userId,
+    hash(raw),
+    String(deviceName || '').slice(0, 60),
+    String(ua || '').slice(0, 200),
+    now(),
+    now(),
+    now() + SESSION_TTL
+  );
+  return { id, token: raw, expiresAt: now() + SESSION_TTL };
+}
+
+function badName(name) {
+  return !USERNAME_RE.test(String(name || ''));
+}
+
+function handleAuthCheck(req, res, url) {
+  if (tooMany('check:' + ipOf(req), 60, 3600e3)) return fail(res, 'rate_limited', '试得有点频繁，歇一会儿再试');
+  const name = String(url.searchParams.get('u') || '').trim();
+  if (badName(name)) return fail(res, 'bad_username', '用户名要 3–20 位，只能是字母、数字、下划线');
+  const u = q.userByName.get(name.toLowerCase());
+  return ok(res, { available: !u, reserved: !!(u && u.deleted_at) });
+}
+
+async function handleAuthRegister(req, res, body) {
+  const ip = ipOf(req);
+  if (tooMany('reg:' + ip, 10, 3600e3)) return fail(res, 'rate_limited', '注册太频繁了，过一会儿再试');
+  const b = readJson(body);
+  const username = String(b.username || '').trim();
+  const password = String(b.password || '');
+  const nick = String(b.nick || '').trim().slice(0, 24);
+  if (badName(username)) return fail(res, 'bad_username', '用户名要 3–20 位，只能是字母、数字、下划线');
+  if (password.length < MIN_PW) return fail(res, 'weak_password', '密码至少 8 位');
+  if (password.length > 128) return fail(res, 'weak_password', '密码太长了');
+  const lc = username.toLowerCase();
+  if (q.userByName.get(lc)) return fail(res, 'taken', '这个名字已经有人用了');
+
+  const id = 'usr_' + rid(6);
+  const pw = scryptHash(password);
+  const recovery = newRecoveryCode();
+  const rc = scryptHash(normRecovery(recovery), pw.salt);
+  q.insertUser.run(id, username, lc, nick || username, pw.hash, pw.salt, rc.hash, now(), now());
+  const s = newSession(id, b.deviceName, req.headers['user-agent']);
+  const u = q.userById.get(id);
+  log('[auth] register', username, id, ip);
+  return ok(res, { token: s.token, expiresAt: s.expiresAt, user: publicUser(u, true), recoveryCode: recovery });
+}
+
+async function handleAuthLogin(req, res, body) {
+  const ip = ipOf(req);
+  if (tooMany('login-ip:' + ip, 20, 3600e3)) return fail(res, 'rate_limited', '尝试太频繁了，过一会儿再试');
+  const b = readJson(body);
+  const username = String(b.username || '').trim();
+  const password = String(b.password || '');
+  if (!username || !password) return fail(res, 'bad_request', '用户名和密码都要填');
+  const lc = username.toLowerCase();
+  const until = loginLocked(lc);
+  if (until) {
+    const mins = Math.max(1, Math.ceil((until - now()) / 60000));
+    return fail(res, 'locked', `试错太多次了，${mins} 分钟后再试`);
+  }
+  const u = q.userByName.get(lc);
+  if (!u || u.deleted_at || !scryptCheck(password, u.password_salt, u.password_hash)) {
+    loginFail(lc);
+    return fail(res, 'bad_credentials', '用户名或密码不对');
+  }
+  loginOk(lc);
+  const s = newSession(u.id, b.deviceName, req.headers['user-agent']);
+  log('[auth] login', u.username, u.id, ip);
+  return ok(res, { token: s.token, expiresAt: s.expiresAt, user: publicUser(u, true) });
+}
+
+function handleAuthMe(req, res) {
+  const ctx = requireUser(req, res);
+  if (!ctx) return;
+  const list = q.sessionsOf.all(ctx.user.id).map((s) => publicSession(s, ctx.session.id));
+  return ok(res, { user: publicUser(ctx.user, true), sessions: list });
+}
+
+function handleAuthLogout(req, res) {
+  const ctx = requireUser(req, res);
+  if (!ctx) return;
+  q.revokeSession.run(now(), ctx.session.id);
+  return ok(res, {});
+}
+
+function handleAuthLogoutAll(req, res) {
+  const ctx = requireUser(req, res);
+  if (!ctx) return;
+  q.revokeAllSessions.run(now(), ctx.user.id);
+  return ok(res, {});
+}
+
+function handleSessionRevoke(req, res, id) {
+  const ctx = requireUser(req, res);
+  if (!ctx) return;
+  const s = q.sessionById.get(id);
+  if (!s || s.user_id !== ctx.user.id) return fail(res, 'not_found', '没有这台设备');
+  q.revokeSession.run(now(), id);
+  return ok(res, {});
+}
+
+async function handleAuthRecover(req, res, body) {
+  const ip = ipOf(req);
+  if (tooMany('rec:' + ip, 10, 3600e3)) return fail(res, 'rate_limited', '试得有点频繁，歇一会儿再试');
+  const b = readJson(body);
+  const username = String(b.username || '').trim();
+  const code = String(b.code || '');
+  const password = String(b.newPassword || '');
+  if (password.length < MIN_PW) return fail(res, 'weak_password', '新密码至少 8 位');
+  const u = q.userByName.get(username.toLowerCase());
+  if (!u || u.deleted_at || !scryptCheck(normRecovery(code), u.password_salt, u.recovery_hash)) {
+    return fail(res, 'bad_recovery', '用户名或恢复码不对');
+  }
+  const pw = scryptHash(password);
+  const recovery = newRecoveryCode();
+  const rc = scryptHash(normRecovery(recovery), pw.salt);
+  q.updateUserCreds.run(pw.hash, pw.salt, rc.hash, now(), u.id);
+  q.revokeAllSessions.run(now(), u.id);
+  const s = newSession(u.id, b.deviceName, req.headers['user-agent']);
+  log('[auth] recover', u.username, u.id, ip);
+  return ok(res, { token: s.token, expiresAt: s.expiresAt, user: publicUser(q.userById.get(u.id), true), recoveryCode: recovery });
+}
+
+async function handleAccountDelete(req, res, body) {
+  const ctx = requireUser(req, res);
+  if (!ctx) return;
+  const b = readJson(body);
+  const u = ctx.user;
+  if (String(b.username || '').trim().toLowerCase() !== u.username_lc) return fail(res, 'bad_request', '用户名不对');
+  if (!scryptCheck(String(b.password || ''), u.password_salt, u.password_hash)) return fail(res, 'bad_request', '密码不对');
+  if (!scryptCheck(normRecovery(b.code), u.password_salt, u.recovery_hash)) return fail(res, 'bad_request', '恢复码不对');
+
+  db.exec('BEGIN');
+  try {
+    q.revokeAllSessions.run(now(), u.id);
+    db.prepare('DELETE FROM items WHERE owner_id = ?').run(u.id);
+    db.prepare('DELETE FROM shares WHERE from_user = ? OR to_user = ?').run(u.id, u.id);
+    db.prepare('DELETE FROM bindings WHERE from_user = ? OR to_user = ?').run(u.id, u.id);
+    db.prepare('DELETE FROM changes WHERE owner_id = ?').run(u.id);
+    q.tombstoneUser.run(now(), u.id);
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
+  log('[auth] delete', u.username, u.id, ipOf(req));
+  return ok(res, {});
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://' + (req.headers.host || 'localhost'));
   let p = url.pathname;
@@ -1695,6 +2062,24 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === 'GET' && p === '/api/stream') return handleStream(req, res, url);
+
+    // 账号：注册 / 登录 / 恢复码找回 / 会话与注销
+    if (p === '/api/auth/check' && req.method === 'GET') return handleAuthCheck(req, res, url);
+    if (p === '/api/auth/register' && req.method === 'POST')
+      return await handleAuthRegister(req, res, await readBody(req));
+    if (p === '/api/auth/login' && req.method === 'POST')
+      return await handleAuthLogin(req, res, await readBody(req));
+    if (p === '/api/auth/recover' && req.method === 'POST')
+      return await handleAuthRecover(req, res, await readBody(req));
+    if (p === '/api/auth/logout' && req.method === 'POST') return handleAuthLogout(req, res);
+    if (p === '/api/auth/logout-all' && req.method === 'POST') return handleAuthLogoutAll(req, res);
+    if (p === '/api/me' && req.method === 'GET') return handleAuthMe(req, res);
+    if (p === '/api/me' && req.method === 'DELETE')
+      return await handleAccountDelete(req, res, await readBody(req));
+    {
+      const sm = p.match(/^\/api\/me\/sessions\/([A-Za-z0-9_]+)$/);
+      if (sm && req.method === 'DELETE') return handleSessionRevoke(req, res, sm[1]);
+    }
 
     // 短信 / 验证码：手机端 POST 进来，桌面端订阅 SSE
     if (req.method === 'GET' && p === '/api/hook/info') return handleHookInfo(req, res, url);

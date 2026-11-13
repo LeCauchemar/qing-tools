@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>开发记录 · Qing Tools 从 1.0 到 1.10.11</title>
-<meta name="description" content="Qing Tools 七天五十六个版本的开发过程：从一条会伸缩的药丸，到能收邮件、短信验证码、文件和群聊的常驻小面板。">
+<title>开发记录 · Qing Tools 从 1.0 到 1.11.0</title>
+<meta name="description" content="Qing Tools 九天五十七个版本的开发过程：从一条会伸缩的药丸，到能收邮件、短信验证码、文件和群聊的常驻小面板，再到能登录的账号。">
 <meta name="theme-color" content="#05060b">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/site.css?v=12">
@@ -31,7 +31,7 @@
     <button class="icon-btn" id="themeBtn" title="切换明暗" aria-label="切换明暗">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path class="sun" d="M12 4v2m0 12v2m8-8h-2M6 12H4m13.7-5.7-1.4 1.4M7.7 16.3l-1.4 1.4m11.4 0-1.4-1.4M7.7 7.7 6.3 6.3"/><circle cx="12" cy="12" r="3.6"/></svg>
     </button>
-    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.10.11-setup.exe">下载</a>
+    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.11.0-setup.exe">下载</a>
   </div>
 </header>
 
@@ -39,14 +39,14 @@
 
   <section class="cl-hero">
     <p class="kicker">开发记录</p>
-    <h1>七天，四十来个版本，<br><span class="grad">一条缝长成了一个工作台</span></h1>
+    <h1>九天，五十多个版本，<br><span class="grad">一条缝长成了一个工作台</span></h1>
     <p class="lede">
-      1.0 的时候它只会伸缩和显示未读；到 1.10.11，它替你收邮件、抽验证码、接手机短信、暂存文件、
+      1.0 的时候它只会伸缩和显示未读；到 1.11.0，它替你收邮件、抽验证码、接手机短信、暂存文件、
       在群里发一句就走。下面是中间每一步到底改了什么、为什么改。
     </p>
     <div class="cl-stats">
-      <div><b>56</b><span>个可安装版本（1.0 → 1.10.11）</span></div>
-      <div><b>7</b><span>天（11-05 → 11-11）</span></div>
+      <div><b>57</b><span>个可安装版本（1.0 → 1.11.0）</span></div>
+      <div><b>9</b><span>天（11-05 → 11-13）</span></div>
       <div><b>100 MB</b><span>安装包（砍过 21 MB）</span></div>
       <div><b>7</b><span>个页签</span></div>
     </div>
@@ -422,12 +422,26 @@
       </div>
     </div>
 
+    <article class="cl-item v1">
+      <div class="cl-side"><b>1.11.0</b><i>11-13</i></div>
+      <div class="cl-body">
+        <h3>有账号了：登录一次，换台电脑也是你</h3>
+        <ul>
+          <li>服务端先落了整套账号后端：注册 / 登录 / 找回 / 注销、设备列表、单个会话撤销、退出全部设备；密码和恢复码都用 <code>scrypt</code> 存哈希，登录态是不透明 token（库里只存 SHA-256），所以「踢掉某一台」是真的立刻失效。</li>
+          <li>桌面端设置页最上面多了一组「账号」：用户名 + 密码登录或注册，注册完强制显示恢复码并要求勾选确认才能继续；已登录时能看到这台电脑在内的所有设备、最后活跃时间，逐台移除。</li>
+          <li>token 用 Windows DPAPI（<code>safeStorage</code>）加密后存 <code>account.json</code>，关掉应用再开自动恢复登录；401 时自动清掉本地登录态并提示重新登录。</li>
+          <li>找回密码用恢复码：换完密码旧码立即作废、当场给新码；注销要三重确认（用户名 + 密码 + 恢复码），注销后用户名永久保留、不会再放给别人。</li>
+          <li>这一版只做账号本身，本地备忘录/待办等数据仍在「本地模式」；把它们归属到账号下（含换账号不串号的分区）是下一个里程碑。</li>
+        </ul>
+      </div>
+    </div>
+
   </section>
 
   <footer class="foot">
     <div class="foot-left">
       <span class="mark small" aria-hidden="true"><i></i><b></b></span>
-      <span>Qing Tools <span class="dim">v1.10.11</span></span>
+      <span>Qing Tools <span class="dim">v1.11.0</span></span>
     </div>
     <div class="foot-right">
       <a href="index.html">回到首页</a>

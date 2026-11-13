@@ -31,6 +31,7 @@ const msOauth = require('./ms-oauth');
 const sysinfo = require('./sysinfo');
 const { SearchService } = require('./search');
 const { EverythingService } = require('./everything');
+const { registerAccountIpc } = require('./account');
 let searchService = null;
 let everythingService = null;
 let oauthPending = null; // 正在进行中的微软设备代码授权
@@ -1884,6 +1885,8 @@ ipcMain.on('app:dragHold', (e, on) => {
     return { workArea: d.workArea, bounds: d.bounds, winH, scale: d.scaleFactor };
   });
   ipcMain.handle('app:saveImage', async (e, url, name) => saveImageFromUrl(url, name));
+  // 账号（M2）：登录态 / 设备 / 注册找回，全部走 https://chat.ccyyqq.com/island
+  registerAccountIpc(ipcMain);
   ipcMain.handle('sys:stat', async () => sysinfo.stat());
   ipcMain.on('app:hide', () => hideIsland());
   ipcMain.on('app:show', () => showIsland());

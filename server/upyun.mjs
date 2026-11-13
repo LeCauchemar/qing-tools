@@ -11,6 +11,7 @@
  */
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import https from 'node:https';
 import path from 'node:path';
 
 let cfg = null;
@@ -81,6 +82,29 @@ function sign(method, uri, date, md5) {
 }
 
 /**
+ * 用 node:https 直发 PUT —— undici 的 fetch 有 300s（headers）超时，
+ * 100MB 安装包在慢上行链路上会直接 UND_ERR_HEADERS_TIMEOUT，换成原生请求不限时。
+ */
+function putRaw(uri, headers, buf) {
+  return new Promise((resolve, reject) => {
+    const req = https.request({
+      host: 'v0.api.upyun.com',
+      path: uri,
+      method: 'PUT',
+      headers,
+      timeout: 0
+    }, (res) => {
+      let body = '';
+      res.setEncoding('utf8');
+      res.on('data', (d) => { body += d; });
+      res.on('end', () => resolve({ status: res.statusCode || 0, body }));
+    });
+    req.on('error', reject);
+    req.end(buf);
+  });
+}
+
+/**
  * 传一个 Buffer 到又拍云。
  * @param {string} key 云端路径，例如 island/chat/room1/abc.png
  * @param {Buffer} buf
@@ -94,20 +118,15 @@ export async function putObject(key, buf, contentType = 'application/octet-strea
   const uri = `/${c.service}/${clean}`;
   const date = new Date().toUTCString();
   const md5 = crypto.createHash('md5').update(buf).digest('hex');
-  const res = await fetch('https://v0.api.upyun.com' + uri, {
-    method: 'PUT',
-    headers: {
-      Authorization: sign('PUT', uri, date, md5),
-      Date: date,
-      'Content-MD5': md5,
-      'Content-Type': contentType,
-      'Content-Length': String(buf.length)
-    },
-    body: buf
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    return { ok: false, status: res.status, message: text.slice(0, 200) || 'HTTP ' + res.status };
+  const out = await putRaw(uri, {
+    Authorization: sign('PUT', uri, date, md5),
+    Date: date,
+    'Content-MD5': md5,
+    'Content-Type': contentType,
+    'Content-Length': String(buf.length)
+  }, buf);
+  if (out.status < 200 || out.status >= 300) {
+    return { ok: false, status: out.status, message: String(out.body || '').slice(0, 200) || 'HTTP ' + out.status };
   }
   return { ok: true, key: clean, url: publicUrl(clean) };
 }

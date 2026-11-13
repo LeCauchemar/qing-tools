@@ -110,7 +110,8 @@ const S = {
   wx: null, // 天气缓存 { t, city, temp, max, min, text, code }
   selText: '',
   chat: { rooms: [], active: 0, adding: false, busy: false, err: '', mentions: new Map(), pending: [], reply: null, height: 0 },
-  timers: [] // [{ id, label, end, dur }]
+  timers: [], // [{ id, label, end, dur }]
+  account: { signedIn: false, user: null, sessions: [], busy: false, msg: '' } // 账号（1.11.0）
 };
 
 const el = {
@@ -124,6 +125,42 @@ const el = {
   idleSub: $('#idleSub'),
   idleNow: $('#idleNow'),
   headExtra: $('#headExtra'),
+  // 账号（1.11.0）
+  accOut: $('#accOut'),
+  accIn: $('#accIn'),
+  accUser: $('#accUser'),
+  accPass: $('#accPass'),
+  accLogin: $('#accLogin'),
+  accRegister: $('#accRegister'),
+  accForgot: $('#accForgot'),
+  accOutMsg: $('#accOutMsg'),
+  accName: $('#accName'),
+  accSub: $('#accSub'),
+  accDevList: $('#accDevList'),
+  accRefresh: $('#accRefresh'),
+  accSwitch: $('#accSwitch'),
+  accLogout: $('#accLogout'),
+  accLogoutAll: $('#accLogoutAll'),
+  accDelete: $('#accDelete'),
+  accCode: $('#accCode'),
+  accCodeVal: $('#accCodeVal'),
+  accCodeCopy: $('#accCodeCopy'),
+  accCodeDone: $('#accCodeDone'),
+  accCodeOk: $('#accCodeOk'),
+  accRecover: $('#accRecover'),
+  accRUser: $('#accRUser'),
+  accRCode: $('#accRCode'),
+  accRPass: $('#accRPass'),
+  accRGo: $('#accRGo'),
+  accRCancel: $('#accRCancel'),
+  accRMsg: $('#accRMsg'),
+  accDel: $('#accDel'),
+  accDUser: $('#accDUser'),
+  accDPass: $('#accDPass'),
+  accDCode: $('#accDCode'),
+  accDGo: $('#accDGo'),
+  accDCancel: $('#accDCancel'),
+  accDMsg: $('#accDMsg'),
   idleBadges: $('#idleBadges'),
   lightbox: $('#lightbox'),
   palette: $('#palette'),
@@ -1536,6 +1573,278 @@ function renderFiles() {
   );
 }
 
+/* ===================== 账号（1.11.0） ===================== */
+function accStamp(ts) {
+  if (!ts) return '';
+  const d = new Date(Number(ts));
+  const now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  const hm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  if (sameDay) return '今天 ' + hm;
+  const yest = new Date(now.getTime() - 86400000);
+  if (d.toDateString() === yest.toDateString()) return '昨天 ' + hm;
+  return d.getMonth() + 1 + '/' + d.getDate() + ' ' + hm;
+}
+
+function accMsg(node, text, kind) {
+  if (!node) return;
+  node.textContent = text || '';
+  node.classList.toggle('err', kind === 'err');
+  node.classList.toggle('ok', kind === 'ok');
+}
+
+function accRenderDevices(list) {
+  if (!el.accDevList) return;
+  if (!list || !list.length) {
+    el.accDevList.innerHTML = '<div class="dev-row"><span class="dev-name">还没有设备信息</span></div>';
+    return;
+  }
+  el.accDevList.innerHTML = list
+    .map(
+      (s) =>
+        '<div class="dev-row">' +
+        '<span class="dev-name">' +
+        esc(s.deviceName || '未命名设备') +
+        '</span>' +
+        (s.current ? '<span class="dev-tag">这台</span>' : '') +
+        '<span class="dev-time">' +
+        esc(accStamp(s.lastSeen)) +
+        '</span>' +
+        (s.current ? '' : '<button class="mini" data-dev-kick="' + esc(s.id) + '">移除</button>') +
+        '</div>'
+    )
+    .join('');
+}
+
+function accPaint() {
+  const a = S.account;
+  if (el.accOut) el.accOut.classList.toggle('hidden', a.signedIn);
+  if (el.accIn) el.accIn.classList.toggle('hidden', !a.signedIn);
+  if (a.signedIn && a.user) {
+    el.accName.textContent = a.user.nick || a.user.username;
+    el.accSub.textContent = '@' + a.user.username;
+    accRenderDevices(a.sessions || []);
+  }
+}
+
+async function accLoadStatus() {
+  try {
+    const st = await api.account.status();
+    S.account.signedIn = !!(st && st.signedIn);
+    S.account.user = (st && st.user) || null;
+    if (S.account.signedIn) await accFetchSessions();
+  } catch (_) {
+    S.account.signedIn = false;
+  }
+  accPaint();
+}
+
+async function accFetchSessions() {
+  try {
+    const me = await api.account.me();
+    if (me && me.ok) {
+      S.account.user = me.user || S.account.user;
+      S.account.sessions = me.sessions || [];
+    } else if (me && me.code === 'unauthorized') {
+      S.account.signedIn = false;
+      S.account.user = null;
+      S.account.sessions = [];
+    }
+  } catch (_) {
+    /* ignore */
+  }
+  accPaint();
+}
+
+function accBusy(on) {
+  S.account.busy = !!on;
+  [el.accLogin, el.accRegister, el.accRGo, el.accDGo, el.accLogout, el.accLogoutAll, el.accRefresh].forEach((b) => {
+    if (b) b.disabled = !!on;
+  });
+}
+
+function accShowCode(code) {
+  S.account.pendingCode = code;
+  el.accCode.classList.remove('hidden');
+  el.accCodeVal.textContent = code;
+  el.accCodeOk.checked = false;
+  el.accCodeDone.disabled = true;
+}
+
+function accHideCode() {
+  S.account.pendingCode = '';
+  el.accCode.classList.add('hidden');
+  el.accCodeVal.textContent = '';
+}
+
+async function accDoLogin() {
+  const username = el.accUser.value.trim();
+  const password = el.accPass.value;
+  if (!username || !password) return accMsg(el.accOutMsg, '用户名和密码都要填', 'err');
+  accBusy(true);
+  accMsg(el.accOutMsg, '正在登录…');
+  const r = await api.account.login({ username, password });
+  accBusy(false);
+  if (!r || !r.ok) return accMsg(el.accOutMsg, (r && r.message) || '登录失败', 'err');
+  accMsg(el.accOutMsg, '');
+  el.accPass.value = '';
+  S.account.signedIn = true;
+  S.account.user = r.user || null;
+  await accFetchSessions();
+  accPaint();
+  toast('已登录：' + ((r.user && (r.user.nick || r.user.username)) || username));
+}
+
+async function accDoRegister() {
+  const username = el.accUser.value.trim();
+  const password = el.accPass.value;
+  if (!username || !password) return accMsg(el.accOutMsg, '用户名和密码都要填', 'err');
+  accBusy(true);
+  accMsg(el.accOutMsg, '正在注册…');
+  const r = await api.account.register({ username, password });
+  accBusy(false);
+  if (!r || !r.ok) return accMsg(el.accOutMsg, (r && r.message) || '注册失败', 'err');
+  accMsg(el.accOutMsg, '');
+  el.accPass.value = '';
+  S.account.signedIn = true;
+  S.account.user = r.user || null;
+  accShowCode(r.recoveryCode || '');
+  await accFetchSessions();
+  accPaint();
+}
+
+async function accDoRecover() {
+  const username = el.accRUser.value.trim();
+  const code = el.accRCode.value.trim();
+  const newPassword = el.accRPass.value;
+  if (!username || !code || !newPassword) return accMsg(el.accRMsg, '三项都要填', 'err');
+  accBusy(true);
+  accMsg(el.accRMsg, '正在换密码…');
+  const r = await api.account.recover({ username, code, newPassword });
+  accBusy(false);
+  if (!r || !r.ok) return accMsg(el.accRMsg, (r && r.message) || '找回失败', 'err');
+  accMsg(el.accRMsg, '');
+  el.accRPass.value = '';
+  el.accRCode.value = '';
+  S.account.signedIn = true;
+  S.account.user = r.user || null;
+  el.accRecover.classList.add('hidden');
+  accShowCode(r.recoveryCode || '');
+  await accFetchSessions();
+  accPaint();
+  toast('密码已更新，恢复码也换了一把');
+}
+
+async function accDoLogout(all) {
+  accBusy(true);
+  const r = all ? await api.account.logoutAll() : await api.account.logout();
+  accBusy(false);
+  if (r && r.ok === false) {
+    toast((r.message || '退出失败') + '（本地登录态已清除）');
+  } else {
+    toast(all ? '已退出所有设备' : '已退出这台电脑');
+  }
+  S.account.signedIn = false;
+  S.account.user = null;
+  S.account.sessions = [];
+  accHideCode();
+  accPaint();
+}
+
+async function accDoDelete() {
+  const username = el.accDUser.value.trim();
+  const password = el.accDPass.value;
+  const code = el.accDCode.value.trim();
+  if (!username || !password || !code) return accMsg(el.accDMsg, '三项都要填', 'err');
+  accBusy(true);
+  accMsg(el.accDMsg, '正在注销…');
+  const r = await api.account.remove({ username, password, code });
+  accBusy(false);
+  if (!r || !r.ok) return accMsg(el.accDMsg, (r && r.message) || '注销失败', 'err');
+  el.accDPass.value = '';
+  el.accDCode.value = '';
+  el.accDUser.value = '';
+  el.accDel.classList.add('hidden');
+  accMsg(el.accDMsg, '');
+  S.account.signedIn = false;
+  S.account.user = null;
+  S.account.sessions = [];
+  accPaint();
+  toast('账号已注销');
+}
+
+function bindAccountUi() {
+  if (!el.accLogin) return;
+  el.accLogin.addEventListener('click', accDoLogin);
+  el.accRegister.addEventListener('click', accDoRegister);
+  el.accPass.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') accDoLogin();
+  });
+  el.accForgot.addEventListener('click', () => {
+    el.accRecover.classList.toggle('hidden');
+    el.accRUser.value = el.accUser.value.trim();
+    if (!el.accRecover.classList.contains('hidden')) el.accRUser.focus();
+  });
+  el.accRGo.addEventListener('click', accDoRecover);
+  el.accRCancel.addEventListener('click', () => {
+    el.accRecover.classList.add('hidden');
+    accMsg(el.accRMsg, '');
+  });
+  el.accCodeOk.addEventListener('change', () => {
+    el.accCodeDone.disabled = !el.accCodeOk.checked;
+  });
+  el.accCodeCopy.addEventListener('click', async () => {
+    await api.clips.writeText(S.account.pendingCode || '');
+    toast('恢复码已复制，建议存到密码管理器里');
+  });
+  el.accCodeDone.addEventListener('click', () => {
+    if (!el.accCodeOk.checked) return;
+    accHideCode();
+    toast('好了，恢复码请收好');
+  });
+  el.accRefresh.addEventListener('click', async () => {
+    accBusy(true);
+    await accFetchSessions();
+    accBusy(false);
+    toast('设备列表已刷新');
+  });
+  el.accSwitch.addEventListener('click', () => {
+    S.account.signedIn = false;
+    S.account.user = null;
+    S.account.sessions = [];
+    accPaint();
+    el.accUser.focus();
+  });
+  el.accLogout.addEventListener('click', () => accDoLogout(false));
+  el.accLogoutAll.addEventListener('click', () => {
+    if (!window.confirm('退出所有设备？其它电脑上的登录会立刻失效。')) return;
+    accDoLogout(true);
+  });
+  el.accDelete.addEventListener('click', () => {
+    el.accDel.classList.toggle('hidden');
+    if (!el.accDel.classList.contains('hidden')) el.accDUser.value = (S.account.user && S.account.user.username) || '';
+  });
+  el.accDCancel.addEventListener('click', () => {
+    el.accDel.classList.add('hidden');
+    accMsg(el.accDMsg, '');
+  });
+  el.accDGo.addEventListener('click', accDoDelete);
+  el.accDevList.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-dev-kick]');
+    if (!b) return;
+    const id = b.dataset.devKick;
+    b.disabled = true;
+    const r = await api.account.revokeSession(id);
+    b.disabled = false;
+    if (r && r.ok) {
+      toast('已移除那台设备');
+      await accFetchSessions();
+    } else {
+      toast((r && r.message) || '移除失败');
+    }
+  });
+}
+
 function renderSettings() {
   const st = S.data.settings || {};
   const m = S.data.mail;
@@ -1548,6 +1857,7 @@ function renderSettings() {
 
   applyTheme(st.theme);
   applyAccent(st.accent || 'violet');
+  accPaint();
   if (el.wxCity && !el.wxCity.matches(':focus')) el.wxCity.value = st.weatherCity || '';
   wxPaint();
   mailAccountLabel.textContent = m.configured ? (m.accounts.length > 1 ? m.accounts.length + ' 个邮箱' : m.label || m.user) : '未连接';
@@ -5393,6 +5703,8 @@ function chatInit() {
 }
 
 function bindUi() {
+  bindAccountUi();
+
   // 卫星圆点击：直接打开对应页签
   [
     [el.satMail, 'mail'],
@@ -7964,6 +8276,9 @@ async function boot() {
     applyToolOpen();
   }, 300);
   setTimeout(smsInit, 1500);
+  setTimeout(() => {
+    accLoadStatus();
+  }, 400);
   setInterval(smsWatchdog, 30000);
   setTimeout(() => {
     smsDevicesLoad();

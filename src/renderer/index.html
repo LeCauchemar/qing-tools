@@ -792,6 +792,121 @@
             <!-- 设置 -->
             <section class="pane" data-pane="settings">
               <div class="pane-scroll">
+                <div class="group" id="accGroup">
+                  <div class="group-title">账号</div>
+
+                  <!-- 未登录 -->
+                  <div id="accOut">
+                    <div class="setting">
+                      <span class="setting-main"><b>用户名</b><i>3–20 位，只能是字母、数字或下划线</i></span>
+                      <input id="accUser" class="input bare" type="text" placeholder="username" autocomplete="off" spellcheck="false" />
+                    </div>
+                    <div class="setting">
+                      <span class="setting-main"><b>密码</b><i>至少 8 位；忘了可以用恢复码找回</i></span>
+                      <input id="accPass" class="input bare" type="password" placeholder="••••••••" />
+                    </div>
+                    <div class="setting">
+                      <span class="setting-main"><b>登录 / 注册</b><i>注册成功会给你一串恢复码，只显示一次</i></span>
+                      <div class="acc-btns">
+                        <button class="mini primary" id="accLogin">登录</button>
+                        <button class="mini" id="accRegister">注册新账号</button>
+                      </div>
+                    </div>
+                    <div class="setting">
+                      <span class="setting-main"><b>忘了密码</b><i>用注册时保存的恢复码换一个新密码</i></span>
+                      <button class="mini" id="accForgot">用恢复码找回</button>
+                    </div>
+                    <div class="acc-note" id="accOutMsg"></div>
+                  </div>
+
+                  <!-- 已登录 -->
+                  <div id="accIn" class="hidden">
+                    <div class="setting">
+                      <span class="setting-main"><b id="accName">—</b><i id="accSub"></i></span>
+                      <div class="acc-btns">
+                        <button class="mini" id="accRefresh">刷新</button>
+                        <button class="mini" id="accSwitch">切换账号</button>
+                      </div>
+                    </div>
+                    <div class="acc-label">已登录的设备</div>
+                    <div class="dev-list" id="accDevList"></div>
+                    <div class="setting">
+                      <span class="setting-main"><b>退出</b><i>退出本机不影响别的设备；全部退出会踢掉所有设备</i></span>
+                      <div class="acc-btns">
+                        <button class="mini" id="accLogout">退出本机</button>
+                        <button class="mini danger" id="accLogoutAll">全部退出</button>
+                      </div>
+                    </div>
+                    <div class="setting">
+                      <span class="setting-main"><b>注销账号</b><i>清空云端数据；用户名不会被释放，也不能再用</i></span>
+                      <button class="mini danger" id="accDelete">注销…</button>
+                    </div>
+                  </div>
+
+                  <!-- 恢复码（注册/找回后强制确认） -->
+                  <div id="accCode" class="acc-code hidden">
+                    <b>这是你的恢复码，只显示这一次</b>
+                    <code id="accCodeVal"></code>
+                    <div class="acc-btns">
+                      <button class="mini" id="accCodeCopy">复制</button>
+                      <button class="mini" id="accCodeDone" disabled>我已经保存好了</button>
+                    </div>
+                    <label class="acc-check">
+                      <input type="checkbox" id="accCodeOk" />
+                      <span>我把它记在了安全的地方（丢了就找不回账号）</span>
+                    </label>
+                  </div>
+
+                  <!-- 找回密码 -->
+                  <div id="accRecover" class="hidden">
+                    <div class="setting">
+                      <span class="setting-main"><b>用户名</b><i>要找回的那个账号</i></span>
+                      <input id="accRUser" class="input bare" type="text" autocomplete="off" spellcheck="false" />
+                    </div>
+                    <div class="setting">
+                      <span class="setting-main"><b>恢复码</b><i>XXXX-XXXX-XXXX，大小写都行</i></span>
+                      <input id="accRCode" class="input bare" type="text" autocomplete="off" spellcheck="false" />
+                    </div>
+                    <div class="setting">
+                      <span class="setting-main"><b>新密码</b><i>至少 8 位</i></span>
+                      <input id="accRPass" class="input bare" type="password" />
+                    </div>
+                    <div class="setting">
+                      <span class="setting-main"><b>提交</b><i>成功后所有旧设备都要重新登录</i></span>
+                      <div class="acc-btns">
+                        <button class="mini primary" id="accRGo">换新密码</button>
+                        <button class="mini" id="accRCancel">取消</button>
+                      </div>
+                    </div>
+                    <div class="acc-note" id="accRMsg"></div>
+                  </div>
+
+                  <!-- 注销确认 -->
+                  <div id="accDel" class="hidden">
+                    <div class="acc-warn">注销后云端数据不可恢复，用户名永久占用。三项都要填对。</div>
+                    <div class="setting">
+                      <span class="setting-main"><b>用户名</b><i>再输一次你的用户名</i></span>
+                      <input id="accDUser" class="input bare" type="text" autocomplete="off" spellcheck="false" />
+                    </div>
+                    <div class="setting">
+                      <span class="setting-main"><b>密码</b></span>
+                      <input id="accDPass" class="input bare" type="password" />
+                    </div>
+                    <div class="setting">
+                      <span class="setting-main"><b>恢复码</b></span>
+                      <input id="accDCode" class="input bare" type="text" autocomplete="off" spellcheck="false" />
+                    </div>
+                    <div class="setting">
+                      <span class="setting-main"><b>确认</b><i>这一步做完就回不去了</i></span>
+                      <div class="acc-btns">
+                        <button class="mini danger" id="accDGo">确认注销</button>
+                        <button class="mini" id="accDCancel">算了</button>
+                      </div>
+                    </div>
+                    <div class="acc-note" id="accDMsg"></div>
+                  </div>
+                </div>
+
                 <div class="group">
                   <div class="group-title">通用</div>
                   <label class="setting">

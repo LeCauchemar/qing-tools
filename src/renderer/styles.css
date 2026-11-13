@@ -5918,3 +5918,121 @@ body.resizing .island * {
 .card-note:empty {
   display: none;
 }
+
+/* ===================== 账号（1.11.0） ===================== */
+.acc-btns {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex: none;
+}
+
+.acc-label {
+  margin: 10px 0 6px;
+  font-size: 11.5px;
+  color: color-mix(in srgb, var(--ink) 58%, transparent);
+}
+
+.dev-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.dev-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+  font-size: 12.5px;
+}
+
+.dev-row .dev-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dev-row .dev-tag {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 10.5px;
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
+  color: var(--ink);
+}
+
+.dev-row .dev-time {
+  flex: none;
+  font-size: 11px;
+  color: color-mix(in srgb, var(--ink) 55%, transparent);
+  font-variant-numeric: tabular-nums;
+}
+
+.acc-note {
+  font-size: 12px;
+  line-height: 1.6;
+  color: color-mix(in srgb, var(--ink) 62%, transparent);
+  padding: 4px 0 2px;
+}
+
+.acc-note:empty {
+  display: none;
+}
+
+.acc-note.err {
+  color: #ff7b7b;
+}
+
+.acc-note.ok {
+  color: #35d7b0;
+}
+
+.acc-code {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 10px 0 4px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.acc-code b {
+  font-size: 12.5px;
+}
+
+.acc-code code {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 18px;
+  letter-spacing: 2px;
+  color: var(--accent);
+  user-select: all;
+}
+
+.acc-check {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 12px;
+  color: color-mix(in srgb, var(--ink) 70%, transparent);
+}
+
+.acc-warn {
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  font-size: 12px;
+  color: #ff9090;
+  background: rgba(255, 107, 107, 0.1);
+}
+
+.mini.danger {
+  color: #ff8080;
+}

@@ -88,5 +88,10 @@
     "portable": {
       "artifactName": "QingTools-${version}-portable.${ext}"
     }
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LeCauchemar/qing-tools.git"
+  },
+  "homepage": "https://qingtools.ccyyqq.com/"
 }

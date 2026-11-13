@@ -1,3 +1,9 @@
+## 2026-11-13 13:40 · 1.11.0 · DeepSeekRuntime
+- 改了什么：把仓库推上 GitHub（LeCauchemar/qing-tools），打 tag v1.11.0，建 Release 并上传 setup/portable 两个附件；package.json 补 repository/homepage，README 加 release 徽章与仓库链接。
+- 为什么：用户要求源码 + 安装包同时放到 GitHub；安装包体积超过仓库单文件 100MB 限制，所以走 Release 附件（单文件上限 2GB），dist/ 继续留在 .gitignore。
+- 怎么验证：git ls-remote github main 与 refs/tags/v1.11.0 都在；Release 页 assets 里两个 exe 的 size 与本地一致。
+- 下一步 / 已知问题：Gitee 与 GitHub 双远端（origin=Gitee，github=GitHub），以后发版要两个都推；令牌只存在 Windows 凭据管理器，勿写进 .git/config。
+
 # HANDOFF — 交接日志（最新在最上面）
 
 > 规则见 [`AGENTS.md`](AGENTS.md) §8。**每个 Agent 改完东西都要在顶部追加一条**，只追加不改历史。

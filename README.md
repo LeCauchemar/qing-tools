@@ -4,6 +4,7 @@
 ![electron](https://img.shields.io/badge/Electron-45-5ac8fa)
 ![license](https://img.shields.io/badge/license-MIT-ffc531)
 ![installer](https://img.shields.io/badge/installer-~100%20MB-7b8cff)
+[![release](https://img.shields.io/github/v/release/LeCauchemar/qing-tools?label=release&color=8f7bff)](https://github.com/LeCauchemar/qing-tools/releases)
 
 > **一句话**：Windows 顶部常驻的「灵动岛」—— 一条细缝里收发邮件、看验证码、记便笺、管剪贴板、暂存文件、在小纸条里和朋友聊天，还能当番茄钟、倒数日和随机抽签。Electron + 原生 CSS 动画，支持开机自启、全局快捷键、深浅主题与多账户，Win10/11 即装即用。
 

@@ -831,6 +831,14 @@
                         <div class="acc-note" id="accClaimMsg"></div>
                       </div>
                     </div>
+                    <!-- M6：亲密好友（最多 3 个） -->
+                    <div class="acc-label">亲密好友</div>
+                    <div class="friend-list" id="accFriends"></div>
+                    <div class="acc-btns friend-add">
+                      <input class="input bare" id="accFriendName" placeholder="对方的用户名" maxlength="20" />
+                      <button class="mini primary" id="accFriendAdd">申请绑定</button>
+                    </div>
+                    <div class="acc-note" id="accFriendMsg"></div>
                     <div class="setting">
                       <span class="setting-main"><b>导出备份</b><i>当前这份数据写成一个 JSON，放到「文档\Qing Tools 备份」</i></span>
                       <button class="mini" id="accBackup">导出</button>
@@ -1067,6 +1075,16 @@
         <button class="mini" data-act="edit-paste-img">粘贴图片</button>
         <button class="mini" data-act="edit-selectall">全选</button>
       </div>
+
+      <!-- M6：把事项咻给好友 -->
+      <div class="msg-menu hidden" id="sharePop">
+        <div class="share-title">咻给谁？</div>
+        <div class="share-list" id="shareList"></div>
+        <div class="share-empty" id="shareEmpty">还没有绑定好友，去「设置 → 亲密好友」加一个。</div>
+      </div>
+
+      <!-- M6：收到分享时的心动散射 -->
+      <canvas class="hearts" id="hearts"></canvas>
 
       <!-- 文件搜索结果右键菜单：同样放在岛外面 -->
       <div class="fs-menu hidden" id="fsMenu">

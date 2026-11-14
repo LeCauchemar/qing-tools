@@ -112,7 +112,7 @@ const S = {
   selText: '',
   chat: { rooms: [], active: 0, adding: false, busy: false, err: '', mentions: new Map(), pending: [], reply: null, height: 0 },
   timers: [], // [{ id, label, end, dur }]
-  account: { signedIn: false, user: null, sessions: [], busy: false, msg: '', roomsClaimed: false } // 账号（1.11.0）
+  account: { signedIn: false, user: null, sessions: [], busy: false, msg: '', roomsClaimed: false, friends: [], requests: [], outgoing: [] }, // 账号（1.11.0 / M6）
 };
 
 const el = {
@@ -144,6 +144,15 @@ const el = {
   accClaimGo: $('#accClaimGo'),
   accClaimBackup: $('#accClaimBackup'),
   accBackup: $('#accBackup'),
+  // M6：亲密好友 + 分享
+  accFriends: $('#accFriends'),
+  accFriendName: $('#accFriendName'),
+  accFriendAdd: $('#accFriendAdd'),
+  accFriendMsg: $('#accFriendMsg'),
+  sharePop: $('#sharePop'),
+  shareList: $('#shareList'),
+  shareEmpty: $('#shareEmpty'),
+  hearts: $('#hearts'),
   accRefresh: $('#accRefresh'),
   accSwitch: $('#accSwitch'),
   accLogout: $('#accLogout'),
@@ -1457,7 +1466,8 @@ function renderNotes() {
           '<div class="row-side"><span class="time">' + esc(fmtTime(n.updatedAt || n.createdAt)) + '</span>' +
           '<div class="row-tools">' +
           '<button class="icon-btn tool" data-act="note-edit" title="编辑"><svg class="ic"><use href="#i-text"/></svg></button>' +
-          '<button class="icon-btn tool" data-act="note-to-chat" title="发送到小纸条"><svg class="ic"><use href="#i-send"/></svg></button>' +
+          '<button class="icon-btn tool' + (S.account.signedIn ? '' : ' hidden') + '" data-act="note-share" data-id="' + esc(n.id) + '" title="咻给好友"><svg class="ic"><use href="#i-send"/></svg></button>' +
+          '<button class="icon-btn tool" data-act="note-to-chat" title="发送到小纸条"><svg class="ic"><use href="#i-chat"/></svg></button>' +
           '<button class="icon-btn tool' + (n.pinned ? ' on' : '') + '" data-act="note-pin" title="' + (n.pinned ? '取消钉在桌面' : '钉到桌面') + '"><svg class="ic"><use href="#i-sticky"/></svg></button>' +
           '<button class="icon-btn tool danger' + (n.pinned ? ' locked' : '') + '" data-act="note-del" title="' +
           (n.pinned ? '先取消钉在桌面才能删除' : '删除') + '"' + (n.pinned ? ' disabled' : '') +
@@ -1664,8 +1674,10 @@ async function accLoadStatus() {
   }
   accPaint();
   await accLoadClaim();
+  await accLoadFriends();
   await claimLocalRooms();
   await syncAccountRooms();
+  if (S.account.signedIn) pollShares();
 }
 
 // M3：本机旧数据归属——登录后如果本机还有没归属过的数据，就把卡片亮出来
@@ -1835,6 +1847,7 @@ async function accDoLogin() {
   await accFetchSessions();
   accPaint();
   await accLoadClaim();
+  await accLoadFriends();
   await claimLocalRooms();
   await syncAccountRooms();
   toast('已登录：' + ((r.user && (r.user.nick || r.user.username)) || username));
@@ -1857,6 +1870,7 @@ async function accDoRegister() {
   await accFetchSessions();
   accPaint();
   await accLoadClaim();
+  await accLoadFriends();
   await claimLocalRooms();
   await syncAccountRooms();
 }
@@ -1924,9 +1938,249 @@ async function accDoDelete() {
   toast('账号已注销');
 }
 
+/* ── M6：亲密好友 + 「咻」分享 + 心动散射 ───────────────────────────── */
+
+async function accLoadFriends() {
+  if (!S.account.signedIn) {
+    S.account.friends = [];
+    S.account.requests = [];
+    S.account.outgoing = [];
+    renderAccFriends();
+    return;
+  }
+  const r = await api.account.bindings();
+  if (r && r.ok) {
+    S.account.friends = r.friends || [];
+    S.account.requests = r.incoming || [];
+    S.account.outgoing = r.outgoing || [];
+  }
+  renderAccFriends();
+}
+
+function renderAccFriends() {
+  const list = S.account.friends || [];
+  const reqs = S.account.requests || [];
+  const out = S.account.outgoing || [];
+  let html = '';
+  reqs.forEach((q) => {
+    html +=
+      '<div class="friend-row req"><span class="fr-main"><b>' +
+      esc(q.from.nick || q.from.username) +
+      '</b><i>@' +
+      esc(q.from.username) +
+      ' 想和你绑定</i></span><span class="fr-acts">' +
+      '<button class="mini primary" data-act="friend-accept" data-id="' +
+      esc(q.id) +
+      '">同意</button>' +
+      '<button class="mini" data-act="friend-reject" data-id="' +
+      esc(q.id) +
+      '">拒绝</button></span></div>';
+  });
+  list.forEach((f) => {
+    html +=
+      '<div class="friend-row"><span class="fr-main"><b>' +
+      esc(f.nick || f.username) +
+      '</b><i>@' +
+      esc(f.username) +
+      '</i></span>' +
+      '<button class="mini danger" data-act="friend-remove" data-id="' +
+      esc(f.bindId || '') +
+      '">解除</button></div>';
+  });
+  out.forEach((q) => {
+    html +=
+      '<div class="friend-row wait"><span class="fr-main"><b>' +
+      esc(q.to.nick || q.to.username) +
+      '</b><i>已申请，等对方同意</i></span></div>';
+  });
+  if (!html) html = '<div class="friend-none">还没有好友。绑一个，写好的事项就能一键咻过去。</div>';
+  if (el.accFriends) el.accFriends.innerHTML = html;
+  renderShareList();
+}
+
+async function accAddFriend() {
+  const name = el.accFriendName ? el.accFriendName.value.trim() : '';
+  if (!name) return accMsg(el.accFriendMsg, '先填对方用户名', 'err');
+  const r = await api.account.bind(name);
+  if (r && r.ok) {
+    if (el.accFriendName) el.accFriendName.value = '';
+    accMsg(el.accFriendMsg, r.accepted ? '已和 ' + name + ' 结成好友' : '申请已发出去，等对方同意', 'ok');
+    await accLoadFriends();
+  } else {
+    accMsg(el.accFriendMsg, (r && r.message) || '没加上', 'err');
+  }
+}
+
+async function accFriendAct(id, act) {
+  if (!id) return;
+  if (act === 'remove' && !window.confirm('解除和这位好友的绑定？')) return;
+  const r = await api.account.bindingAct(id, act);
+  if (r && r.ok) {
+    accMsg(el.accFriendMsg, act === 'remove' ? '已解除绑定' : act === 'accept' ? '已经绑定好了' : '已拒绝', 'ok');
+    await accLoadFriends();
+  } else {
+    accMsg(el.accFriendMsg, (r && r.message) || '操作没成功', 'err');
+  }
+}
+
+function renderShareList() {
+  if (!el.shareList) return;
+  const fs = S.account.friends || [];
+  el.shareList.innerHTML = fs
+    .map(
+      (f) =>
+        '<button class="mini share-friend" data-act="share-to" data-id="' +
+        esc(f.id) +
+        '">' +
+        esc(f.nick || f.username) +
+        '</button>'
+    )
+    .join('');
+  if (el.shareEmpty) el.shareEmpty.classList.toggle('hidden', fs.length > 0);
+}
+
+function openSharePop(x, y, noteId) {
+  S.shareNoteId = noteId;
+  renderShareList();
+  const m = el.sharePop;
+  if (!m) return;
+  m.classList.remove('hidden');
+  const r = m.getBoundingClientRect();
+  const left = Math.max(8, Math.min(x, window.innerWidth - r.width - 8));
+  const top = Math.max(8, Math.min(y, window.innerHeight - r.height - 8));
+  m.style.left = left + 'px';
+  m.style.top = top + 'px';
+  nudgeRect(900);
+}
+
+function closeSharePop() {
+  if (el.sharePop) el.sharePop.classList.add('hidden');
+}
+
+function planeFly(fromEl) {
+  try {
+    const r = (fromEl || el.noteList).getBoundingClientRect();
+    const p = document.createElement('div');
+    p.className = 'plane-fly';
+    p.innerHTML = '<svg class="ic"><use href="#i-send"/></svg>';
+    p.style.left = r.left + r.width / 2 + 'px';
+    p.style.top = r.top + r.height / 2 + 'px';
+    document.body.appendChild(p);
+    requestAnimationFrame(() => {
+      p.style.transform =
+        'translate(' + Math.round(window.innerWidth * 0.3) + 'px,' + Math.round(-window.innerHeight * 0.34) + 'px) scale(.55) rotate(-16deg)';
+      p.style.opacity = '0';
+    });
+    setTimeout(() => p.remove(), 820);
+  } catch (_) {
+    /* ignore */
+  }
+}
+
+async function shareNoteTo(friend, noteId, fromEl) {
+  const n = (S.data.notes || []).find((x) => x.id === noteId);
+  if (!n) return toast('这条事项已经不在了');
+  planeFly(fromEl);
+  const text = notePlain(n.text || '').trim();
+  const r = await api.account.share({
+    toUserId: friend.id,
+    kind: n.kind === 'todo' ? 'todo' : 'note',
+    text,
+    sourceItem: n.id
+  });
+  if (r && r.ok) toast('咻——已经发给 ' + (friend.nick || friend.username));
+  else toast((r && r.message) || '没发出去');
+}
+
+function heartBurst() {
+  const cv = el.hearts;
+  if (!cv) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  cv.width = Math.round(W * dpr);
+  cv.height = Math.round(H * dpr);
+  cv.style.width = W + 'px';
+  cv.style.height = H + 'px';
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const cx = W / 2;
+  const cy = 34;
+  const parts = [];
+  for (let i = 0; i < 40; i++) {
+    const a = (Math.PI * 2 * i) / 40 + Math.random() * 0.28;
+    const sp = 2.1 + Math.random() * 3.4;
+    parts.push({
+      x: cx,
+      y: cy,
+      vx: Math.cos(a) * sp,
+      vy: Math.sin(a) * sp + 0.8,
+      size: 1.5 + Math.random() * 2.3,
+      hue: 336 + Math.random() * 44
+    });
+  }
+  const t0 = performance.now();
+  cv.classList.add('on');
+  const frame = (t) => {
+    const k = (t - t0) / 900;
+    ctx.clearRect(0, 0, W, H);
+    for (const p of parts) {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.05;
+      const life = Math.max(0, 1 - k);
+      ctx.globalAlpha = life * 0.92;
+      ctx.fillStyle = 'hsl(' + Math.round(p.hue) + ' 92% 64%)';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * (0.55 + life * 0.7), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    if (k < 1) requestAnimationFrame(frame);
+    else {
+      ctx.clearRect(0, 0, W, H);
+      cv.classList.remove('on');
+    }
+  };
+  requestAnimationFrame(frame);
+}
+
+async function pollShares() {
+  if (!S.account.signedIn || !api.account.shareInbox) return;
+  const r = await api.account.shareInbox();
+  if (!r || !r.ok) return;
+  const items = r.items || [];
+  if (!items.length) return;
+  for (const it of items) {
+    const text = String((it.item && it.item.text) || '');
+    const kind = it.item && it.item.kind === 'todo' ? 'todo' : 'note';
+    await api.notes.add(text, kind);
+    await api.account.shareRead(it.id);
+  }
+  const first = items[0];
+  const who = (first.from && (first.from.nick || first.from.username)) || '好友';
+  heartBurst();
+  toast(who + ' 咻来 ' + (items.length > 1 ? items.length + ' 条事项' : '一条事项'));
+  showPeek({
+    icon: '#i-heart',
+    title: who + ' 咻来 ' + (items.length > 1 ? items.length + ' 条事项' : '一条事项'),
+    sub: String((first.item && first.item.text) || '（空）').slice(0, 42),
+    time: '刚刚',
+    dur: 7200,
+    force: true
+  });
+  renderNotes();
+  nudgeRect(900);
+}
+
 function bindAccountUi() {
   if (!el.accLogin) return;
   el.accLogin.addEventListener('click', accDoLogin);
+  if (el.accFriendAdd) el.accFriendAdd.addEventListener('click', accAddFriend);
+  if (el.accFriendName)
+    el.accFriendName.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') accAddFriend();
+    });
   if (el.accClaimGo) el.accClaimGo.addEventListener('click', accDoClaim);
   if (el.accClaimBackup) el.accClaimBackup.addEventListener('click', accExportBackup);
   if (el.accBackup) el.accBackup.addEventListener('click', accExportBackup);
@@ -3784,6 +4038,28 @@ async function handleAct(act, node) {
     case 'note-pin': {
       const r = await api.notes.togglePin(id);
       toast(r && r.pinned ? '已钉到桌面' : '已取消钉在桌面');
+      break;
+    }
+    // M6：把这条事项咻给好友
+    case 'note-share': {
+      if (!S.account.signedIn) {
+        toast('先在设置里登录，才能咻给好友', true);
+        break;
+      }
+      const rect = node.getBoundingClientRect();
+      openSharePop(rect.left - 110, rect.bottom + 6, node.dataset.id || id);
+      break;
+    }
+    case 'share-to': {
+      const who = (S.account.friends || []).find((f) => f.id === node.dataset.id);
+      closeSharePop();
+      if (who) await shareNoteTo(who, S.shareNoteId, node);
+      break;
+    }
+    case 'friend-accept':
+    case 'friend-reject':
+    case 'friend-remove': {
+      await accFriendAct(node.dataset.id, act.replace('friend-', ''));
       break;
     }
     case 'note-done': {
@@ -5762,6 +6038,13 @@ function chatBind() {
     if (el.msgMenu && !el.msgMenu.classList.contains('hidden') && !e.target.closest('#msgMenu')) closeMsgMenu();
     if (el.noteMenu && !el.noteMenu.classList.contains('hidden') && !e.target.closest('#noteMenu')) closeNoteMenu();
     if (el.editMenu && !el.editMenu.classList.contains('hidden') && !e.target.closest('#editMenu')) closeEditMenu();
+    if (
+      el.sharePop &&
+      !el.sharePop.classList.contains('hidden') &&
+      !e.target.closest('#sharePop') &&
+      !e.target.closest('[data-act="note-share"]')
+    )
+      closeSharePop();
     if (el.lbMenu.classList.contains('hidden')) return;
     if (!e.target.closest('#lbMenu') && !e.target.closest('#lbImg')) el.lbMenu.classList.add('hidden');
   });
@@ -6712,6 +6995,12 @@ function bindUi() {
     'keydown',
     (e) => {
       if (e.key !== 'Escape') return;
+      if (el.sharePop && !el.sharePop.classList.contains('hidden')) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeSharePop();
+        return;
+      }
       if (!el.editMenu || el.editMenu.classList.contains('hidden')) return;
       e.preventDefault();
       e.stopPropagation();
@@ -8454,6 +8743,9 @@ async function boot() {
   setTimeout(() => {
     accLoadStatus();
   }, 400);
+  setInterval(() => {
+    pollShares();
+  }, 20000);
   setInterval(smsWatchdog, 30000);
   setTimeout(() => {
     smsDevicesLoad();

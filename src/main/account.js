@@ -192,6 +192,37 @@ class Account {
     return this._call('GET', '/api/me/rooms');
   }
 
+  /** 亲密好友（M6）：列表 / 申请 / 同意 / 拒绝 / 解除 */
+  bindings() {
+    return this._call('GET', '/api/bindings');
+  }
+
+  bind(username) {
+    return this._call('POST', '/api/bindings', { body: { username: String(username || '').trim() } });
+  }
+
+  bindingAct(id, act) {
+    const a = act === 'accept' ? 'accept' : act === 'reject' ? 'reject' : '';
+    if (!a) return this._call('DELETE', '/api/bindings/' + encodeURIComponent(id));
+    return this._call('POST', '/api/bindings/' + encodeURIComponent(id) + '/' + a, { body: {} });
+  }
+
+  /** 把一条事项分享给好友（服务端复制一份到对方名下） */
+  share({ toUserId, kind, text, sourceItem } = {}) {
+    return this._call('POST', '/api/shares', {
+      body: { toUserId, kind: kind === 'todo' ? 'todo' : 'note', text: String(text || ''), sourceItem: sourceItem || '' }
+    });
+  }
+
+  /** 我收到的分享（未读） */
+  shareInbox() {
+    return this._call('GET', '/api/shares/inbox');
+  }
+
+  shareRead(id) {
+    return this._call('POST', '/api/shares/' + encodeURIComponent(id) + '/read', { body: {} });
+  }
+
   /** 拉一次账号信息 + 设备列表；顺带校验 token 是否还有效 */
   async me() {
     if (!this.token) return { ok: false, code: 'unauthorized', message: '还没登录' };
@@ -289,6 +320,13 @@ function registerAccountIpc(ipcMain, hooks = {}) {
   ipcMain.handle('account:revokeSession', wrap((p) => a.revokeSession(p.id)));
   ipcMain.handle('account:claimRoom', wrap((p) => a.claimRoom(p && p.code)));
   ipcMain.handle('account:myRooms', wrap(() => a.myRooms()));
+  ipcMain.handle('account:bindings', wrap(() => a.bindings()));
+  ipcMain.handle('account:bind', wrap((p) => a.bind(p && p.username)));
+  ipcMain.handle('account:bindingAct', wrap((p) => a.bindingAct(p && p.id, p && p.act)));
+  ipcMain.handle('account:share', wrap((p) => a.share(p)));
+  ipcMain.handle('account:shareInbox', wrap(() => a.shareInbox()));
+  ipcMain.handle('account:shareRead', wrap((p) => a.shareRead(p && p.id)));
+
   ipcMain.handle(
     'account:logout',
     wrap(async () => {

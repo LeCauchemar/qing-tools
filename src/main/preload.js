@@ -67,6 +67,13 @@ contextBridge.exposeInMainWorld('island', {
     revokeSession: (id) => invoke('account:revokeSession', { id }),
     claimRoom: (code) => invoke('account:claimRoom', { code }),
     myRooms: () => invoke('account:myRooms'),
+    // M6：亲密好友 + 事项分享
+    bindings: () => invoke('account:bindings'),
+    bind: (username) => invoke('account:bind', { username }),
+    bindingAct: (id, act) => invoke('account:bindingAct', { id, act }),
+    share: (payload) => invoke('account:share', payload),
+    shareInbox: () => invoke('account:shareInbox'),
+    shareRead: (id) => invoke('account:shareRead', { id }),
     logout: () => invoke('account:logout'),
     logoutAll: () => invoke('account:logoutAll'),
     remove: (payload) => invoke('account:remove', payload),

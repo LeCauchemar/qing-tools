@@ -15,9 +15,9 @@
 ## 官网与下载
 
 - 官网：<https://qingtools.ccyyqq.com/>（源码在 `site/`，静态站，`deploy\site.ps1` 一键部署）
-- 开发记录：<https://qingtools.ccyyqq.com/changelog.html>（从 1.0 到 1.12.1 的过程，源码 `site/changelog.html`；纯文本版在仓库根 `CHANGELOG.md`）
-- 下载（又拍云 CDN，官网按钮指向这里）：<https://qing.ccyyqq.com/island/update/QingTools-1.12.1-setup.exe>（便携版同名 `-portable.exe`）
-- 备用镜像（本站 nginx `/download/`）：<https://qingtools.ccyyqq.com/download/QingTools-1.12.1-setup.exe>
+- 开发记录：<https://qingtools.ccyyqq.com/changelog.html>（从 1.0 到 1.13.0 的过程，源码 `site/changelog.html`；纯文本版在仓库根 `CHANGELOG.md`）
+- 下载（又拍云 CDN，官网按钮指向这里）：<https://qing.ccyyqq.com/island/update/QingTools-1.13.0-setup.exe>（便携版同名 `-portable.exe`）
+- 备用镜像（本站 nginx `/download/`）：<https://qingtools.ccyyqq.com/download/QingTools-1.13.0-setup.exe>
 - 服务器下载页：<https://chat.ccyyqq.com/island/get>（短链 `chat.ccyyqq.com/get`、`/dl`）
 
 ## 功能
@@ -25,6 +25,7 @@
 | 模块 | 说明 |
 | --- | --- |
 | **账号** | 设置页最上面一组「账号」：用户名 + 密码登录或注册（注册后强制显示恢复码、勾选确认才能继续）；登录后能看到**所有已登录设备**（含这台，显示最后活跃时间），可以逐台移除、退出本机或一次性退出全部；用恢复码找回密码会换掉旧码并当场给新码；注销要用户名 + 密码 + 恢复码三重确认，**用户名永久保留、不会再放给别人**。登录态用 Windows DPAPI 加密存盘，重启自动恢复；服务端密码与恢复码都是 `scrypt` 哈希，会话 token 库里只存 SHA-256，所以「踢掉某台设备」是真的立刻失效 |
+| **亲密好友 / 咻** | 设置里绑最多 3 个好友（发申请、对方同意）；Qing 事项行上的小飞机把这条事项复制给对方，收到时岛抖一下 + 边缘粉色光点，写进对方自己的 Qing 事项 |
 | **邮件推送** | **可同时登录多个邮箱**（QQ / 163 / 126 / Gmail / Outlook / 阿里云 / 自定义）：每个账户各自保持 IMAP IDLE 长连接，新邮件秒级主动推送；邮件页顶部有账户筛选条（「全部」或只看某一个，带未读计数）；断线自动退避重连，推送不可用时自动降级成定时检查 |
 | **验证码 / 链接** | 自动识别邮件里的验证码与激活链接：行内显示「⚡ 验证码 402913」芯片，点一下直接复制；通知条上也能「点击复制」；「↗ 打开链接」用默认浏览器打开 |
 | **小纸条** | 最多 4 台电脑用同一个 12 位匹配码互传纸条：文字、表情、图片与 GIF，SSE 实时到达，记录永久保存在服务器；每台电脑可同时加入 **2 个频道**，可右键重命名、点 Chip 上的复制按钮复制匹配码；点图片在岛内放大预览（可复制 / 另存）；**图片可右键「添加到表情包」，表情包全群共享**，之后像微信那样一键发表情；换电脑可用旧昵称一键顶替；可以**自己退出**频道，也能**发起投票把别人踢出去**（过半同意生效）；**一个频道 30 天没人说话**就先弹 3 天倒计时提醒，到期仍没人说话就自动解散，连同聊天记录、原图与缩略图、表情包一起清除 |

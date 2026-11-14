@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>开发记录 · Qing Tools 从 1.0 到 1.11.0</title>
-<meta name="description" content="Qing Tools 九天五十七个版本的开发过程：从一条会伸缩的药丸，到能收邮件、短信验证码、文件和群聊的常驻小面板，再到能登录的账号。">
+<title>开发记录 · Qing Tools 从 1.0 到 1.13.0</title>
+<meta name="description" content="Qing Tools 十天六十个版本的开发过程：从一条会伸缩的药丸，到能收邮件、短信验证码、文件和群聊的常驻小面板，再到能登录的账号。">
 <meta name="theme-color" content="#05060b">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/site.css?v=12">
@@ -31,7 +31,7 @@
     <button class="icon-btn" id="themeBtn" title="切换明暗" aria-label="切换明暗">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path class="sun" d="M12 4v2m0 12v2m8-8h-2M6 12H4m13.7-5.7-1.4 1.4M7.7 16.3l-1.4 1.4m11.4 0-1.4-1.4M7.7 7.7 6.3 6.3"/><circle cx="12" cy="12" r="3.6"/></svg>
     </button>
-    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.12.1-setup.exe">下载</a>
+    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.13.0-setup.exe">下载</a>
   </div>
 </header>
 
@@ -39,14 +39,14 @@
 
   <section class="cl-hero">
     <p class="kicker">开发记录</p>
-    <h1>九天，五十多个版本，<br><span class="grad">一条缝长成了一个工作台</span></h1>
+    <h1>十天，六十个版本，<br><span class="grad">一条缝长成了一个工作台</span></h1>
     <p class="lede">
       1.0 的时候它只会伸缩和显示未读；到 1.11.0，它替你收邮件、抽验证码、接手机短信、暂存文件、
       在群里发一句就走。下面是中间每一步到底改了什么、为什么改。
     </p>
     <div class="cl-stats">
-      <div><b>59</b><span>个可安装版本（1.0 → 1.12.1）</span></div>
-      <div><b>9</b><span>天（11-05 → 11-13）</span></div>
+      <div><b>60</b><span>个可安装版本（1.0 → 1.13.0）</span></div>
+      <div><b>10</b><span>天（11-05 → 11-14）</span></div>
       <div><b>100 MB</b><span>安装包（砍过 21 MB）</span></div>
       <div><b>7</b><span>个页签</span></div>
     </div>
@@ -460,12 +460,25 @@
         </ul>
       </div>
     </article>
+
+  <article class="cl-item v1">
+    <div class="cl-side"><b>1.13.0</b><span>11-14</span></div>
+    <div class="cl-body">
+      <h2>咻给好友：绑一个人，事项一键飞过去</h2>
+      <ul>
+        <li><b>亲密好友</b>：设置 → 亲密好友，填对方用户名发申请，对方同意就绑上，最多 3 个，随时能解除。</li>
+        <li><b>小飞机</b>：Qing 事项每行多了一个小飞机，点开选一个好友，「咻」一下飞走，服务端给对面复制一份独立事项。</li>
+        <li><b>收的时候有心跳</b>：对面收到时岛会横向抖一下，边缘散射一圈粉色光点，同时弹通知条、写进自己的 Qing 事项。</li>
+        <li>复制是<b>一份独立副本</b>：你改你的、他改他的，互不影响；对方的完成状态你也看不到。</li>
+      </ul>
+    </div>
+  </article>
 </section>
 
   <footer class="foot">
     <div class="foot-left">
       <span class="mark small" aria-hidden="true"><i></i><b></b></span>
-      <span>Qing Tools <span class="dim">v1.12.1</span></span>
+      <span>Qing Tools <span class="dim">v1.13.0</span></span>
     </div>
     <div class="foot-right">
       <a href="index.html">回到首页</a>

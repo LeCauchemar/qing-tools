@@ -2096,6 +2096,207 @@ function handleRoomOwner(req, res, url) {
   });
 }
 
+// ── 亲密好友（绑定）与事项分享（M6） ────────────────────────────────
+const MAX_FRIENDS = 3;
+
+function friendOf(u) {
+  if (!u) return null;
+  return { id: u.id, username: u.username, nick: u.nick || u.username };
+}
+
+function acceptedFriends(userId) {
+  return db
+    .prepare("SELECT * FROM bindings WHERE from_user = ? AND status = 'accepted' ORDER BY acted_at ASC")
+    .all(userId)
+    .map((b) => {
+      const u = q.userById.get(b.to_user);
+      if (!u || u.deleted_at) return null;
+      return Object.assign({ bindId: b.id }, friendOf(u));
+    })
+    .filter(Boolean);
+}
+
+function areFriends(a, b) {
+  const row = db
+    .prepare("SELECT 1 AS ok FROM bindings WHERE from_user = ? AND to_user = ? AND status = 'accepted'")
+    .get(a, b);
+  return !!row;
+}
+
+function handleBindings(req, res) {
+  const ctx = requireUser(req, res);
+  if (!ctx) return;
+  const me = ctx.user.id;
+  const mine = db.prepare('SELECT * FROM bindings WHERE from_user = ? OR to_user = ?').all(me, me);
+  const friends = acceptedFriends(me);
+  const incoming = mine
+    .filter((b) => b.to_user === me && b.status === 'pending')
+    .map((b) => ({ id: b.id, from: friendOf(q.userById.get(b.from_user)), createdAt: b.created_at }));
+  const outgoing = mine
+    .filter((b) => b.from_user === me && b.status === 'pending')
+    .map((b) => ({ id: b.id, to: friendOf(q.userById.get(b.to_user)), createdAt: b.created_at }));
+  return ok(res, { friends, incoming, outgoing, max: MAX_FRIENDS });
+}
+
+async function handleBind(req, res) {
+  const ctx = requireUser(req, res);
+  if (!ctx) return;
+  const b = readJson(await readBody(req));
+  const name = String(b.username || '').trim();
+  if (badName(name)) return fail(res, 'bad_username', '用户名要 3–20 位');
+  const target = q.userByName.get(name.toLowerCase());
+  if (!target || target.deleted_at) return fail(res, 'not_found', '没有这个用户', 404);
+  if (target.id === ctx.user.id) return fail(res, 'bad_request', '不能绑定自己');
+  if (acceptedFriends(ctx.user.id).length >= MAX_FRIENDS) return fail(res, 'limit', `最多绑定 ${MAX_FRIENDS} 个人`);
+  if (acceptedFriends(target.id).length >= MAX_FRIENDS) return fail(res, 'limit', '对方已经绑满 3 个人了');
+  if (areFriends(ctx.user.id, target.id)) return fail(res, 'already', '你们已经是好友了');
+
+  const reverse = db
+    .prepare("SELECT * FROM bindings WHERE from_user = ? AND to_user = ? AND status = 'pending'")
+    .get(target.id, ctx.user.id);
+  if (reverse) {
+    db.prepare("UPDATE bindings SET status = 'accepted', acted_at = ? WHERE id = ?").run(now(), reverse.id);
+    const mineRow = db
+      .prepare('INSERT INTO bindings (id, from_user, to_user, status, created_at, acted_at) VALUES (?,?,?,?,?,?)')
+      .run('bnd_' + rid(6), ctx.user.id, target.id, 'accepted', now(), now());
+    log('[bind] auto-accept', ctx.user.username, target.username);
+    return ok(res, { ok: true, accepted: true, id: String(mineRow.lastInsertRowid || ''), friend: friendOf(target) });
+  }
+
+  const dup = db
+    .prepare("SELECT 1 AS ok FROM bindings WHERE from_user = ? AND to_user = ? AND status = 'pending'")
+    .get(ctx.user.id, target.id);
+  if (dup) return fail(res, 'already', '已经发过申请了，等对方同意');
+  const id = 'bnd_' + rid(6);
+  db.prepare('INSERT INTO bindings (id, from_user, to_user, status, created_at) VALUES (?,?,?,?,?)').run(
+    id,
+    ctx.user.id,
+    target.id,
+    'pending',
+    now()
+  );
+  log('[bind] request', ctx.user.username, '->', target.username);
+  return ok(res, { ok: true, accepted: false, id, friend: friendOf(target) });
+}
+
+function handleBindAct(req, res, id, act) {
+  const ctx = requireUser(req, res);
+  if (!ctx) return;
+  const row = db.prepare('SELECT * FROM bindings WHERE id = ?').get(id);
+  if (!row) return fail(res, 'not_found', '没有这条申请', 404);
+  if (row.to_user !== ctx.user.id && row.from_user !== ctx.user.id) return fail(res, 'not_found', '没有这条申请', 404);
+  if (act === 'accept') {
+    if (row.to_user !== ctx.user.id) return fail(res, 'bad_request', '只能由对方同意');
+    if (row.status !== 'pending') return fail(res, 'bad_request', '这条申请已经处理过了');
+    if (acceptedFriends(ctx.user.id).length >= MAX_FRIENDS) return fail(res, 'limit', `最多绑定 ${MAX_FRIENDS} 个人`);
+    db.prepare("UPDATE bindings SET status = 'accepted', acted_at = ? WHERE id = ?").run(now(), id);
+    const back = db
+      .prepare("SELECT * FROM bindings WHERE from_user = ? AND to_user = ?")
+      .get(ctx.user.id, row.from_user);
+    if (back) db.prepare("UPDATE bindings SET status = 'accepted', acted_at = ? WHERE id = ?").run(now(), back.id);
+    else
+      db.prepare('INSERT INTO bindings (id, from_user, to_user, status, created_at, acted_at) VALUES (?,?,?,?,?,?)').run(
+        'bnd_' + rid(6),
+        ctx.user.id,
+        row.from_user,
+        'accepted',
+        now(),
+        now()
+      );
+    log('[bind] accept', ctx.user.username, row.from_user);
+    return ok(res, { ok: true, accepted: true });
+  }
+  if (act === 'reject') {
+    if (row.to_user !== ctx.user.id) return fail(res, 'bad_request', '只能由对方处理');
+    db.prepare('DELETE FROM bindings WHERE id = ?').run(id);
+    return ok(res, { ok: true, rejected: true });
+  }
+  // remove：任何一方都能解除，两个方向一起删
+  db.prepare('DELETE FROM bindings WHERE (from_user = ? AND to_user = ?) OR (from_user = ? AND to_user = ?)').run(
+    row.from_user,
+    row.to_user,
+    row.to_user,
+    row.from_user
+  );
+  log('[bind] remove', ctx.user.username, row.from_user, row.to_user);
+  return ok(res, { ok: true, removed: true });
+}
+
+function shareView(s) {
+  const from = q.userById.get(s.from_user);
+  let snap = {};
+  try {
+    snap = JSON.parse(s.snapshot || '{}');
+  } catch {
+    snap = {};
+  }
+  return {
+    id: s.id,
+    from: friendOf(from),
+    item: { kind: snap.kind === 'todo' ? 'todo' : 'note', text: String(snap.text || '').slice(0, 4000) },
+    createdAt: s.created_at,
+    read: !!s.read_at
+  };
+}
+
+async function handleShareCreate(req, res) {
+  const ctx = requireUser(req, res);
+  if (!ctx) return;
+  const b = readJson(await readBody(req));
+  const toId = String(b.toUserId || '').trim();
+  const kind = b.kind === 'todo' ? 'todo' : 'note';
+  const text = String(b.text || '').slice(0, 4000);
+  if (!text.trim() && !kind) return fail(res, 'bad_request', '这条事项是空的');
+  const target = q.userById.get(toId);
+  if (!target || target.deleted_at) return fail(res, 'not_found', '找不到这个人', 404);
+  if (!areFriends(ctx.user.id, target.id)) return fail(res, 'not_friend', '你们还不是好友，先绑定一下', 403);
+
+  const shareId = 'shr_' + rid(6);
+  const itemId = 'itm_' + rid(6);
+  const snap = JSON.stringify({ kind, text });
+  const origin = JSON.stringify({ from: ctx.user.id, name: ctx.user.nick || ctx.user.username, shareId });
+  db.exec('BEGIN');
+  try {
+    db.prepare(
+      'INSERT INTO shares (id, from_user, to_user, source_item, snapshot, new_item_id, created_at) VALUES (?,?,?,?,?,?,?)'
+    ).run(shareId, ctx.user.id, target.id, String(b.sourceItem || ''), snap, itemId, now());
+    db.prepare(
+      'INSERT INTO items (id, owner_id, kind, text, images, done, pinned, sort_at, created_at, updated_at, origin) VALUES (?,?,?,?,?,?,?,?,?,?,?)'
+    ).run(itemId, target.id, kind, text, '[]', 0, 0, now(), now(), now(), origin);
+    db.prepare('INSERT INTO changes (owner_id, entity, entity_id, op, at) VALUES (?,?,?,?,?)').run(
+      target.id,
+      'item',
+      itemId,
+      'create',
+      now()
+    );
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
+  log('[share]', ctx.user.username, '->', target.username, kind);
+  return ok(res, { ok: true, id: shareId, itemId, to: friendOf(target) });
+}
+
+function handleShareInbox(req, res) {
+  const ctx = requireUser(req, res);
+  if (!ctx) return;
+  const rows = db
+    .prepare('SELECT * FROM shares WHERE to_user = ? AND read_at IS NULL ORDER BY created_at ASC LIMIT 50')
+    .all(ctx.user.id);
+  return ok(res, { items: rows.map(shareView), unread: rows.length });
+}
+
+function handleShareRead(req, res, id) {
+  const ctx = requireUser(req, res);
+  if (!ctx) return;
+  const row = db.prepare('SELECT * FROM shares WHERE id = ?').get(id);
+  if (!row || row.to_user !== ctx.user.id) return fail(res, 'not_found', '没有这条分享', 404);
+  db.prepare('UPDATE shares SET read_at = ? WHERE id = ?').run(now(), id);
+  return ok(res, { ok: true });
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://' + (req.headers.host || 'localhost'));
   let p = url.pathname;
@@ -2174,6 +2375,22 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && p === '/api/rooms/claim') return await handleRoomClaim(req, res);
     if (req.method === 'GET' && p === '/api/me/rooms') return handleMyRooms(req, res);
     if (req.method === 'GET' && p === '/api/rooms/owner') return handleRoomOwner(req, res, url);
+
+    // 亲密好友（绑定）与事项分享（M6）
+    if (req.method === 'GET' && p === '/api/bindings') return handleBindings(req, res);
+    if (req.method === 'POST' && p === '/api/bindings') return await handleBind(req, res);
+    {
+      const bm = p.match(/^\/api\/bindings\/([A-Za-z0-9_]+)\/(accept|reject)$/);
+      if (bm && req.method === 'POST') return handleBindAct(req, res, bm[1], bm[2]);
+      const bd = p.match(/^\/api\/bindings\/([A-Za-z0-9_]+)$/);
+      if (bd && req.method === 'DELETE') return handleBindAct(req, res, bd[1], 'remove');
+    }
+    if (req.method === 'GET' && p === '/api/shares/inbox') return handleShareInbox(req, res);
+    if (req.method === 'POST' && p === '/api/shares') return await handleShareCreate(req, res);
+    {
+      const sr = p.match(/^\/api\/shares\/([A-Za-z0-9_]+)\/read$/);
+      if (sr && req.method === 'POST') return handleShareRead(req, res, sr[1]);
+    }
 
     if (req.method === 'POST' && p === '/api/upload') return await handleUpload(req, res, url);
 

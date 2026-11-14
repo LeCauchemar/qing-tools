@@ -111,6 +111,11 @@ if (!msgCols.some((c) => c.name === 'mentions')) {
 if (!msgCols.some((c) => c.name === 'reply')) {
   db.exec('ALTER TABLE messages ADD COLUMN reply TEXT');
 }
+// 老库补列：频道归属的账号（先到先得认领，见 handleRoomClaim）
+const roomCols = db.prepare('PRAGMA table_info(rooms)').all();
+if (!roomCols.some((c) => c.name === 'owner_user_id')) {
+  db.exec('ALTER TABLE rooms ADD COLUMN owner_user_id TEXT');
+}
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS media (
@@ -677,6 +682,12 @@ const q = {
     'INSERT INTO rooms (id, code, creator, note, created_at, last_active) VALUES (?, ?, ?, ?, ?, ?)'
   ),
   touchRoom: db.prepare('UPDATE rooms SET last_active = ? WHERE id = ?'),
+  // 认领：只有还没归属的频道才能抢到（先到先得），同一账号重复调用视为已认领
+  claimRoom: db.prepare(
+    "UPDATE rooms SET owner_user_id = ? WHERE code = ? AND (owner_user_id IS NULL OR owner_user_id = '')"
+  ),
+  setRoomOwner: db.prepare('UPDATE rooms SET owner_user_id = ? WHERE id = ?'),
+  roomsOfOwner: db.prepare('SELECT * FROM rooms WHERE owner_user_id = ? ORDER BY last_active DESC LIMIT 50'),
   members: db.prepare('SELECT * FROM devices WHERE room_id = ? ORDER BY joined_at ASC'),
   memberByName: db.prepare('SELECT * FROM devices WHERE room_id = ? AND name = ?'),
   memberById: db.prepare('SELECT * FROM devices WHERE id = ?'),
@@ -2040,6 +2051,51 @@ async function handleAccountDelete(req, res, body) {
   return ok(res, {});
 }
 
+// 频道认领：谁先在自己机器上点确认，频道就归谁（先到先得）
+async function handleRoomClaim(req, res) {
+  const ctx = requireUser(req, res);
+  if (!ctx) return;
+  const b = readJson(await readBody(req));
+  const code = String(b.code || '').replace(/\s+/g, '');
+  if (!code) return fail(res, 'bad_request', '缺少频道码');
+  const room = q.roomByCode.get(code);
+  if (!room) return fail(res, 'not_found', '没找到这个频道', 404);
+  if (room.owner_user_id === ctx.user.id) {
+    return ok(res, { claimed: false, already: true, room: { id: room.id, code: room.code } });
+  }
+  const r = q.claimRoom.run(ctx.user.id, code);
+  if (!r.changes) return fail(res, 'taken', '这个频道已经被别的账号认领了', 409);
+  log('[claim] room', room.code, '->', ctx.user.username);
+  return ok(res, { claimed: true, already: false, room: { id: room.id, code: room.code } });
+}
+
+// 我的频道（M5 第一刀）：登录后客户端拿这份列表把别的设备上的频道自动加回来
+function handleMyRooms(req, res) {
+  const ctx = requireUser(req, res);
+  if (!ctx) return;
+  const list = q.roomsOfOwner.all(ctx.user.id).map((r) => ({
+    id: r.id,
+    code: r.code,
+    note: r.note || '',
+    createdAt: r.created_at,
+    lastActive: r.last_active
+  }));
+  return ok(res, { rooms: list });
+}
+
+// 频道归属查询（给客户端显示「已跟账号」）
+function handleRoomOwner(req, res, url) {
+  const code = String(url.searchParams.get('code') || '').replace(/\s+/g, '');
+  if (!code) return fail(res, 'bad_request', '缺少频道码');
+  const room = q.roomByCode.get(code);
+  if (!room) return fail(res, 'not_found', '没找到这个频道', 404);
+  const u = room.owner_user_id ? q.userById.get(room.owner_user_id) : null;
+  return ok(res, {
+    owner: u && !u.deleted_at ? { id: u.id, username: u.username, nick: u.nick || u.username } : null,
+    claimed: !!room.owner_user_id
+  });
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://' + (req.headers.host || 'localhost'));
   let p = url.pathname;
@@ -2114,6 +2170,10 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === 'POST' && p === '/api/rooms/join')
       return await handleJoin(req, res, await readBody(req));
+
+    if (req.method === 'POST' && p === '/api/rooms/claim') return await handleRoomClaim(req, res);
+    if (req.method === 'GET' && p === '/api/me/rooms') return handleMyRooms(req, res);
+    if (req.method === 'GET' && p === '/api/rooms/owner') return handleRoomOwner(req, res, url);
 
     if (req.method === 'POST' && p === '/api/upload') return await handleUpload(req, res, url);
 

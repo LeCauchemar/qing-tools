@@ -1,3 +1,11 @@
+## 2026-11-13 17:05 · 1.12.0 · DeepSeekRuntime
+
+- 改了什么：备忘录与待办合并为「Qing 事项」（chip 切换、待办打勾、自动钉桌面）；固定条目删除按钮置灰；登录后本机数据可归属到账号（先导出备份）；数据按 `local` / `accounts/<uid>` 分区；频道认领 `POST /api/rooms/claim` 与 `GET /api/me/rooms`，换机自动回归；设置页底部「退出登录」。
+- 为什么：账号体系只有登录没有归属，换台电脑会看到空数据；备忘录和待办分两处、钉住的条目还会被「全部删除」误删。
+- 怎么验证：`QT_DATA_DIR=D:\temp\qt-m3` 验分区与归属（claimInfo 2 条 → claim → 账号分区出现 → 退出回 local 仍在）；`QT_DATA_DIR=D:\temp\qt-m4` 验 Qing 事项（chip、todo 打勾、pinned 删除置灰）；`QT_DATA_DIR=D:\temp\qt-m5` 验频道认领与回归（drop 后 sync 回来）。服务端 `tools\test-claim.mjs` 8/8。
+- 下一步 / 已知问题：M5 只做了「频道归属 + 换机自动 join」，消息级 `user_id`（多端按人归并、已读按用户、@/拍一拍按账号）还没做；手机端与 Qing 事项互发是 M6/M7。
+
+---
 ## 2026-11-13 13:40 · 1.11.0 · DeepSeekRuntime
 - 改了什么：把仓库推上 GitHub（LeCauchemar/qing-tools），打 tag v1.11.0，建 Release 并上传 setup/portable 两个附件；package.json 补 repository/homepage，README 加 release 徽章与仓库链接。
 - 为什么：用户要求源码 + 安装包同时放到 GitHub；安装包体积超过仓库单文件 100MB 限制，所以走 Release 附件（单文件上限 2GB），dist/ 继续留在 .gitignore。

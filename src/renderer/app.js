@@ -71,6 +71,7 @@ const S = {
   dropTarget: '', // 'files' | 'chat'
   noteOpen: null, // 展开中的备忘录 id
   noteEdit: null, // 正在编辑的备忘录 id
+  noteType: 'note', // M4：Qing事项的输入类型 note | todo
   noteSaveT: 0, // 编辑中自动保存的定时器
   noteMenu: null, // 右键菜单展开的备忘录 id
   editTarget: '', // 编辑框右键菜单的来源：'rich' | 'input'
@@ -111,7 +112,7 @@ const S = {
   selText: '',
   chat: { rooms: [], active: 0, adding: false, busy: false, err: '', mentions: new Map(), pending: [], reply: null, height: 0 },
   timers: [], // [{ id, label, end, dur }]
-  account: { signedIn: false, user: null, sessions: [], busy: false, msg: '' } // 账号（1.11.0）
+  account: { signedIn: false, user: null, sessions: [], busy: false, msg: '', roomsClaimed: false } // 账号（1.11.0）
 };
 
 const el = {
@@ -137,9 +138,17 @@ const el = {
   accName: $('#accName'),
   accSub: $('#accSub'),
   accDevList: $('#accDevList'),
+  accClaim: $('#accClaim'),
+  accClaimText: $('#accClaimText'),
+  accClaimMsg: $('#accClaimMsg'),
+  accClaimGo: $('#accClaimGo'),
+  accClaimBackup: $('#accClaimBackup'),
+  accBackup: $('#accBackup'),
   accRefresh: $('#accRefresh'),
   accSwitch: $('#accSwitch'),
   accLogout: $('#accLogout'),
+  accLogoutRow: $('#accLogoutRow'),
+  accLogoutBottom: $('#accLogoutBottom'),
   accLogoutAll: $('#accLogoutAll'),
   accDelete: $('#accDelete'),
   accCode: $('#accCode'),
@@ -1396,7 +1405,12 @@ function noteSort(list) {
 
 function renderNotes() {
   const notes = noteSort(S.data.notes || []);
-  if (el.noteStat) el.noteStat.textContent = notes.length ? notes.length + ' 张备忘录' : '还没有备忘录';
+  const openTodo = notes.filter((n) => n.kind === 'todo' && !n.done).length;
+  if (el.noteStat) {
+    el.noteStat.textContent = notes.length
+      ? notes.length + ' 条事项' + (openTodo ? ' · ' + openTodo + ' 个待办没完成' : '')
+      : '还没有事项';
+  }
   if (!notes.length) {
     paint(el.noteList, '');
     el.noteEmpty.classList.remove('hidden');
@@ -1416,11 +1430,17 @@ function renderNotes() {
       .map((n, i) => {
         const open = S.noteOpen === n.id;
         const editing = open && S.noteEdit === n.id;
+        const todo = n.kind === 'todo';
         return (
           '<div class="row note' + (n.pinned ? ' pinned' : '') + (open ? ' open' : '') +
-          (editing ? ' editing' : '') +
+          (editing ? ' editing' : '') + (todo ? ' todo' : '') + (todo && n.done ? ' done' : '') +
           '" data-id="' + n.id + '" role="button" style="animation-delay:' +
           Math.min(i * 18, 220) + 'ms">' +
+          (todo
+            ? '<button class="check-btn' + (n.done ? ' on' : '') + '" data-act="note-done" title="' +
+              (n.done ? '标记未完成' : '完成') + '"><svg class="ic"><use href="#i-' +
+              (n.done ? 'check' : 'circle') + '"/></svg></button>'
+            : '') +
           '<div class="row-main">' +
           (n.pinned ? '<div class="row-sub"><span class="tag stuck">已钉在桌面</span></div>' : '') +
           (editing
@@ -1439,7 +1459,9 @@ function renderNotes() {
           '<button class="icon-btn tool" data-act="note-edit" title="编辑"><svg class="ic"><use href="#i-text"/></svg></button>' +
           '<button class="icon-btn tool" data-act="note-to-chat" title="发送到小纸条"><svg class="ic"><use href="#i-send"/></svg></button>' +
           '<button class="icon-btn tool' + (n.pinned ? ' on' : '') + '" data-act="note-pin" title="' + (n.pinned ? '取消钉在桌面' : '钉到桌面') + '"><svg class="ic"><use href="#i-sticky"/></svg></button>' +
-          '<button class="icon-btn tool danger" data-act="note-del" title="删除"><svg class="ic"><use href="#i-trash"/></svg></button>' +
+          '<button class="icon-btn tool danger' + (n.pinned ? ' locked' : '') + '" data-act="note-del" title="' +
+          (n.pinned ? '先取消钉在桌面才能删除' : '删除') + '"' + (n.pinned ? ' disabled' : '') +
+          '><svg class="ic"><use href="#i-trash"/></svg></button>' +
           '</div></div></div>'
         );
       })
@@ -1519,7 +1541,9 @@ function renderClips() {  const q = S.clipQuery.trim().toLowerCase();
           '<div class="row-tools">' +
           '<button class="icon-btn tool" data-act="clip-to-chat" title="发送到小纸条"><svg class="ic"><use href="#i-send"/></svg></button>' +
           '<button class="icon-btn tool' + (c.pinned ? ' on' : '') + '" data-act="clip-pin" title="' + (c.pinned ? '取消固定' : '固定') + '"><svg class="ic"><use href="#i-pin"/></svg></button>' +
-          '<button class="icon-btn tool danger" data-act="clip-del" title="删除"><svg class="ic"><use href="#i-trash"/></svg></button>' +
+          '<button class="icon-btn tool danger' + (c.pinned ? ' locked' : '') + '" data-act="clip-del" title="' +
+            (c.pinned ? '先取消固定才能删除' : '删除') + '"' + (c.pinned ? ' disabled' : '') +
+            '><svg class="ic"><use href="#i-trash"/></svg></button>' +
           '</div></div></div>'
         );
       })
@@ -1620,6 +1644,8 @@ function accPaint() {
   const a = S.account;
   if (el.accOut) el.accOut.classList.toggle('hidden', a.signedIn);
   if (el.accIn) el.accIn.classList.toggle('hidden', !a.signedIn);
+  // M3：账号区之外，设置页最下面还有一条「退出登录」（用户要求）
+  if (el.accLogoutRow) el.accLogoutRow.classList.toggle('hidden', !a.signedIn);
   if (a.signedIn && a.user) {
     el.accName.textContent = a.user.nick || a.user.username;
     el.accSub.textContent = '@' + a.user.username;
@@ -1637,6 +1663,122 @@ async function accLoadStatus() {
     S.account.signedIn = false;
   }
   accPaint();
+  await accLoadClaim();
+  await claimLocalRooms();
+  await syncAccountRooms();
+}
+
+// M3：本机旧数据归属——登录后如果本机还有没归属过的数据，就把卡片亮出来
+async function accLoadClaim() {
+  const box = el.accClaim;
+  if (!box) return;
+  let info = null;
+  try {
+    info = await api.account.claimInfo();
+  } catch (_) {
+    info = null;
+  }
+  const show = !!(info && info.ok && info.signedIn && info.total > 0 && !info.claimed);
+  box.classList.toggle('hidden', !show);
+  if (!show) return;
+  const c = info.counts || {};
+  const parts = [];
+  if (c.notes) parts.push(c.notes + ' 条备忘录');
+  if (c.todos) parts.push(c.todos + ' 个待办');
+  if (c.reminders) parts.push(c.reminders + ' 条提醒');
+  if (c.anniversaries) parts.push(c.anniversaries + ' 个纪念日');
+  if (el.accClaimText) {
+    el.accClaimText.innerHTML = '这台电脑上还有 <b>' + parts.join(' · ') + '</b>，要把它们归到当前账号吗？归属只做一次，之后切账号不会再提示。';
+  }
+}
+
+async function accDoClaim() {
+  if (S.account.busy) return;
+  try {
+    window.confirm('确认把本机数据归到这个账号？属于别的账号的频道会按「先到先得」处理。');
+  } catch (_) {}
+  S.account.busy = true;
+  try {
+    const r = await api.account.claim();
+    if (r && r.ok) {
+      accMsg(el.accClaimMsg, '已归属：' + JSON.stringify(r.copied || {}), 'ok');
+      if (el.accClaim) el.accClaim.classList.add('hidden');
+      toast('本机数据已归到这个账号');
+      setTimeout(() => location.reload(), 900);
+    } else {
+      accMsg(el.accClaimMsg, (r && r.message) || '归属失败', 'err');
+    }
+  } finally {
+    S.account.busy = false;
+  }
+}
+
+async function accExportBackup() {
+  try {
+    const r = await api.app.exportBackup();
+    if (r && r.ok) {
+      toast('备份已导出');
+      accMsg(el.accClaimMsg, '备份：' + r.file, 'ok');
+    } else {
+      toast((r && r.message) || '导出失败');
+    }
+  } catch (err) {
+    toast('导出失败');
+  }
+}
+
+// M3：频道归属——登录后把本机已有的频道逐个试着认领（先到先得，被别人抢走就跳过）
+async function claimLocalRooms() {
+  if (!S.account.signedIn || S.account.roomsClaimed) return;
+  const rooms = (S.chat && Array.isArray(S.chat.rooms) && S.chat.rooms) || [];
+  const codes = rooms.map((r) => (r && r.code ? String(r.code).replace(/\s+/g, '') : '')).filter(Boolean);
+  if (!codes.length) return;
+  S.account.roomsClaimed = true;
+  let claimed = 0;
+  for (const code of codes) {
+    try {
+      const r = await api.account.claimRoom(code);
+      if (r && r.ok && r.claimed) claimed += 1;
+    } catch (_) {}
+  }
+  if (claimed) {
+    toast(claimed + ' 个频道已归到这个账号');
+    chatRenderRooms();
+  }
+}
+
+// M5 第一刀：同一个账号在别的设备上建/认领过的频道，登录后自动加回来
+let roomSyncing = false;
+async function syncAccountRooms() {
+  if (!S.account.signedIn || roomSyncing) return;
+  if (!S.chat || !Array.isArray(S.chat.rooms)) return;
+  let mine = null;
+  try {
+    mine = await api.account.myRooms();
+  } catch (_) {
+    return;
+  }
+  if (!mine || !mine.ok || !Array.isArray(mine.rooms)) return;
+  const have = new Set(S.chat.rooms.map((r) => (r && r.code ? r.code : '')).filter(Boolean));
+  const todo = mine.rooms.filter((r) => r.code && !have.has(r.code)).slice(0, 10);
+  if (!todo.length) return;
+  roomSyncing = true;
+  let joined = 0;
+  for (const r of todo) {
+    try {
+      const name = chatDefaultName();
+      const res = await chatFetch('/api/rooms/join', {
+        method: 'POST',
+        body: { code: r.code, deviceName: name, replace: true }
+      });
+      if (res && res.ok) {
+        chatAddRoom(res.data, name);
+        joined += 1;
+      }
+    } catch (_) {}
+  }
+  roomSyncing = false;
+  if (joined) toast(joined + ' 个频道跟着账号回来了');
 }
 
 async function accFetchSessions() {
@@ -1692,6 +1834,9 @@ async function accDoLogin() {
   S.account.user = r.user || null;
   await accFetchSessions();
   accPaint();
+  await accLoadClaim();
+  await claimLocalRooms();
+  await syncAccountRooms();
   toast('已登录：' + ((r.user && (r.user.nick || r.user.username)) || username));
 }
 
@@ -1711,6 +1856,9 @@ async function accDoRegister() {
   accShowCode(r.recoveryCode || '');
   await accFetchSessions();
   accPaint();
+  await accLoadClaim();
+  await claimLocalRooms();
+  await syncAccountRooms();
 }
 
 async function accDoRecover() {
@@ -1749,6 +1897,9 @@ async function accDoLogout(all) {
   S.account.sessions = [];
   accHideCode();
   accPaint();
+  if (el.accClaim) el.accClaim.classList.add('hidden');
+  // 退出后主进程已经切回本机分区，直接重载一次界面，避免残留上一个账号的数据
+  setTimeout(() => location.reload(), 500);
 }
 
 async function accDoDelete() {
@@ -1776,6 +1927,9 @@ async function accDoDelete() {
 function bindAccountUi() {
   if (!el.accLogin) return;
   el.accLogin.addEventListener('click', accDoLogin);
+  if (el.accClaimGo) el.accClaimGo.addEventListener('click', accDoClaim);
+  if (el.accClaimBackup) el.accClaimBackup.addEventListener('click', accExportBackup);
+  if (el.accBackup) el.accBackup.addEventListener('click', accExportBackup);
   el.accRegister.addEventListener('click', accDoRegister);
   el.accPass.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') accDoLogin();
@@ -1816,6 +1970,7 @@ function bindAccountUi() {
     el.accUser.focus();
   });
   el.accLogout.addEventListener('click', () => accDoLogout(false));
+  if (el.accLogoutBottom) el.accLogoutBottom.addEventListener('click', () => accDoLogout(false));
   el.accLogoutAll.addEventListener('click', () => {
     if (!window.confirm('退出所有设备？其它电脑上的登录会立刻失效。')) return;
     accDoLogout(true);
@@ -2413,33 +2568,9 @@ function renderTimerRows() {
   );
 }
 
+// M4：待办并进了 Qing事项（renderNotes 里按 kind 渲染），小工具页不再有独立的待办卡
 function renderTodos() {
-  const all = (S.data.todos || []).slice();
-  const open = all.filter((t) => !t.done);
-  const done = all.filter((t) => t.done).slice(0, 12);
-  if (el.todoSub) el.todoSub.textContent = open.length ? open.length + ' 项待办' : '都清空了';
-  if (!all.length) {
-    paint(el.todoList, '');
-    if (el.todoEmpty) el.todoEmpty.classList.remove('hidden');
-    return;
-  }
-  if (el.todoEmpty) el.todoEmpty.classList.add('hidden');
-  const row = (t) =>
-    '<div class="row todo' + (t.done ? ' done' : '') + '" data-todo="' + t.id + '">' +
-    '<button class="check-btn" data-act="todo-toggle" title="' + (t.done ? '标记未完成' : '完成') + '">' +
-    '<svg class="ic"><use href="#i-' + (t.done ? 'check' : 'circle') + '"/></svg></button>' +
-    '<span class="row-text">' + esc(t.text) + '</span>' +
-    (t.minutes
-      ? '<button class="mini" data-act="todo-pomo" title="开始 ' + t.minutes + ' 分钟番茄钟">' + t.minutes + '′</button>'
-      : '') +
-    '<button class="mini danger" data-act="todo-del" title="删除"><svg class="ic"><use href="#i-x"/></svg></button>' +
-    '</div>';
-  const html = open.map(row).join('') +
-    (done.length
-      ? '<div class="todo-sep">已完成 ' + done.length + ' 项 <button class="linkish" data-act="todo-clear-done">清空已完成</button></div>' +
-        done.map(row).join('')
-      : '');
-  paint(el.todoList, html);
+  /* no-op：保留函数名，老的调用点不用改 */
 }
 
 function renderTools() {
@@ -3655,9 +3786,21 @@ async function handleAct(act, node) {
       toast(r && r.pinned ? '已钉到桌面' : '已取消钉在桌面');
       break;
     }
+    case 'note-done': {
+      const cur = (S.data.notes || []).find((n) => n.id === id);
+      const next = !(cur && cur.done);
+      await api.notes.done(id, next);
+      toast(next ? '完成了一条待办' : '又变回没完成了');
+      break;
+    }
     case 'note-del': {
+      const item = (S.data.notes || []).find((n) => n.id === id);
+      if (item && item.pinned) {
+        toast('先取消钉在桌面才能删除', true);
+        break;
+      }
       await api.notes.remove(id);
-      toast('已删除备忘录');
+      toast('已删除');
       break;
     }
     case 'clip-pin': {
@@ -3669,6 +3812,11 @@ async function handleAct(act, node) {
       break;
     }
     case 'clip-del': {
+      const c = (S.data.clips || []).find((x) => x.id === id);
+      if (c && c.pinned) {
+        toast('先取消固定才能删除', true);
+        break;
+      }
       await api.clips.remove(id);
       break;
     }
@@ -5795,15 +5943,42 @@ function bindUi() {
   $('#mailToSettings').addEventListener('click', goMailSetup);
   $('#mailSetupBtn').addEventListener('click', goMailSetup);
 
-  // 便笺
+  // 便笺 / Qing事项（M4：备忘录与待办合成一个入口）
+  const paintNoteType = () => {
+    const box = $('#noteType');
+    if (!box) return;
+    for (const b of box.querySelectorAll('.nt-chip')) {
+      const on = b.dataset.noteType === S.noteType;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    }
+    if (el.noteInput) {
+      el.noteInput.placeholder = S.noteType === 'todo' ? '要做点什么… Ctrl+Enter 保存' : '记点什么… Ctrl+Enter 保存';
+    }
+  };
   const saveNote = async () => {
     const t = el.noteInput.value.trim();
     if (!t) return;
-    await api.notes.add(t);
+    const kind = S.noteType === 'todo' ? 'todo' : 'note';
+    const r = await api.notes.add(t, kind);
     el.noteInput.value = '';
     el.noteInput.style.height = 'auto';
-    toast('已保存便笺');
+    if (kind === 'todo' && r && r.note) {
+      try {
+        await api.notes.togglePin(r.note.id);
+      } catch (_) {}
+      toast('待办已建好，并钉到桌面右上角');
+    } else {
+      toast('已保存');
+    }
   };
+  $('#noteType')?.addEventListener('click', (e) => {
+    const b = e.target.closest('.nt-chip');
+    if (!b) return;
+    S.noteType = b.dataset.noteType === 'todo' ? 'todo' : 'note';
+    paintNoteType();
+  });
+  paintNoteType();
   $('#noteSave').addEventListener('click', saveNote);
   el.noteInput.addEventListener('input', () => {
     el.noteInput.style.height = 'auto';

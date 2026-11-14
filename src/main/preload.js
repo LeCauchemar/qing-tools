@@ -24,12 +24,13 @@ contextBridge.exposeInMainWorld('island', {
   onCommand: (fn) => on('cmd', fn),
 
   notes: {
-    add: (text) => invoke('notes:add', text),
+    add: (text, kind) => invoke('notes:add', text, kind),
     addImage: (payload) => invoke('notes:addImage', payload),
     image: (payload) => invoke('notes:image', payload),
     update: (id, text) => invoke('notes:update', { id, text }),
     remove: (id) => invoke('notes:remove', id),
     togglePin: (id) => invoke('notes:togglePin', id),
+    done: (id, done) => invoke('notes:done', { id, done }),
     clear: () => invoke('notes:clear')
   },
 
@@ -64,9 +65,18 @@ contextBridge.exposeInMainWorld('island', {
     recover: (payload) => invoke('account:recover', payload),
     me: () => invoke('account:me'),
     revokeSession: (id) => invoke('account:revokeSession', { id }),
+    claimRoom: (code) => invoke('account:claimRoom', { code }),
+    myRooms: () => invoke('account:myRooms'),
     logout: () => invoke('account:logout'),
     logoutAll: () => invoke('account:logoutAll'),
-    remove: (payload) => invoke('account:remove', payload)
+    remove: (payload) => invoke('account:remove', payload),
+    // M3：归属
+    claimInfo: () => invoke('account:claimInfo'),
+    claim: () => invoke('account:claim')
+  },
+
+  profile: {
+    info: () => invoke('profile:info')
   },
 
   sticky: {
@@ -129,6 +139,7 @@ contextBridge.exposeInMainWorld('island', {
     fitHeight: (h) => invoke('app:fitHeight', h),
     metrics: () => invoke('app:metrics'),
     saveImage: (url, name) => invoke('app:saveImage', url, name),
+    exportBackup: () => invoke('app:exportBackup'),
     checkUpdate: () => invoke('app:checkUpdate'),    downloadUpdate: () => invoke('app:downloadUpdate'),
     cloud: () => invoke('app:cloud'),
     sysStat: () => invoke('sys:stat'),

@@ -1,0 +1,11 @@
+import fs from 'node:fs';
+const s = fs.readFileSync('site/changelog.html', 'utf8');
+const h1 = s.match(/<h1[^>]*>[\s\S]{0,300}?<\/h1>/);
+const stats = s.match(/<div class="cl-stats">[\s\S]{0,800}?<\/div>/);
+console.log('H1:', h1 && h1[0].replace(/\s+/g, ' '));
+console.log('STATS:', stats && stats[0].replace(/\s+/g, ' ').slice(0, 600));
+console.log('b-tags:', (s.match(/<b>[^<]{1,40}<\/b>/g) || []).slice(0, 6));
+console.log('footer v1.11.0:', (s.match(/v1\.11\.0/g) || []).length);
+console.log('setup links 1.11.0:', (s.match(/QingTools-1\.11\.0-setup\.exe/g) || []).length);
+console.log('portable links 1.11.0:', (s.match(/QingTools-1\.11\.0-portable\.exe/g) || []).length);
+console.log('len:', s.length);

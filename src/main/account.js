@@ -182,6 +182,16 @@ class Account {
     return this._applyAuth(data);
   }
 
+  /** 认领一个频道（先到先得）；已经归属别人会返回 { ok:false, code:'taken' } */
+  claimRoom(code) {
+    return this._call('POST', '/api/rooms/claim', { body: { code: String(code || '').replace(/\s+/g, '') } });
+  }
+
+  /** 这个账号名下的频道列表（M5：换台电脑登录，频道能自己回来） */
+  myRooms() {
+    return this._call('GET', '/api/me/rooms');
+  }
+
   /** 拉一次账号信息 + 设备列表；顺带校验 token 是否还有效 */
   async me() {
     if (!this.token) return { ok: false, code: 'unauthorized', message: '还没登录' };
@@ -225,8 +235,18 @@ function account() {
   return instance;
 }
 
-function registerAccountIpc(ipcMain) {
+function registerAccountIpc(ipcMain, hooks = {}) {
   const a = account();
+  const onIn = () => {
+    try {
+      if (hooks.onSignedIn && a.user) hooks.onSignedIn(a.user);
+    } catch (_) {}
+  };
+  const onOut = () => {
+    try {
+      if (hooks.onSignedOut) hooks.onSignedOut();
+    } catch (_) {}
+  };
   const wrap = (fn) =>
     async (_e, payload) => {
       try {
@@ -237,14 +257,62 @@ function registerAccountIpc(ipcMain) {
     };
   ipcMain.handle('account:status', () => a.status());
   ipcMain.handle('account:check', wrap((p) => a.check(p.username)));
-  ipcMain.handle('account:register', wrap((p) => a.register(p)));
-  ipcMain.handle('account:login', wrap((p) => a.login(p)));
-  ipcMain.handle('account:recover', wrap((p) => a.recover(p)));
-  ipcMain.handle('account:me', wrap(() => a.me()));
+  ipcMain.handle(
+    'account:register',
+    wrap(async (p) => {
+      const r = await a.register(p);
+      if (r && r.ok) onIn();
+      return r;
+    })
+  );
+  ipcMain.handle(
+    'account:login',
+    wrap(async (p) => {
+      const r = await a.login(p);
+      if (r && r.ok) onIn();
+      return r;
+    })
+  );
+  ipcMain.handle(
+    'account:recover',
+    wrap(async (p) => {
+      const r = await a.recover(p);
+      if (r && r.ok) onIn();
+      return r;
+    })
+  );
+  ipcMain.handle('account:me', wrap(async () => {
+    const r = await a.me();
+    if (r && r.ok) onIn();
+    return r;
+  }));
   ipcMain.handle('account:revokeSession', wrap((p) => a.revokeSession(p.id)));
-  ipcMain.handle('account:logout', wrap(() => a.logout()));
-  ipcMain.handle('account:logoutAll', wrap(() => a.logoutAll()));
-  ipcMain.handle('account:remove', wrap((p) => a.remove(p)));
+  ipcMain.handle('account:claimRoom', wrap((p) => a.claimRoom(p && p.code)));
+  ipcMain.handle('account:myRooms', wrap(() => a.myRooms()));
+  ipcMain.handle(
+    'account:logout',
+    wrap(async () => {
+      const r = await a.logout();
+      onOut();
+      return r;
+    })
+  );
+  ipcMain.handle(
+    'account:logoutAll',
+    wrap(async () => {
+      const r = await a.logoutAll();
+      onOut();
+      return r;
+    })
+  );
+  ipcMain.handle(
+    'account:remove',
+    wrap(async (p) => {
+      const r = await a.remove(p);
+      if (r && r.ok) onOut();
+      return r;
+    })
+  );
   return a;
 }
 

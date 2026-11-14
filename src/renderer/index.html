@@ -315,7 +315,7 @@
               <svg class="ic"><use href="#i-mail" /></svg><span>邮件</span><i class="tab-dot" id="tabDotMail"></i>
             </button>
             <button class="tab" data-tab="notes">
-              <svg class="ic"><use href="#i-note" /></svg><span>备忘录</span><i class="tab-dot" id="tabDotNotes"></i>
+              <svg class="ic"><use href="#i-note" /></svg><span>Qing事项</span><i class="tab-dot" id="tabDotNotes"></i>
             </button>
             <button class="tab" data-tab="clipboard">
               <svg class="ic"><use href="#i-clip" /></svg><span>剪贴板</span><i class="tab-dot" id="tabDotClip"></i>
@@ -365,9 +365,17 @@
             <!-- 备忘录 -->
             <section class="pane" data-pane="notes">
               <div class="toolbar">
-                <span class="stat" id="noteStat">0 张备忘录</span>
+                <span class="stat" id="noteStat">0 条事项</span>
                 <span class="grow"></span>
                 <button class="btn ghost small" id="noteClear" title="全部删除（钉在桌面上的会保留）">全部删除</button>
+              </div>
+              <div class="note-type" id="noteType" role="tablist" aria-label="事项类型">
+                <button class="nt-chip on" data-note-type="note" role="tab" aria-selected="true">
+                  <svg class="ic"><use href="#i-note" /></svg>备忘录
+                </button>
+                <button class="nt-chip" data-note-type="todo" role="tab" aria-selected="false">
+                  <svg class="ic"><use href="#i-check" /></svg>待办
+                </button>
               </div>
               <div class="composer">
                 <textarea id="noteInput" rows="1" placeholder="记点什么… Ctrl+Enter 保存"></textarea>
@@ -376,8 +384,8 @@
               <div class="list" id="noteList"></div>
               <div class="empty hidden" id="noteEmpty">
                 <div class="empty-ic"><svg class="ic"><use href="#i-note" /></svg></div>
-                <p class="empty-title">还没有备忘录</p>
-                <p class="empty-sub">随手记下的事会一直留在这里；点 📌 就能把它钉成一张贴在桌面上的便条。</p>
+                <p class="empty-title">还没有事项</p>
+                <p class="empty-sub">上面选「备忘录」随手记，选「待办」会带一个 ✅，新建的待办还会自动钉到桌面右上角提醒你。</p>
               </div>
             </section>
 
@@ -533,25 +541,6 @@
                     <div class="list compact" id="timerList"></div>
                     <div class="empty small hidden" id="timerEmpty">
                       <p class="empty-sub">点预设，或者填上时 / 分 / 秒开始。开始后岛旁边会出现一个小圆圈倒计时。</p>
-                    </div>
-                  </div></div>
-                </div>
-
-                <div class="tool-card" data-tool="todo">
-                  <button class="tc-head" data-tool-toggle="todo">
-                    <span class="tc-icon"><svg class="ic"><use href="#i-check"/></svg></span>
-                    <span class="tc-title">待办</span>
-                    <span class="tc-sum" id="todoSub">0 项</span>
-                    <svg class="ic tc-chev"><use href="#i-chev"/></svg>
-                  </button>
-                  <div class="tc-body"><div class="tc-inner">
-                    <div class="todo-form">
-                      <input id="todoInput" class="input bare" type="text" placeholder="加一条待办，回车保存；写「写周报 25」就是带 25 分钟番茄钟的待办" />
-                      <button class="btn primary small" id="todoAdd">添加</button>
-                    </div>
-                    <div class="list compact" id="todoList"></div>
-                    <div class="empty small hidden" id="todoEmpty">
-                      <p class="empty-sub">待办会一直留着，勾掉就归档。带「25」这类时长的待办可以点小时钟直接开番茄钟。</p>
                     </div>
                   </div></div>
                 </div>
@@ -830,6 +819,22 @@
                     </div>
                     <div class="acc-label">已登录的设备</div>
                     <div class="dev-list" id="accDevList"></div>
+                    <!-- M3：本机旧数据的归属（只提示一次） -->
+                    <div id="accClaim" class="hidden">
+                      <div class="acc-label">本机的旧数据</div>
+                      <div class="claim-box">
+                        <div class="claim-text" id="accClaimText">—</div>
+                        <div class="acc-btns">
+                          <button class="mini" id="accClaimBackup">先导出备份</button>
+                          <button class="mini primary" id="accClaimGo">归到这个账号</button>
+                        </div>
+                        <div class="acc-note" id="accClaimMsg"></div>
+                      </div>
+                    </div>
+                    <div class="setting">
+                      <span class="setting-main"><b>导出备份</b><i>当前这份数据写成一个 JSON，放到「文档\Qing Tools 备份」</i></span>
+                      <button class="mini" id="accBackup">导出</button>
+                    </div>
                     <div class="setting">
                       <span class="setting-main"><b>退出</b><i>退出本机不影响别的设备；全部退出会踢掉所有设备</i></span>
                       <div class="acc-btns">
@@ -978,6 +983,11 @@
                       <button class="btn primary small hidden" id="updateInstall">下载并安装</button>
                     </span>
                   </div>
+                </div>
+
+                <div class="setting hidden" id="accLogoutRow">
+                  <span class="setting-main"><b>退出登录</b><i>只退出这台电脑；同一个账号在别的设备上仍然登录着</i></span>
+                  <button class="btn ghost small" id="accLogoutBottom">退出登录</button>
                 </div>
 
                 <div class="group">

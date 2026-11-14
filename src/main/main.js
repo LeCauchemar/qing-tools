@@ -31,7 +31,7 @@ const msOauth = require('./ms-oauth');
 const sysinfo = require('./sysinfo');
 const { SearchService } = require('./search');
 const { EverythingService } = require('./everything');
-const { registerAccountIpc } = require('./account');
+const { account: accountApi, registerAccountIpc } = require('./account');
 let searchService = null;
 let everythingService = null;
 let oauthPending = null; // 正在进行中的微软设备代码授权
@@ -42,7 +42,8 @@ const isAutostart = process.argv.includes('--autostart');
 
 const APP_NAME = 'Qing Tools';
 // 数据目录沿用旧名，保证改名后老用户的便笺/剪贴板/邮箱配置不丢
-const DATA_DIR = path.join(app.getPath('appData'), 'DynamicIsland');
+// 测试时可以用 QT_DATA_DIR 指到临时目录，避免动到真实数据（M3 加的分区测试就靠它）
+const DATA_DIR = process.env.QT_DATA_DIR ? path.resolve(process.env.QT_DATA_DIR) : path.join(app.getPath('appData'), 'DynamicIsland');
 app.setName(APP_NAME);
 app.setPath('userData', DATA_DIR);
 app.setAppUserModelId('com.dsh.dynamicisland');
@@ -88,6 +89,75 @@ let tray = null;
 let store = null;
 let clip = null;
 let mail = null;
+
+// ---------------------------------------------------------------- 数据分区（M3）
+// 本地模式沿用原来的 %APPDATA%\DynamicIsland\state.json，老用户的数据原地不动；
+// 登录后切到 %APPDATA%\DynamicIsland\accounts\<uid>\state.json，各账号互不串号。
+// 剪贴板永远留在本机目录（按需求：不跟账号）。
+let profile = { kind: 'local', uid: '' }; // { kind:'local'|'account', uid }
+function accountRoot(uid) {
+  return path.join(DATA_DIR, 'accounts', String(uid || ''));
+}
+function stateFileFor(p = profile) {
+  return p.kind === 'account' && p.uid ? path.join(accountRoot(p.uid), 'state.json') : path.join(DATA_DIR, 'state.json');
+}
+function noteImagesDir() {
+  return profile.kind === 'account' && profile.uid ? path.join(accountRoot(profile.uid), 'note-images') : path.join(DATA_DIR, 'note-images');
+}
+function profileInfo() {
+  return { kind: profile.kind, uid: profile.uid, stateFile: stateFileFor() };
+}
+// M4：「备忘录」和「待办」合成 Qing事项 —— 老数据里的 todos 一次性并进 notes（kind:'todo'）
+function migrateQingItems() {
+  if (!store || !store.data) return;
+  const d = store.data;
+  const todos = Array.isArray(d.todos) ? d.todos : [];
+  if (!todos.length) {
+    d.todos = [];
+    return;
+  }
+  if (!Array.isArray(d.notes)) d.notes = [];
+  let added = 0;
+  for (const t of todos) {
+    const text = String((t && t.text) || '').trim();
+    if (!text) continue;
+    const id = 'note_' + String((t && t.id) || uid('x')).replace(/^todo_/, '');
+    if (d.notes.some((n) => n.id === id || (n.text === text && n.kind === 'todo'))) continue;
+    d.notes.push({
+      id,
+      text: text.slice(0, 4000),
+      kind: 'todo',
+      done: !!(t && t.done),
+      doneAt: t && t.done ? Number(t.doneAt) || Date.now() : 0,
+      pinned: false,
+      createdAt: Number(t && t.createdAt) || Date.now(),
+      updatedAt: Number(t && (t.updatedAt || t.createdAt)) || Date.now()
+    });
+    added += 1;
+  }
+  d.todos = [];
+  store.save();
+  if (added) log('[qing] migrated', added, 'todos into items');
+}
+
+function useProfile(next) {
+  const kind = next && next.kind === 'account' && next.uid ? 'account' : 'local';
+  const uidNext = kind === 'account' ? String(next.uid) : '';
+  if (kind === profile.kind && uidNext === profile.uid) return false;
+  profile = { kind, uid: uidNext };
+  if (store) {
+    store.use(stateFileFor());
+    migrateQingItems();
+  }
+  try {
+    if (clip && typeof clip.hydrate === 'function') clip.hydrate();
+  } catch (_) {}
+  try {
+    broadcast();
+  } catch (_) {}
+  log('[profile] switched to', kind, uidNext || '-');
+  return true;
+}
 
 // Everything 联动服务（懒创建；模块级，registerIpc 与 whenReady 都能用）
 function getEverything() {
@@ -1006,15 +1076,34 @@ function registerIpc() {
   });
 
   // --- 便笺
-  ipcMain.handle('notes:add', (e, text) => {
+  ipcMain.handle('notes:add', (e, text, kind) => {
     const t = String(text || '').trim();
     if (!t) return { ok: false };
-    const note = { id: uid('note'), text: t.slice(0, 4000), createdAt: Date.now(), updatedAt: Date.now(), pinned: false };
+    const note = {
+      id: uid('note'),
+      text: t.slice(0, 4000),
+      kind: kind === 'todo' ? 'todo' : 'note',
+      done: false,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      pinned: false
+    };
     store.data.notes.unshift(note);
-    if (store.data.notes.length > 200) store.data.notes.length = 200;
+    if (store.data.notes.length > 300) store.data.notes.length = 300;
     store.save();
     broadcast();
     return { ok: true, note };
+  });
+  // 待办打勾：备忘录里 kind==='todo' 的条目
+  ipcMain.handle('notes:done', (e, { id, done }) => {
+    const n = (store.data.notes || []).find((x) => x.id === id);
+    if (!n) return { ok: false };
+    n.done = done === undefined ? !n.done : !!done;
+    n.doneAt = n.done ? Date.now() : 0;
+    n.updatedAt = Date.now();
+    store.save();
+    broadcast();
+    return { ok: true, note: n };
   });
   // 备忘录里的图片：粘贴进来就落盘到 userData\note-images，正文只存文件名
   ipcMain.handle('notes:addImage', async (e, payload) => {
@@ -1025,7 +1114,7 @@ function registerIpc() {
     const buf = Buffer.from(m[2], 'base64');
     if (!buf.length) return { ok: false, message: '图片是空的' };
     if (buf.length > 24 * 1024 * 1024) return { ok: false, message: '图片超过 24MB' };
-    const dir = path.join(app.getPath('userData'), 'note-images');
+    const dir = noteImagesDir();
     try {
       await fs.promises.mkdir(dir, { recursive: true });
     } catch (_) {}
@@ -1055,7 +1144,7 @@ function registerIpc() {
     const buf = Buffer.from(m[2], 'base64');
     if (!buf.length) return { ok: false, message: '图片是空的' };
     if (buf.length > 24 * 1024 * 1024) return { ok: false, message: '图片超过 24MB' };
-    const dir = path.join(app.getPath('userData'), 'note-images');
+    const dir = noteImagesDir();
     try {
       await fs.promises.mkdir(dir, { recursive: true });
     } catch (_) {}
@@ -1886,7 +1975,103 @@ ipcMain.on('app:dragHold', (e, on) => {
   });
   ipcMain.handle('app:saveImage', async (e, url, name) => saveImageFromUrl(url, name));
   // 账号（M2）：登录态 / 设备 / 注册找回，全部走 https://chat.ccyyqq.com/island
-  registerAccountIpc(ipcMain);
+  // 登录成功切到账号分区、退出切回本机分区（M3）
+  registerAccountIpc(ipcMain, {
+    onSignedIn: (user) => useProfile({ kind: 'account', uid: user && user.id }),
+    onSignedOut: () => useProfile({ kind: 'local' })
+  });
+  ipcMain.handle('profile:info', () => profileInfo());
+  // M3：首次登录后的「归属」——把本机数据复制到账号分区（只做一次，可先导出备份）
+  ipcMain.handle('account:claimInfo', () => {
+    const localStore = Store.at(stateFileFor({ kind: 'local', uid: '' }));
+    const ld = localStore.data || {};
+    const counts = {
+      notes: (ld.notes || []).length,
+      todos: (ld.todos || []).length,
+      reminders: (ld.reminders || []).length,
+      anniversaries: ((ld.countdowns || {}).anniversaries || []).length
+    };
+    const total = counts.notes + counts.todos + counts.reminders + counts.anniversaries;
+    const claimed = !!(ld.meta && ld.meta.claimedBy);
+    const cur = store ? store.data : {};
+    const curCounts = {
+      notes: (cur.notes || []).length,
+      todos: (cur.todos || []).length
+    };
+    return {
+      ok: true,
+      signedIn: profile.kind === 'account',
+      profile: profileInfo(),
+      counts,
+      total,
+      claimed,
+      claimedBy: (ld.meta && ld.meta.claimedBy) || '',
+      current: curCounts
+    };
+  });
+  ipcMain.handle('account:claim', async () => {
+    if (profile.kind !== 'account') return { ok: false, code: 'not_signed_in', message: '先登录再归属' };
+    const localFile = stateFileFor({ kind: 'local', uid: '' });
+    const localStore = Store.at(localFile);
+    const ld = localStore.data || {};
+    if (ld.meta && ld.meta.claimedBy) {
+      return { ok: false, code: 'already_claimed', message: '本机数据已经归到账号 ' + ld.meta.claimedBy + ' 了' };
+    }
+    const copied = { notes: 0, todos: 0, reminders: 0, anniversaries: 0 };
+    const cur = store.data;
+    const mergeById = (target, extra) => {
+      const seen = new Set((target || []).map((x) => x && x.id));
+      let n = 0;
+      for (const it of extra || []) {
+        if (!it || !it.id || seen.has(it.id)) continue;
+        target.push(it);
+        seen.add(it.id);
+        n++;
+      }
+      return n;
+    };
+    cur.notes = cur.notes || [];
+    cur.todos = cur.todos || [];
+    cur.reminders = cur.reminders || [];
+    cur.countdowns = cur.countdowns || { payday: 0, anniversaries: [] };
+    cur.countdowns.anniversaries = cur.countdowns.anniversaries || [];
+    copied.notes = mergeById(cur.notes, ld.notes);
+    copied.todos = mergeById(cur.todos, ld.todos);
+    copied.reminders = mergeById(cur.reminders, ld.reminders);
+    copied.anniversaries = mergeById(cur.countdowns.anniversaries, (ld.countdowns || {}).anniversaries);
+    if (!cur.countdowns.payday && ld.countdowns && ld.countdowns.payday) cur.countdowns.payday = ld.countdowns.payday;
+    // 记一笔「谁认领了本机数据」，以后不再提示
+    ld.meta = ld.meta || {};
+    ld.meta.claimedBy = profile.uid;
+    ld.meta.claimedAt = Date.now();
+    localStore.flush();
+    store.save();
+    broadcast();
+    log('[claim] copied', JSON.stringify(copied), 'to', profile.uid);
+    return { ok: true, copied };
+  });
+  // M3：导出备份（默认落在「文档\Qing Tools 备份」）
+  ipcMain.handle('app:exportBackup', async () => {
+    try {
+      const dir = path.join(app.getPath('documents'), 'Qing Tools 备份');
+      await fs.promises.mkdir(dir, { recursive: true });
+      const ts = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      const name = 'backup-' + ts.getFullYear() + pad(ts.getMonth() + 1) + pad(ts.getDate()) + '-' + pad(ts.getHours()) + pad(ts.getMinutes()) + pad(ts.getSeconds()) + '.json';
+      const target = path.join(dir, name);
+      const payload = {
+        app: 'Qing Tools',
+        version: app.getVersion(),
+        profile: profileInfo(),
+        exportedAt: ts.toISOString(),
+        data: store ? store.data : {}
+      };
+      await fs.promises.writeFile(target, JSON.stringify(payload, null, 2), 'utf8');
+      return { ok: true, file: target, dir };
+    } catch (err) {
+      return { ok: false, message: String((err && err.message) || err) };
+    }
+  });
   ipcMain.handle('sys:stat', async () => sysinfo.stat());
   ipcMain.on('app:hide', () => hideIsland());
   ipcMain.on('app:show', () => showIsland());
@@ -2147,15 +2332,21 @@ if (!gotLock) {
         const u = new URL(req.url);
         const file = decodeURIComponent(u.pathname.replace(/^\/+/, ''));
         if (!/^[A-Za-z0-9._-]+$/.test(file)) return new Response('bad request', { status: 400 });
-        const dir = u.host === 'note' ? 'note-images' : 'clip-images';
-        const p = path.join(app.getPath('userData'), dir, file);
+        // M3：备忘录图片按账号分区（accounts\<uid>\note-images），剪贴板图片永远在本机目录
+        const p = u.host === 'note' ? path.join(noteImagesDir(), file) : path.join(DATA_DIR, 'clip-images', file);
         return await net.fetch(pathToFileURL(p).toString());
       } catch (err) {
         return new Response('not found', { status: 404 });
       }
     });
 
-    store = Store.at(path.join(app.getPath('userData'), 'state.json'));
+    // M3：若本地已登录，启动直接进这个账号的分区（account.json 与分区一一对应）
+    try {
+      const st = accountApi && accountApi.status();
+      if (st && st.signedIn && st.user && st.user.id) profile = { kind: 'account', uid: String(st.user.id) };
+    } catch (_) {}
+    store = Store.at(stateFileFor());
+    migrateQingItems();
     if (store.data.settings.autoStart) applyAutoStart(true);
 
     clip = new ClipWatcher(store, broadcast);

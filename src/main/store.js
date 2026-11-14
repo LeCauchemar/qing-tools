@@ -117,6 +117,20 @@ class Store {
     return new Store(file);
   }
 
+  /** 切换数据文件（本地模式 ⇄ 某个账号），先落盘旧数据再读新的 */
+  use(file) {
+    if (this.file === file) return this.data;
+    if (this._timer) {
+      clearTimeout(this._timer);
+      this._timer = null;
+    }
+    this.flush();
+    this.file = file;
+    this.resolve = () => file;
+    this.data = this._load();
+    return this.data;
+  }
+
   _load() {
     try {
       const raw = JSON.parse(fs.readFileSync(this.file, 'utf8'));

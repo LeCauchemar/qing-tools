@@ -4480,6 +4480,12 @@ async function handleAct(act, node) {
       await openShareHist(node.dataset.id, node.dataset.name);
       break;
     }
+    case 'chat-new': {
+      if ((S.chat.rooms || []).length >= 2) return toast('最多两个频道，先退出一个再建');
+      if (!window.confirm('新建一个频道？')) return;
+      await chatCreate();
+      break;
+    }
     case 'cp-hist': {
       await openShareHist('', '');
       break;
@@ -4488,8 +4494,7 @@ async function handleAct(act, node) {
       setTab('settings');
       const box = $('#accFriendName');
       if (box) setTimeout(() => box.focus(), 260);
-      break;
-    }
+      break;    }
     case 'friend-accept':
     case 'friend-reject':
     case 'friend-remove': {

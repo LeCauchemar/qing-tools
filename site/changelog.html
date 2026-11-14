@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>开发记录 · Qing Tools 从 1.0 到 1.15.0</title>
-<meta name="description" content="Qing Tools 十天六十一个版本的开发过程：从一条会伸缩的药丸，到能收邮件、短信验证码、文件和群聊的常驻小面板，再到能登录的账号。">
+<meta name="description" content="Qing Tools 十天六十六个版本的开发过程：从一条会伸缩的药丸，到能收邮件、短信验证码、文件和群聊的常驻小面板，再到能登录的账号。">
 <meta name="theme-color" content="#05060b">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/site.css?v=12">
@@ -31,7 +31,7 @@
     <button class="icon-btn" id="themeBtn" title="切换明暗" aria-label="切换明暗">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path class="sun" d="M12 4v2m0 12v2m8-8h-2M6 12H4m13.7-5.7-1.4 1.4M7.7 16.3l-1.4 1.4m11.4 0-1.4-1.4M7.7 7.7 6.3 6.3"/><circle cx="12" cy="12" r="3.6"/></svg>
     </button>
-    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.16.0-setup.exe">下载</a>
+    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.16.1-setup.exe">下载</a>
   </div>
 </header>
 
@@ -45,7 +45,7 @@
       在群里发一句就走。下面是中间每一步到底改了什么、为什么改。
     </p>
     <div class="cl-stats">
-      <div><b>65</b><span>个可安装版本（1.0 → 1.16.0）</span></div>
+      <div><b>66</b><span>个可安装版本（1.0 → 1.16.1）</span></div>
       <div><b>10</b><span>天（11-05 → 11-14）</span></div>
       <div><b>100 MB</b><span>安装包（砍过 21 MB）</span></div>
       <div><b>7</b><span>个页签</span></div>
@@ -400,7 +400,7 @@
         </ul>
       </div>
     </article>
-  <article class="cl-item v5">
+<article class="cl-item v5">
       <div class="cl-side"><b>1.15.0</b><span>11-14</span></div>
       <div class="cl-body">
         <h3>待办的圈细回去了，清空不再误删，小纸条里能看见好友</h3>
@@ -412,7 +412,7 @@
         </ul>
       </div>
     </article>
-    <article class="cl-item v5">
+<article class="cl-item v5">
       <div class="cl-side"><b>1.15.1</b><span>11-14</span></div>
       <div class="cl-main">
         <h2>Base64 能读图片了，几 MB 的数据也不会再把界面拖成 PPT</h2>
@@ -425,7 +425,7 @@
         </ul>
       </div>
     </article>
-    <article class="cl-item v5">
+<article class="cl-item v5">
       <div class="cl-side"><b>1.15.2</b><span>11-14</span></div>
       <div class="cl-main">
         <h2>超长 Base64 不再驻在输入框里，小工具终于不卡了</h2>
@@ -437,8 +437,7 @@
         </ul>
       </div>
     </article>
-
-    <article class="cl-item v1">
+<article class="cl-item v1">
       <div class="cl-side"><b>1.16.0</b><span>11-14</span></div>
       <div class="cl-body">
         <h3>Qing 事项跟着账号走：换台电脑，写完的东西还在</h3>
@@ -451,6 +450,18 @@
         </ul>
       </div>
     </article>
+  <article class="cl-item v1">
+      <div class="cl-side"><b>1.16.1</b><span>11-14</span></div>
+      <div class="cl-body">
+        <h3>小纸条改成两栏：左边频道和好友，右边才是消息</h3>
+        <ul>
+          <li>面板加宽到 640px，左边固定 150px 一栏：上面是频道（最多两个，一直置顶），下面是好友，一个一个竖着排。</li>
+          <li>频道条改成整行按钮，名字长了自己省略；鼠标移上去才露出「复制匹配码」和「退出」两个小图标，不再挤在一起。</li>
+          <li>右边的消息区有独立宽度，气泡和输入框不会再压到好友/频道上；拉高窗口时只有消息区变长，左栏不动。</li>
+          <li>左栏顶部有个「+」，直接新建频道（已有两个时会提示先退一个）。</li>
+        </ul>
+      </div>
+    </article>
 
 
 
@@ -459,7 +470,7 @@
   <footer class="foot">
     <div class="foot-left">
       <span class="mark small" aria-hidden="true"><i></i><b></b></span>
-      <span>Qing Tools <span class="dim">v1.16.0</span></span>
+      <span>Qing Tools <span class="dim">v1.16.1</span></span>
     </div>
     <div class="foot-right">
       <a href="index.html">回到首页</a>

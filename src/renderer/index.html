@@ -439,17 +439,32 @@
               <div class="list" id="fileList"></div>
             </section>
 
-            <!-- 小纸条 -->
+            <!-- 小纸条：左边频道/好友，右边聊天（1.16.1 改版） -->
             <section class="pane" data-pane="chat">
-              <!-- 频道（最多两个） -->
-              <div class="rooms hidden" id="chatRooms"></div>
+              <div class="chat-split">
+                <aside class="chat-side">
+                  <div class="cs-sec">
+                    <div class="cs-head">
+                      <span class="cs-title">频道</span>
+                      <button class="cs-add" data-act="chat-new" title="新建频道">
+                        <svg class="ic"><use href="#i-plus" /></svg>
+                      </button>
+                    </div>
+                    <!-- 频道（最多两个） -->
+                    <div class="rooms hidden" id="chatRooms"></div>
+                  </div>
 
-              <!-- 好友 + 咻记录（M6b） -->
-              <div class="chat-people hidden" id="chatPeople">
-                <span class="cp-label">好友</span>
-                <div class="cp-list" id="cpList"></div>
-                <button class="cp-more" id="cpMore" data-act="cp-hist" title="我和好友之间咻过的所有条目">咻记录</button>
-              </div>
+                  <!-- 好友 + 咻记录（M6b） -->
+                  <div class="chat-people hidden" id="chatPeople">
+                    <div class="cs-head">
+                      <span class="cs-title">好友</span>
+                      <button class="cp-more" id="cpMore" data-act="cp-hist" title="我和好友之间咻过的所有条目">咻记录</button>
+                    </div>
+                    <div class="cp-list" id="cpList"></div>
+                  </div>
+                </aside>
+
+                <div class="chat-main">
 
               <!-- 未加入 -->
               <div class="chat-gate" id="chatGate">
@@ -511,6 +526,8 @@
                 <div class="pick-pop hidden" id="pickPop"></div>
                 <div class="emoji-pop hidden" id="emojiPop"></div>
                 <input type="file" id="chatFile" accept="image/*,.heic,.heif,.avif,.webp,.gif,.bmp" hidden />
+              </div>
+                </div>
               </div>
             </section>
 

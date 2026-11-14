@@ -31,7 +31,7 @@
     <button class="icon-btn" id="themeBtn" title="切换明暗" aria-label="切换明暗">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path class="sun" d="M12 4v2m0 12v2m8-8h-2M6 12H4m13.7-5.7-1.4 1.4M7.7 16.3l-1.4 1.4m11.4 0-1.4-1.4M7.7 7.7 6.3 6.3"/><circle cx="12" cy="12" r="3.6"/></svg>
     </button>
-    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.15.1-setup.exe">下载</a>
+    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.15.2-setup.exe">下载</a>
   </div>
 </header>
 
@@ -41,11 +41,11 @@
     <p class="kicker">开发记录</p>
     <h1>十天，六十多个版本，<br><span class="grad">一条缝长成了一个工作台</span></h1>
     <p class="lede">
-      1.0 的时候它只会伸缩和显示未读；到 1.15.1，它替你收邮件、抽验证码、接手机短信、暂存文件、
+      1.0 的时候它只会伸缩和显示未读；到 1.15.2，它替你收邮件、抽验证码、接手机短信、暂存文件、
       在群里发一句就走。下面是中间每一步到底改了什么、为什么改。
     </p>
     <div class="cl-stats">
-      <div><b>63</b><span>个可安装版本（1.0 → 1.15.1）</span></div>
+      <div><b>64</b><span>个可安装版本（1.0 → 1.15.2）</span></div>
       <div><b>10</b><span>天（11-05 → 11-14）</span></div>
       <div><b>100 MB</b><span>安装包（砍过 21 MB）</span></div>
       <div><b>7</b><span>个页签</span></div>
@@ -425,13 +425,26 @@
         </ul>
       </div>
     </article>
+    <article class="cl-item v5">
+      <div class="cl-side"><b>1.15.2</b><span>11-14</span></div>
+      <div class="cl-main">
+        <h2>超长 Base64 不再驻在输入框里，小工具终于不卡了</h2>
+        <ul>
+          <li>以前把一段几 MB 的 Base64 粘进输入框后，那几百万字符一直留在 &lt;textarea&gt; 里，每次输入、滚动、切页签浏览器都要整段重排 —— 动画就变成了幻灯片。</li>
+          <li>现在超过 20 万字符的内容会被直接搬进内存，输入框留空，只显示一行「已读入 2.51 MB（不放进输入框，避免卡顿）」+「复制 / 清空」两个按钮。</li>
+          <li>解码 / 编码可以直接用内存里的这段数据，不用再把它塞回界面；实测 2.5 MB 的图片 Base64 解码 157 ms，输入框保持空白，连打 20 个字 0 ms。</li>
+          <li>清空会同时清掉内存里的副本、预览图和结果，内存不会被一段贴过的大串长期占着。</li>
+        </ul>
+      </div>
+    </article>
+
 
 </section>
 
   <footer class="foot">
     <div class="foot-left">
       <span class="mark small" aria-hidden="true"><i></i><b></b></span>
-      <span>Qing Tools <span class="dim">v1.15.1</span></span>
+      <span>Qing Tools <span class="dim">v1.15.2</span></span>
     </div>
     <div class="foot-right">
       <a href="index.html">回到首页</a>

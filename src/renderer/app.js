@@ -111,6 +111,8 @@ const S = {
   dvImgUrl: '',
   dvImgBlob: null,
   dvImgName: '',
+  dvSrc: '',
+  dvSrcNote: '',
   wx: null, // 天气缓存 { t, city, temp, max, min, text, code }
   selText: '',
   chat: { rooms: [], active: 0, adding: false, busy: false, err: '', mentions: new Map(), pending: [], reply: null, height: 0 },
@@ -344,6 +346,8 @@ chatState: $('#chatState'),
   smsCardSub: $('#smsCardSub'),
   dvTabs: $('#dvTabs'),
   dvIn: $('#dvIn'),
+  dvSrcBar: $('#dvSrcBar'),
+  dvSrcText: $('#dvSrcText'),
   dvActs: $('#dvActs'),
   dvOut: $('#dvOut'),
   dvOutWrap: $('#dvOutWrap'),
@@ -3224,6 +3228,33 @@ function toggleTool(name) {
   }
 }
 
+// 大段内容不要留在 textarea 里：浏览器每帧都要为它重排，几千行就够把动画拖成 PPT
+function dvPayload() {
+  const typed = el.dvIn ? el.dvIn.value : '';
+  return typed.trim() ? typed : S.dvSrc;
+}
+
+function dvPaintSrc() {
+  if (!el.dvSrcBar) return;
+  const on = !!S.dvSrc;
+  el.dvSrcBar.classList.toggle('hidden', !on);
+  if (on && el.dvSrcText) el.dvSrcText.textContent = S.dvSrcNote || ('已读入 ' + humanSize(S.dvSrc.length));
+}
+
+function dvSetSrc(text, note) {
+  S.dvSrc = text || '';
+  S.dvSrcNote = note || '';
+  if (el.dvIn) el.dvIn.value = '';
+  dvPaintSrc();
+}
+
+function dvClearSrc() {
+  S.dvSrc = '';
+  S.dvSrcNote = '';
+  if (el.dvIn) el.dvIn.value = '';
+  dvPaintSrc();
+}
+
 /* ---------------- 开发小工具 ---------------- */
 
 const DV_ACTS = {
@@ -3275,8 +3306,12 @@ function dvPaint() {
     : full;
   if (el.dvOut) el.dvOut.value = shown;
   if (el.dvSave) el.dvSave.classList.toggle('hidden', !S.dvImgBlob);
+  if (el.dvSrcBar) {
+    el.dvSrcBar.classList.toggle('hidden', !S.dvSrc);
+    if (S.dvSrc && el.dvSrcText) el.dvSrcText.textContent = S.dvSrcNote || ('已读入 ' + humanSize(S.dvSrc.length));
+  }
   if (el.devSub) {
-    const t = (el.dvIn && el.dvIn.value.trim().length) || 0;
+    const t = ((el.dvIn && el.dvIn.value.trim().length) || 0) + (S.dvSrc ? S.dvSrc.length : 0);
     el.devSub.textContent = t ? t + ' 字符 · ' + (S.dvTab === 'ts' ? '时间戳' : S.dvTab === 'b64' ? 'Base64' : S.dvTab === 'json' ? 'JSON' : S.dvTab === 'uuid' ? 'UUID' : '哈希') : '时间戳 · Base64 · JSON · UUID · 哈希';
   }
 }
@@ -3303,7 +3338,8 @@ function fmtDateTime(d) {
 }
 
 /* ── Base64：图片 ⇄ 文本（带尺寸与内存保护） ───────────────────── */
-const B64_VIEW_MAX = 20000; // 输出框最多渲染这么多字符，再长只显示摘要（完整内容仍在 S.dvOut 里，可复制）
+const B64_VIEW_MAX = 20000;
+const B64_INLINE_MAX = 200000; // 超过这个长度就不放进 textarea（留在内存里），否则每帧重排会卡死 // 输出框最多渲染这么多字符，再长只显示摘要（完整内容仍在 S.dvOut 里，可复制）
 const B64_IN_MAX = 8 * 1024 * 1024; // 单次解码上限 8 MB 字符，超过直接提示
 
 function b64Clean(src) {
@@ -3416,7 +3452,15 @@ async function dvRunImage(file) {
 }
 
 async function dvRun(kind) {
-  const raw = ((el.dvIn && el.dvIn.value) || '').trim();
+  let raw = (dvPayload() || '').trim();
+  // 一大段内容留在 textarea 里，输入和滚动都会整段重排 —— 超过 20 万字符就搬进内存
+  if (el.dvIn && el.dvIn.value && el.dvIn.value.length > B64_INLINE_MAX) {
+    dvSetSrc(
+      raw,
+      '已读入 ' + humanSize(raw.length) + '（' + (kind.startsWith('b64') ? 'Base64' : '文本') + '，不放进输入框，避免卡顿）'
+    );
+    raw = (S.dvSrc || '').trim();
+  }
   const out = (s) => {
     S.dvOut = s;
     dvPaint();
@@ -7805,6 +7849,19 @@ function bindUi() {
         if (!S.dvOut) return;
         api.clips.writeText(S.dvOut).then((r) => toast(r && r.ok === false ? '复制失败' : '已复制到剪贴板'));
       }
+      if (t.closest && t.closest('[data-act="dv-src-copy"]')) {
+        if (!S.dvSrc) return;
+        api.clips.writeText(S.dvSrc).then((r) => toast(r && r.ok === false ? '复制失败' : '已复制（' + S.dvSrc.length + ' 字符）'));
+        return;
+      }
+      if (t.closest && t.closest('[data-act="dv-src-clear"]')) {
+        dvClearSrc();
+        dvClearImage();
+        S.dvOut = '';
+        dvPaint();
+        toast('已清空');
+        return;
+      }
       if (t.closest && t.closest('[data-act="dv-save"]')) {
         if (!S.dvImgUrl) return;
         const a = document.createElement('a');
@@ -7840,16 +7897,19 @@ function bindUi() {
         }
       }
       const txt = e.clipboardData ? e.clipboardData.getData('text/plain') : '';
-      if (txt && txt.length > 6 * 1024 * 1024) {
+      if (txt && txt.length > B64_INLINE_MAX) {
         e.preventDefault();
-        toast('这段内容 ' + humanSize(txt.length) + '，粘进输入框会让界面卡住。图片请用「选图片」直接读文件。', true);
+        dvSetSrc(txt, '已读入 ' + humanSize(txt.length) + '（不放进输入框，避免卡顿）');
+        toast('这段有 ' + humanSize(txt.length) + '，已放进内存；直接点「解码」或「编码」就行。');
         return;
       }
-      if (txt && txt.length > 2 * 1024 * 1024) {
-        toast('这段有 ' + humanSize(txt.length) + '，粘进去会有点卡；图片建议用「选图片」直接读文件。');
-      }
     });
-    el.dvIn.addEventListener('input', () => dvPaint());
+    el.dvIn.addEventListener('input', () => {
+      if (el.dvIn.value.length > B64_INLINE_MAX) {
+        dvSetSrc(el.dvIn.value, '已读入 ' + humanSize(el.dvIn.value.length) + '（不放进输入框，避免卡顿）');
+      }
+      dvPaint();
+    });
     el.dvIn.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();

@@ -15,9 +15,9 @@
 ## 官网与下载
 
 - 官网：<https://qingtools.ccyyqq.com/>（源码在 `site/`，静态站，`deploy\site.ps1` 一键部署）
-- 开发记录：<https://qingtools.ccyyqq.com/changelog.html>（从 1.0 到 1.15.1 的过程，源码 `site/changelog.html`；纯文本版在仓库根 `CHANGELOG.md`）
-- 下载（又拍云 CDN，官网按钮指向这里）：<https://qing.ccyyqq.com/island/update/QingTools-1.15.1-setup.exe>（便携版同名 `-portable.exe`）
-- 备用镜像（本站 nginx `/download/`）：<https://qingtools.ccyyqq.com/download/QingTools-1.15.1-setup.exe>
+- 开发记录：<https://qingtools.ccyyqq.com/changelog.html>（从 1.0 到 1.15.2 的过程，源码 `site/changelog.html`；纯文本版在仓库根 `CHANGELOG.md`）
+- 下载（又拍云 CDN，官网按钮指向这里）：<https://qing.ccyyqq.com/island/update/QingTools-1.15.2-setup.exe>（便携版同名 `-portable.exe`）
+- 备用镜像（本站 nginx `/download/`）：<https://qingtools.ccyyqq.com/download/QingTools-1.15.2-setup.exe>
 - 服务器下载页：<https://chat.ccyyqq.com/island/get>（短链 `chat.ccyyqq.com/get`、`/dl`）
 
 ## 功能
@@ -35,7 +35,7 @@
 | **剪贴板** | 后台静默记录最近的文本与图片（默认留 60 条），可搜索、固定、一键回填到系统剪贴板，也能一键发到小纸条 |
 | **文件** | 把文件 / 文件夹拖到岛上就直接进文件区（不跳页、不打断）；拖的是图片时岛会分成两半：左边「存到文件区」、右边「发送小纸条」。文件页自带**整机搜索**：一个输入框同时搜文件名 / 文件夹名 / 文件内容（装了 Everything 并开启 HTTP 服务会自动用上，否则用内置扫描 + 全盘浅扫），结果前有复选框可多选、也能按住左键**划框**多选，右键「发送到文件区」；内容命中的文件会把正文送进剪贴板 |
 | **小工具** | 一页八张卡片（计时器 / 提醒事项 / 倒数日 / 免打扰 / 开发小工具 / 邮件账户 / 手机验证码同步 / 系统），平时只显示一行摘要，点一下展开、再点收起；计时器（时 / 分 / 秒，到点响铃 + 通知）与免打扰（15 分钟 ~ 一直开着）；**邮箱账户与手机密钥也搬到这里了**（设置页只留通用项）；计时中岛的右侧挂一个带进度环的小圆圈，像灵动岛那样一直能看到剩余时间 |
-| **Base64** | 文字和图片两个方向都行：选图片转成 Base64，或把一大串 Base64 解回图片并在面板里预览、另存；会检查长度与非法字符，超大内容自动截断显示，不再把界面拖慢。 |
+| **Base64** | 文字和图片两个方向都行：选图片转成 Base64，或把一大串 Base64 解回图片并在面板里预览、另存；会检查长度与非法字符。**超过 20 万字符的内容不放进输入框**，只留一行「已读入 2.5 MB」和复制/清空，避免整段重排把界面拖卡。 |
 | **开发小工具** | 时间戳 ⇄ 日期、Base64 编解码、JSON 格式化 / 压缩、UUID 生成、SHA-1/256/512 摘要，算完一键复制 |
 | **天气** | 按公网 IP 自动定位（同时问三家 IP 库，城市名少数服从多数），在岛的第二行显示「城市 · 温度 · 天气」，30 分钟更新一次；不想自动定位就在设置里填死一个城市 |
 | **频道跟账号** | 登录后本机已有的频道会逐个认领到账号名下（先到先得）；换台电脑登同一个账号，频道自动加回来，不用再问一次匹配码 |

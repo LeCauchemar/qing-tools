@@ -1,0 +1,14 @@
+﻿import fs from "node:fs";
+const srv = fs.readFileSync("server/index.mjs", "utf8");
+const app = fs.readFileSync("src/renderer/app.js", "utf8");
+const plan = fs.readFileSync("docs/qing-account-plan.md", "utf8");
+const has = (s, k) => s.includes(k);
+console.log("--- 服务端能力 ---");
+console.log("sms_owners 绑定 user?", has(srv, "sms_owners") , "| sms 表有 user_id?", /CREATE TABLE IF NOT EXISTS sms[\s\S]{0,300}?user_id/.test(srv));
+console.log("items 同步接口 /api/items?", has(srv, "'/api/items'"));
+console.log("changes/since 同步?", has(srv, "since"));
+console.log("分享带图片字段?", /share[\s\S]{0,200}?images/.test(srv));
+console.log("--- 客户端 ---");
+console.log("打开小纸条引导登录?", has(app, "先登录才能进小纸条") || has(app, "引导登录"));
+console.log("--- 计划文档里的里程碑 ---");
+for (const line of plan.split("\n")) if (/^\|\s*M\d/.test(line.trim())) console.log(line.trim().slice(0, 120));

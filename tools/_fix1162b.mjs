@@ -1,0 +1,10 @@
+import fs from 'node:fs';
+const ROOT = 'D:/deepseek harness daily/dynamic-island';
+const f = ROOT + '/site/changelog.html';
+let t = fs.readFileSync(f, 'utf8');
+t = t.replace(/到 1\.\d+\.\d+，它替你收邮件/, '到 1.16.2，它替你收邮件');
+fs.writeFileSync(f, t, 'utf8');
+const desc = (t.match(/<meta name="description" content="([^"]*)"/) || [])[1];
+const lede = (t.match(/到 (1\.\d+\.\d+)，它替你/) || [])[1];
+console.log('desc', desc);
+console.log('ledeVer', lede, 'fffd', t.includes('\uFFFD'));

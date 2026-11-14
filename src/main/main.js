@@ -1865,10 +1865,16 @@ function readClipboardFiles() {
   });
 
   // 便条里的图片：点一下开「看大图」窗口
+  // 事项同步之后正文里的图片可能是 cloud:<key>（已经传到又拍云），
+  // 直接拼 islandclip://note/ 会变成「这张图读不出来」，这里按前缀分流。
   ipcMain.handle('sticky:view', (e, file) => {
     const f = String(file || '');
-    if (!f) return { ok: false };
-    const win = openViewer('islandclip://note/' + encodeURIComponent(f), f);
+    if (!f || f === 'undefined' || f === 'null') return { ok: false };
+    const url = f.indexOf('cloud:') === 0
+      ? 'https://qing.ccyyqq.com/' + f.slice(6).replace(/^\/+/, '')
+      : 'islandclip://note/' + encodeURIComponent(f);
+    const title = f.replace(/^cloud:/, '').split('/').pop() || f;
+    const win = openViewer(url, title);
     return { ok: !!win };
   });
   ipcMain.on('viewer:close', (e) => {

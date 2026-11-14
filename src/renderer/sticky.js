@@ -34,6 +34,18 @@
   /* 正文里的图片标记：[[img:<file>]]，渲染成一张小图，保存时再写回标记 */
   const IMG_TOKEN = /\[\[img:([^\]\s]+)\]\]/g;
 
+  /* 事项同步之后，图片可能已经搬到又拍云，正文里留下的是 cloud:<key>；
+     直接拼 islandclip://note/cloud%3A… 会变成破图，这里按前缀分流 */
+  const CLOUD_BASE = 'https://qing.ccyyqq.com';
+
+  function srcOf(file) {
+    const f = String(file == null ? '' : file);
+    if (!f) return '';
+    if (f === 'undefined' || f === 'null') return '';
+    if (f.indexOf('cloud:') === 0) return CLOUD_BASE + '/' + f.slice(6).replace(/^\/+/, '');
+    return 'islandclip://note/' + encodeURIComponent(f);
+  }
+
   function pushText(frag, str) {
     const lines = String(str).split('\n');
     lines.forEach((ln, i) => {
@@ -55,13 +67,16 @@
       if (pre && /^\n/.test(pre) && afterImg) pre = pre.replace(/^\n/, '');
       if (pre && /\n$/.test(pre)) pre = pre.replace(/\n$/, '');
       if (pre) pushText(frag, pre);
+      const imgSrc = srcOf(m[1]);
+      if (!imgSrc) continue;
       const img = document.createElement('img');
       img.className = 'pic';
       img.dataset.file = m[1];
-      img.src = 'islandclip://note/' + encodeURIComponent(m[1]);
+      img.src = imgSrc;
       img.contentEditable = 'false';
       img.draggable = false;
       img.alt = '图片';
+      img.addEventListener('error', () => { img.classList.add('bad'); img.alt = '图片没加载出来'; });
       frag.appendChild(img);
       at = m.index + m[0].length;
       afterImg = true;

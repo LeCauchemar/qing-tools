@@ -137,6 +137,18 @@ body {
   -webkit-user-drag: none;
 }
 
+/* 图片没加载出来时给一个安静的占位，不要露出一张破图 + 巨大的 alt 字 */
+.note .pic.bad {
+  width: 100%;
+  max-width: 220px;
+  height: 34px;
+  background: rgba(120, 96, 40, 0.12);
+  border: 1px dashed rgba(120, 96, 40, 0.32);
+  border-radius: 9px;
+  color: transparent;
+  font-size: 0;
+}
+
 .note::-webkit-scrollbar {
   width: 8px;
 }

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>开发记录 · Qing Tools 从 1.0 到 1.15.0</title>
-<meta name="description" content="Qing Tools 十天六十六个版本的开发过程：从一条会伸缩的药丸，到能收邮件、短信验证码、文件和群聊的常驻小面板，再到能登录的账号。">
+<title>开发记录 · Qing Tools 从 1.0 到 1.16.2</title>
+<meta name="description" content="Qing Tools 十天六十七个版本的开发过程：从一条会伸缩的药丸，到能收邮件、短信验证码、文件和群聊的常驻小面板，再到能登录的账号。">
 <meta name="theme-color" content="#05060b">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/site.css?v=12">
@@ -31,7 +31,7 @@
     <button class="icon-btn" id="themeBtn" title="切换明暗" aria-label="切换明暗">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path class="sun" d="M12 4v2m0 12v2m8-8h-2M6 12H4m13.7-5.7-1.4 1.4M7.7 16.3l-1.4 1.4m11.4 0-1.4-1.4M7.7 7.7 6.3 6.3"/><circle cx="12" cy="12" r="3.6"/></svg>
     </button>
-    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.16.1-setup.exe">下载</a>
+    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.16.2-setup.exe">下载</a>
   </div>
 </header>
 
@@ -45,7 +45,7 @@
       在群里发一句就走。下面是中间每一步到底改了什么、为什么改。
     </p>
     <div class="cl-stats">
-      <div><b>66</b><span>个可安装版本（1.0 → 1.16.1）</span></div>
+      <div><b>67</b><span>个可安装版本（1.0 → 1.16.2）</span></div>
       <div><b>10</b><span>天（11-05 → 11-14）</span></div>
       <div><b>100 MB</b><span>安装包（砍过 21 MB）</span></div>
       <div><b>7</b><span>个页签</span></div>
@@ -465,12 +465,25 @@
 
 
 
-</section>
+
+    <article class="cl-item v1">
+      <div class="cl-side"><b>1.16.2</b><span>11-14</span></div>
+        <div class="cl-body">
+          <h3>钉到桌面的便条，图片终于看得见了</h3>
+          <ul>
+            <li>事项同步之后，图片在正文里变成了 <code>cloud:</code> 开头的云端标记；便条窗口没认这个前缀，一直按本地文件去取，所以只剩一张破图。</li>
+            <li>现在便条按前缀分流：云端标记直接走又拍云 CDN，本地文件还是走 <code>islandclip://</code>，两者都能显示。</li>
+            <li>便条窗口的 CSP 放行了 CDN 域名，图片不会再被安全策略拦掉。</li>
+            <li>万一真的取不到，也会画一块安静的虚线占位，不再露出破图图标和巨大的「图片」两个字。</li>
+          </ul>
+        </div>
+      </article>
+    </section>
 
   <footer class="foot">
     <div class="foot-left">
       <span class="mark small" aria-hidden="true"><i></i><b></b></span>
-      <span>Qing Tools <span class="dim">v1.16.1</span></span>
+      <span>Qing Tools <span class="dim">v1.16.2</span></span>
     </div>
     <div class="foot-right">
       <a href="index.html">回到首页</a>

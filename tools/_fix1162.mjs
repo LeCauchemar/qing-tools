@@ -1,0 +1,14 @@
+import fs from 'node:fs';
+const ROOT = 'D:/deepseek harness daily/dynamic-island';
+const f = ROOT + '/site/changelog.html';
+let t = fs.readFileSync(f, 'utf8');
+t = t.replace('<article class="cl-item v7">', '<article class="cl-item v1">');
+t = t.replace(/\n {6}<article class="cl-item v1">\n {8}<div class="cl-side"><b>1\.16\.2<\/b>/, '\n    <article class="cl-item v1">\n      <div class="cl-side"><b>1.16.2</b>');
+fs.writeFileSync(f, t, 'utf8');
+const ver = [...t.matchAll(/<div class="cl-side"><b>([^<]+)<\/b>/g)].map((x) => x[1]);
+const stats = (t.match(/<b>(\d+)<\/b>\s*个可安装版本/) || [])[1];
+const h1 = (t.match(/<h1>([^<]*)<\/h1>/) || [])[1];
+const title = (t.match(/<title>([^<]*)<\/title>/) || [])[1];
+console.log('entries', ver.length, 'tail', ver.slice(-3).join(' | '));
+console.log('stats', stats, 'h1', h1, 'title', title);
+console.log('fffd', t.includes('\uFFFD'), 'v7left', t.includes('v7'));

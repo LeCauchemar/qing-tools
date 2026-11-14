@@ -1,0 +1,1 @@
+﻿(()=>{const id='note_mwg8syvn_5';const n=S.data.notes.find(x=>x.id===id);return (n.pinned?api.notes.togglePin(id):Promise.resolve({ok:true})).then(()=>api.notes.togglePin(id)).then(r=>api.notes.togglePin(id)).then(r=>r)})()

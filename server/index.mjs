@@ -117,6 +117,29 @@ if (!roomCols.some((c) => c.name === 'owner_user_id')) {
   db.exec('ALTER TABLE rooms ADD COLUMN owner_user_id TEXT');
 }
 
+// M5：设备和消息都带账号。匿名照旧（user_id 为空），登录过的设备记下 owner，
+// 计票 / @ / 拍一拍 / 已读都按「人」归并，同一个人多台设备只算一份。
+const devCols = db.prepare('PRAGMA table_info(devices)').all();
+if (!devCols.some((c) => c.name === 'user_id')) {
+  db.exec('ALTER TABLE devices ADD COLUMN user_id TEXT');
+}
+if (!msgCols.some((c) => c.name === 'user_id')) {
+  db.exec('ALTER TABLE messages ADD COLUMN user_id TEXT');
+}
+
+// room_members：一台设备一行；登录过的设备带 user_id；已读位置也记在这里
+db.exec(`
+CREATE TABLE IF NOT EXISTS room_members (
+  room_id      TEXT NOT NULL,
+  device_id    TEXT NOT NULL,
+  user_id      TEXT,
+  joined_at    INTEGER NOT NULL,
+  last_read_id TEXT,
+  PRIMARY KEY (room_id, device_id)
+);
+CREATE INDEX IF NOT EXISTS idx_rm_room_user ON room_members(room_id, user_id);
+`);
+
 db.exec(`
 CREATE TABLE IF NOT EXISTS media (
   id         TEXT PRIMARY KEY,
@@ -692,12 +715,23 @@ const q = {
   memberByName: db.prepare('SELECT * FROM devices WHERE room_id = ? AND name = ?'),
   memberById: db.prepare('SELECT * FROM devices WHERE id = ?'),
   insertDevice: db.prepare(
-    'INSERT INTO devices (id, room_id, name, token, joined_at, last_seen, replaced_from) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    'INSERT INTO devices (id, room_id, name, token, joined_at, last_seen, replaced_from, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
   ),
   deleteDevice: db.prepare('DELETE FROM devices WHERE id = ?'),
+  devicesOfUser: db.prepare('SELECT * FROM devices WHERE room_id = ? AND user_id = ?'),
   seenDevice: db.prepare('UPDATE devices SET last_seen = ? WHERE id = ?'),
+  upsertMember: db.prepare(
+    'INSERT INTO room_members (room_id, device_id, user_id, joined_at) VALUES (?, ?, ?, ?) ' +
+      'ON CONFLICT(room_id, device_id) DO UPDATE SET user_id = excluded.user_id'
+  ),
+  attachDevice: db.prepare('UPDATE devices SET user_id = ? WHERE id = ?'),
+  memberRow: db.prepare('SELECT * FROM room_members WHERE room_id = ? AND device_id = ?'),
+  delMember: db.prepare('DELETE FROM room_members WHERE room_id = ? AND device_id = ?'),
+  delMemberUser: db.prepare('DELETE FROM room_members WHERE room_id = ? AND user_id = ?'),
+  setRead: db.prepare('UPDATE room_members SET last_read_id = ? WHERE room_id = ? AND device_id = ?'),
+  countAfter: db.prepare('SELECT COUNT(*) AS c FROM messages WHERE room_id = ? AND created_at > ?'),
   insertMessage: db.prepare(
-    'INSERT INTO messages (id, room_id, device_id, device_name, kind, text, media_id, created_at, client_id, mentions, reply) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    'INSERT INTO messages (id, room_id, device_id, device_name, kind, text, media_id, created_at, client_id, mentions, reply, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ),
   messagesAfter: db.prepare(
     'SELECT * FROM messages WHERE room_id = ? AND created_at > ? ORDER BY created_at ASC LIMIT ?'
@@ -859,6 +893,7 @@ function publicDevice(d, onlineSet) {
   return {
     id: d.id,
     name: d.name,
+    userId: d.user_id || null,
     joinedAt: d.joined_at,
     lastSeen: d.last_seen,
     replacedFrom: d.replaced_from || null,
@@ -898,6 +933,7 @@ function publicMessage(m) {
     thumb: m.media_id ? mediaThumb(m.media_id) : null,
     deviceId: m.device_id,
     deviceName: m.device_name || '',
+    userId: m.user_id || null,
     clientId: m.client_id || null,
     mentions,
     reply,
@@ -972,16 +1008,19 @@ async function handleCreate(req, res, body) {
   const data = readJson(body);
   const deviceName = String(data.deviceName || '').trim().slice(0, 40) || '未命名设备';
   const deviceId = String(data.deviceId || '').trim() || rid(8);
+  const u = softUser(req);
+  const uid = u ? u.id : null;
 
   const code = uniqueCode();
   const roomId = rid(8);
   const token = rid(16);
   const t = now();
   q.insertRoom.run(roomId, code, deviceName, data.note ? String(data.note).slice(0, 80) : null, t, t);
-  q.insertDevice.run(deviceId, roomId, deviceName, hash(token), t, t, null);
-  log('room created', roomId, code, deviceName);
+  q.insertDevice.run(deviceId, roomId, deviceName, hash(token), t, t, null, uid);
+  q.upsertMember.run(roomId, deviceId, uid, t);
+  log('room created', roomId, code, deviceName, uid ? 'user=' + uid : 'anon');
 
-  ok(res, { code, roomId, deviceId, token, deviceName, members: rosterOf(roomId) });
+  ok(res, { code, roomId, deviceId, token, deviceName, userId: uid, members: rosterOf(roomId) });
 }
 
 async function handleJoin(req, res, body) {
@@ -990,6 +1029,8 @@ async function handleJoin(req, res, body) {
   const deviceName = String(data.deviceName || '').trim().slice(0, 40) || '未命名设备';
   let deviceId = String(data.deviceId || '').trim() || rid(8);
   const replace = !!data.replace;
+  const u = softUser(req);
+  const uid = u ? u.id : null;
 
   if (code.length !== CODE_LEN) return fail(res, 'bad_code', '匹配码是 12 位，请检查后重试');
   const room = q.roomByCode.get(code);
@@ -1025,10 +1066,11 @@ async function handleJoin(req, res, body) {
   if (old && old.room_id !== room.id) deviceId = rid(8); // 本地 id 属于别的房间，换新 id
   if (q.memberById.get(deviceId)) q.deleteDevice.run(deviceId);
 
-  q.insertDevice.run(deviceId, room.id, deviceName, hash(token), t, t, replacedFrom);
+  q.insertDevice.run(deviceId, room.id, deviceName, hash(token), t, t, replacedFrom, uid);
+  q.upsertMember.run(room.id, deviceId, uid, t);
   q.touchRoom.run(t, room.id);
 
-  ok(res, { code: room.code, roomId: room.id, deviceId, token, deviceName, members: rosterOf(room.id) });
+  ok(res, { code: room.code, roomId: room.id, deviceId, token, deviceName, userId: uid, members: rosterOf(room.id) });
   broadcast(room.id, 'members', { members: rosterOf(room.id) });
   presence(room.id);
 }
@@ -1042,7 +1084,7 @@ async function handleRoomInfo(req, res, roomId, url) {
   for (const v of q.votesOpen.all(roomId)) settleVote(v);
   ok(res, {
     room: publicRoom(room),
-    me: { id: me.id, name: me.name },
+    me: { id: me.id, name: me.name, userId: me.user_id || null },
     members: rosterOf(roomId),
     stickers: stickersOf(roomId),
     votes: votesOf(roomId, me.id)
@@ -1146,11 +1188,16 @@ async function handleSend(req, res, roomId, body) {
   }
   if (mediaId && !q.mediaById.get(mediaId)) return fail(res, 'no_media', '图片不存在');
 
-  // @提醒 / 拍一拍的目标：必须是这个房间里的设备
+  // @提醒 / 拍一拍的目标：房里的人。匿名设备用设备 id，登录的人用 "u:<userId>"
   const members = q.members.all(roomId);
+  const personTokens = new Set();
+  for (const d of members) {
+    personTokens.add(d.id);
+    if (d.user_id) personTokens.add('u:' + d.user_id);
+  }
   const wanted = Array.isArray(data.mentions) ? data.mentions : [];
-  const mentions = [...new Set(wanted.map((x) => String(x)))].filter((id) =>
-    members.some((d) => d.id === id)
+  const mentions = [...new Set(wanted.map((x) => String(x).slice(0, 64)))].filter((tok) =>
+    personTokens.has(tok)
   );
   if (kind === 'nudge' && !mentions.length) return fail(res, 'no_target', '没有指定要拍谁');
   if (kind === 'nudge' && mentions.length > 1) mentions.length = 1;
@@ -1185,7 +1232,8 @@ async function handleSend(req, res, roomId, body) {
     t,
     clientId,
     mentions.length ? JSON.stringify(mentions) : null,
-    replyJson
+    replyJson,
+    device.user_id || null
   );
   q.touchRoom.run(t, roomId);
   q.seenDevice.run(t, device.id);
@@ -1201,6 +1249,7 @@ async function handleLeave(req, res, roomId, body) {
   const device = authDevice(roomId, data.deviceId, data.token);
   if (!device) return fail(res, 'unauthorized', '身份校验失败', 403);
   q.deleteDevice.run(device.id);
+  q.delMember.run(roomId, device.id);
   disconnectDevice(roomId, device.id, '已退出这个群');
   ok(res, { members: rosterOf(roomId) });
   broadcast(roomId, 'members', { members: rosterOf(roomId) });
@@ -1245,11 +1294,38 @@ function publicRoom(room) {
   };
 }
 
-/** 投票的票数：只有「除被踢者以外」的成员有资格投 */
+/**
+ * 把设备归并成「人」：同一账号的多台设备算一个人（key = 'u:<uid>'），
+ * 匿名设备各自算一个人（key = device id）。投票 / @ / 拍一拍都用这个 key。
+ */
+function peopleOf(roomId) {
+  const map = new Map();
+  for (const d of q.members.all(roomId)) {
+    const key = d.user_id ? 'u:' + d.user_id : d.id;
+    let p = map.get(key);
+    if (!p) {
+      p = { key, userId: d.user_id || null, name: d.name, deviceIds: [], online: false };
+      map.set(key, p);
+    }
+    p.deviceIds.push(d.id);
+    if (!p.name || (p.userId && d.name)) p.name = d.name;
+  }
+  const online = onlineOf(roomId);
+  for (const p of map.values()) p.online = p.deviceIds.some((id) => online.has(id));
+  return [...map.values()];
+}
+
+function personKeyOf(roomId, deviceId) {
+  const d = q.memberById.get(String(deviceId || ''));
+  if (!d || d.room_id !== roomId) return null;
+  return d.user_id ? 'u:' + d.user_id : d.id;
+}
+
+/** 投票的票数：只有「除被踢者这个人以外」的人在册，一人一票 */
 function tallyVote(v) {
-  const members = q.members.all(v.room_id);
-  const eligible = members.filter((d) => d.id !== v.target_id);
-  const ballots = q.voteBallots.all(v.id).filter((b) => eligible.some((d) => d.id === b.device_id));
+  const people = peopleOf(v.room_id);
+  const eligible = people.filter((p) => p.key !== v.target_id);
+  const ballots = q.voteBallots.all(v.id).filter((b) => eligible.some((p) => p.key === b.device_id));
   const yes = ballots.filter((b) => b.yes).length;
   return {
     eligible,
@@ -1263,7 +1339,8 @@ function tallyVote(v) {
 
 function publicVote(v, viewerId) {
   const t = tallyVote(v);
-  const mine = viewerId ? q.myBallot.get(v.id, viewerId) : null;
+  const myKey = viewerId ? personKeyOf(v.room_id, viewerId) : null;
+  const mine = myKey ? q.myBallot.get(v.id, myKey) : null;
   return {
     id: v.id,
     kind: v.kind,
@@ -1278,7 +1355,14 @@ function publicVote(v, viewerId) {
     need: t.need,
     eligible: t.eligible.length,
     mine: mine ? !!mine.yes : null,
-    voters: t.ballots.map((b) => ({ deviceId: b.device_id, yes: !!b.yes }))
+    voters: t.ballots.map((b) => ({ deviceId: b.device_id, yes: !!b.yes })),
+    people: peopleOf(v.room_id).map((p) => ({
+      key: p.key,
+      userId: p.userId,
+      name: p.name,
+      devices: p.deviceIds.length,
+      online: p.online
+    }))
   };
 }
 
@@ -1296,11 +1380,22 @@ function settleVote(v) {
   const t = tallyVote(v);
   if (t.yes >= t.need && t.eligible.length > 0) {
     q.closeVote.run('passed', v.id);
-    const target = q.memberById.get(v.target_id);
-    if (target && target.room_id === v.room_id) {
-      q.deleteDevice.run(target.id);
-      log('vote passed, kicked', v.room_id, target.name, target.id, t.yes + '/' + t.need);
-      disconnectDevice(v.room_id, target.id, '被群成员投票移出');
+    // 被投的是「一个人」：账号就把这个账号在这个频道的所有设备都清掉
+    const kicked = [];
+    if (String(v.target_id).startsWith('u:')) {
+      const uid = String(v.target_id).slice(2);
+      for (const d of q.devicesOfUser.all(v.room_id, uid)) kicked.push(d);
+    } else {
+      const d = q.memberById.get(v.target_id);
+      if (d && d.room_id === v.room_id) kicked.push(d);
+    }
+    if (kicked.length) {
+      for (const d of kicked) {
+        q.deleteDevice.run(d.id);
+        q.delMember.run(v.room_id, d.id);
+        disconnectDevice(v.room_id, d.id, '被群成员投票移出');
+      }
+      log('vote passed, kicked', v.room_id, kicked.map((d) => d.name).join(','), t.yes + '/' + t.need);
       broadcast(v.room_id, 'members', { members: rosterOf(v.room_id) });
       if (!q.members.all(v.room_id).length) {
         purgeRoom(db, { mediaDir: MEDIA_DIR, roomId: v.room_id, log });
@@ -1332,15 +1427,17 @@ async function handleVoteStart(req, res, roomId, body) {
   const data = readJson(body);
   const me = authDevice(roomId, data.deviceId, data.token);
   if (!me) return fail(res, 'unauthorized', '身份校验失败', 403);
-  const targetId = String(data.target || '');
-  const target = q.memberById.get(targetId);
-  if (!target || target.room_id !== roomId) return fail(res, 'no_target', '这个人不在这个频道里', 404);
-  if (target.id === me.id) return fail(res, 'self', '不能投票踢自己，直接「退出频道」就行');
+  const targetKey = String(data.target || '').slice(0, 64);
+  const people = peopleOf(roomId);
+  const target = people.find((p) => p.key === targetKey);
+  if (!target) return fail(res, 'no_target', '这个人不在这个频道里', 404);
+  const myKey = personKeyOf(roomId, me.id);
+  if (target.key === myKey) return fail(res, 'self', '不能投票踢自己，直接「退出频道」就行');
   // 只有两个人时不投票：这种情况下「过半」没有意义，退群请直接走「退出频道」
-  if (q.members.all(roomId).length <= 2) {
+  if (people.length <= 2) {
     return fail(res, 'too_few', '频道里只有两个人，不用投票，直接退出就行');
   }
-  const running = q.votesOpen.all(roomId).find((v) => v.target_id === target.id);
+  const running = q.votesOpen.all(roomId).find((v) => v.target_id === target.key);
   if (running) return ok(res, { vote: publicVote(running, me.id), duplicated: true });
 
   const t = now();
@@ -1348,7 +1445,7 @@ async function handleVoteStart(req, res, roomId, body) {
     id: rid(8),
     room_id: roomId,
     kind: 'kick',
-    target_id: target.id,
+    target_id: target.key,
     target_name: target.name,
     started_by: me.name,
     started_at: t,
@@ -1371,11 +1468,57 @@ async function handleVoteBallot(req, res, roomId, voteId, body) {
   const v = q.voteById.get(voteId);
   if (!v || v.room_id !== roomId) return fail(res, 'no_vote', '没有这个投票', 404);
   if (v.status !== 'open') return fail(res, 'closed', '这个投票已经结束了', 409);
-  if (v.target_id === me.id) return fail(res, 'self', '被投票的人不能投票');
-  q.putBallot.run(v.id, me.id, data.yes ? 1 : 0, now());
+  const myKey = personKeyOf(roomId, me.id);
+  if (v.target_id === myKey) return fail(res, 'self', '被投票的人不能投票');
+  q.putBallot.run(v.id, myKey, data.yes ? 1 : 0, now());
   const settled = settleVote(q.voteById.get(v.id));
   broadcast(roomId, 'votes', { votes: q.votesOpen.all(roomId).map((x) => publicVote(x, null)) });
   ok(res, { vote: publicVote(settled, me.id), votes: votesOf(roomId, me.id) });
+}
+
+/* ------------------------------------------------- 已读位置（按人） */
+
+function unreadOf(roomId, deviceId) {
+  const row = q.memberRow.get(roomId, deviceId);
+  const lastId = row && row.last_read_id ? row.last_read_id : '';
+  if (!lastId) return { lastReadId: null, unread: q.countAfter.get(roomId, 0).c };
+  const m = q.messageById.get(lastId);
+  if (!m) return { lastReadId: lastId, unread: q.countAfter.get(roomId, 0).c };
+  return { lastReadId: lastId, unread: q.countAfter.get(roomId, m.created_at).c };
+}
+
+async function handleReadState(req, res, roomId, url) {
+  const room = q.roomById.get(roomId);
+  if (!room) return fail(res, 'no_room', '房间不存在', 404);
+  const me = authDevice(roomId, url.searchParams.get('device'), url.searchParams.get('token'));
+  if (!me) return fail(res, 'unauthorized', '身份校验失败', 403);
+  ok(res, unreadOf(roomId, me.id));
+}
+
+async function handleReadMark(req, res, roomId, body) {
+  const room = q.roomById.get(roomId);
+  if (!room) return fail(res, 'no_room', '房间不存在', 404);
+  const data = readJson(body);
+  const me = authDevice(roomId, data.deviceId, data.token);
+  if (!me) return fail(res, 'unauthorized', '身份校验失败', 403);
+
+  let mid = String(data.messageId || '').slice(0, 40);
+  if (!mid) {
+    // 不指定就用「这个频道最新的一条」，等价于「我都看过了」
+    const latest = q.messagesLatest.all(roomId, 1)[0];
+    mid = latest ? latest.id : '';
+  }
+  if (mid) {
+    const m = q.messageById.get(mid);
+    if (!m || m.room_id !== roomId) return fail(res, 'no_message', '这条消息不在这个频道里', 404);
+    q.upsertMember.run(roomId, me.id, me.user_id || null, now());
+    q.setRead.run(mid, roomId, me.id);
+  }
+  // 同一个人的其它设备也要把红点清掉（匿名设备没有 user_id，只有自己）
+  if (me.user_id) {
+    broadcast(roomId, 'read', { userId: me.user_id, deviceId: me.id, messageId: mid || null }, me.id);
+  }
+  ok(res, { lastReadId: mid || null, unread: 0 });
 }
 
 /** 每 10 分钟扫一次：到了解散时间的频道，连图片/表情一起清掉 */
@@ -1877,8 +2020,25 @@ function bearerOf(req) {
   return String(req.headers['x-island-session'] || '').trim();
 }
 
-function requireUser(req, res) {
-  const raw = bearerOf(req);
+/**
+ * 软身份：带了合法 token 就返回账号，没带或过期返回 null。
+ * 频道接口用它给设备/消息打上「这是谁」，匿名设备照旧能用。
+ */
+function softUser(req) {
+  try {
+    const raw = bearerOf(req);
+    if (!raw) return null;
+    const s = q.sessionByHash.get(hash(raw));
+    if (!s || s.revoked_at || s.expires_at < now()) return null;
+    const u = q.userById.get(s.user_id);
+    if (!u || u.deleted_at) return null;
+    return u;
+  } catch {
+    return null;
+  }
+}
+
+function requireUser(req, res) {  const raw = bearerOf(req);
   if (!raw) {
     fail(res, 'unauthorized', '请先登录', 401);
     return null;
@@ -2067,6 +2227,25 @@ async function handleRoomClaim(req, res) {
   if (!r.changes) return fail(res, 'taken', '这个频道已经被别的账号认领了', 409);
   log('[claim] room', room.code, '->', ctx.user.username);
   return ok(res, { claimed: true, already: false, room: { id: room.id, code: room.code } });
+}
+
+// 认领旧设备（M5 补丁）：登录前就加进来的频道，把本机设备挂到账号上，
+// 这样成员列表、投票、已读才按「人」算。
+async function handleRoomAttach(req, res, roomId) {
+  const ctx = requireUser(req, res);
+  if (!ctx) return;
+  const b = readJson(await readBody(req));
+  const d = authDevice(roomId, String(b.deviceId || ''), String(b.token || ''));
+  if (!d) return fail(res, 'bad_device', '这台设备不在这个频道里了', 403);
+  if (d.user_id && d.user_id !== ctx.user.id) {
+    return fail(res, 'taken', '这台设备已经绑在别的账号上了', 409);
+  }
+  if (d.user_id === ctx.user.id) return ok(res, { attached: false, already: true });
+  q.attachDevice.run(ctx.user.id, d.id);
+  q.upsertMember.run(roomId, d.id, ctx.user.id, d.joined_at || now());
+  log('[attach] device', d.id, '->', ctx.user.username, 'room', roomId);
+  broadcast(roomId, 'members', { members: rosterOf(roomId) });
+  return ok(res, { attached: true, already: false });
 }
 
 // 我的频道（M5 第一刀）：登录后客户端拿这份列表把别的设备上的频道自动加回来
@@ -2375,6 +2554,10 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && p === '/api/rooms/claim') return await handleRoomClaim(req, res);
     if (req.method === 'GET' && p === '/api/me/rooms') return handleMyRooms(req, res);
     if (req.method === 'GET' && p === '/api/rooms/owner') return handleRoomOwner(req, res, url);
+    {
+      const at = p.match(/^\/api\/rooms\/([A-Za-z0-9_]+)\/attach$/);
+      if (at && req.method === 'POST') return await handleRoomAttach(req, res, at[1]);
+    }
 
     // 亲密好友（绑定）与事项分享（M6）
     if (req.method === 'GET' && p === '/api/bindings') return handleBindings(req, res);
@@ -2417,6 +2600,13 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === 'POST' && (m = p.match(/^\/api\/rooms\/([a-f0-9]+)\/leave$/)))
       return await handleLeave(req, res, m[1], await readBody(req));
+
+    // 已读位置：按人存一条，多端同步
+    if (req.method === 'GET' && (m = p.match(/^\/api\/rooms\/([a-f0-9]+)\/read$/)))
+      return await handleReadState(req, res, m[1], url);
+
+    if (req.method === 'POST' && (m = p.match(/^\/api\/rooms\/([a-f0-9]+)\/read$/)))
+      return await handleReadMark(req, res, m[1], await readBody(req));
 
     // 投票踢人
     if (req.method === 'GET' && (m = p.match(/^\/api\/rooms\/([a-f0-9]+)\/votes$/)))

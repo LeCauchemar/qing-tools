@@ -1,3 +1,9 @@
+## 2026-11-14 13:20 · 1.14.0 · DeepSeekRuntime
+- 改了什么：M5 的后半段——`room_members` 双身份、`messages.user_id`、投票/@/拍一拍按人归并、已读按人同步；服务端 `softUser()`/`peopleOf()`，客户端 `chatFetch` 自动带 Authorization、成员列表按人合并、`chatMarkRead()`。
+- 为什么：用户要求「群组跟着账号走」，换电脑、开两台设备都要是同一个人。
+- 怎么验证：`tools/test-m5.mjs` 29/29 通过（身份、@、拍一拍、同人两机一票、踢人整号移出、已读增减）；dev 探针 `tools/m5-probe.js` 确认成员合并成「M5-主机（2 台）」、消息带 userId、已读归零。
+- 下一步 / 已知问题：旧的消息没有 `user_id`（历史数据只按设备显示）；客户端退出登录后仍在该频道的设备，key 会退化成 deviceId，投票口径会短暂不一致。
+
 ## 2026-11-14 12:35 · 1.13.0 · DeepSeekRuntime
 
 - 改了什么：M6 亲密好友与事项分享——服务端 bindings/shares 接口，客户端设置页好友列表（申请/同意/拒绝/解除）、Qing 事项行上的小飞机 + `#sharePop`、「咻」飞行小动画、收到时的粉色粒子散射 + 通知条 + 自动落本地事项。

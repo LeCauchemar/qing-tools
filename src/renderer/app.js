@@ -112,7 +112,7 @@ const S = {
   selText: '',
   chat: { rooms: [], active: 0, adding: false, busy: false, err: '', mentions: new Map(), pending: [], reply: null, height: 0 },
   timers: [], // [{ id, label, end, dur }]
-  account: { signedIn: false, user: null, sessions: [], busy: false, msg: '', roomsClaimed: false, friends: [], requests: [], outgoing: [] }, // 账号（1.11.0 / M6）
+  account: { signedIn: false, user: null, sessions: [], busy: false, msg: '', roomsClaimed: false, friends: [], requests: [], outgoing: [], userToken: '' }, // 账号（1.11.0 / M6）
 };
 
 const el = {
@@ -1663,11 +1663,20 @@ function accPaint() {
   }
 }
 
+async function loadAccountToken() {
+  try {
+    S.account.userToken = (api.account && api.account.token ? await api.account.token() : '') || '';
+  } catch {
+    S.account.userToken = '';
+  }
+}
+
 async function accLoadStatus() {
   try {
     const st = await api.account.status();
     S.account.signedIn = !!(st && st.signedIn);
     S.account.user = (st && st.user) || null;
+    await loadAccountToken();
     if (S.account.signedIn) await accFetchSessions();
   } catch (_) {
     S.account.signedIn = false;
@@ -1676,6 +1685,7 @@ async function accLoadStatus() {
   await accLoadClaim();
   await accLoadFriends();
   await claimLocalRooms();
+  await bindRoomsToAccount();
   await syncAccountRooms();
   if (S.account.signedIn) pollShares();
 }
@@ -1756,6 +1766,38 @@ async function claimLocalRooms() {
   if (claimed) {
     toast(claimed + ' 个频道已归到这个账号');
     chatRenderRooms();
+  }
+}
+
+// M5 补丁：登录前就加入过的频道，把这台设备挂到账号上，成员/投票/已读才按「人」算
+async function bindRoomsToAccount() {
+  if (!S.account.signedIn) return;
+  const rooms = (S.chat && Array.isArray(S.chat.rooms) && S.chat.rooms) || [];
+  let attached = 0;
+  for (const r of rooms) {
+    if (!r || !r.roomId || !r.deviceId || !r.token) continue;
+    if (r._accountBound) continue;
+    try {
+      const res = await api.account.attachDevice(r.roomId, r.deviceId, r.token);
+      if (res && res.ok) {
+        r._accountBound = true;
+        if (res.attached) attached += 1;
+      }
+    } catch (_) {}
+  }
+  if (attached) {
+    for (const r of rooms) {
+      if (!r || !r.roomId || !r._accountBound) continue;
+      try {
+        const info = await chatFetch('/api/rooms/' + encodeURIComponent(r.roomId) + '/info');
+        if (info && info.ok) {
+          r.members = info.members || r.members;
+          r.info = info.room || r.info;
+          if (typeof renderChatMembers === 'function') renderChatMembers();
+        }
+      } catch (_) {}
+    }
+    toast(attached + ' 个频道已认到账号上');
   }
 }
 
@@ -1844,11 +1886,13 @@ async function accDoLogin() {
   el.accPass.value = '';
   S.account.signedIn = true;
   S.account.user = r.user || null;
+  await loadAccountToken();
   await accFetchSessions();
   accPaint();
   await accLoadClaim();
   await accLoadFriends();
   await claimLocalRooms();
+  await bindRoomsToAccount();
   await syncAccountRooms();
   toast('已登录：' + ((r.user && (r.user.nick || r.user.username)) || username));
 }
@@ -1872,6 +1916,7 @@ async function accDoRegister() {
   await accLoadClaim();
   await accLoadFriends();
   await claimLocalRooms();
+  await bindRoomsToAccount();
   await syncAccountRooms();
 }
 
@@ -4265,6 +4310,7 @@ function chatPersist() {
 
 async function chatFetch(path, opts = {}) {
   const init = { method: opts.method || 'GET', headers: {} };
+  if (S.account && S.account.userToken) init.headers.Authorization = 'Bearer ' + S.account.userToken;
   if (opts.body !== undefined) {
     init.headers['Content-Type'] = 'application/json';
     init.body = JSON.stringify(opts.body);
@@ -4475,23 +4521,48 @@ function chatDefaultName() {
   return h || '这台电脑';
 }
 
+function myPersonKey() {
+  const s = curRoom();
+  const uid = S.account && S.account.user && S.account.user.id;
+  return uid ? 'u:' + uid : (s ? s.deviceId : '');
+}
+
+function memberKey(m) {
+  if (!m) return '';
+  return m.userId ? 'u:' + m.userId : m.id;
+}
+
 function renderChatMembers() {
   const s = curRoom();
   if (!s) return;
-  const members = s.members || [];
-  el.chatMembers.innerHTML = members
-    .map((m) => {
-      const me = m.id === s.deviceId;
-      const cls = 'member' + (me ? ' me' : '') + (m.online === false && !me ? ' off' : '');
+  // 按人归并：同一个账号的多台设备只显示一个成员，票数、@、拍一拍都按人算
+  const groups = new Map();
+  for (const m of s.members || []) {
+    const key = memberKey(m);
+    let g = groups.get(key);
+    if (!g) {
+      g = { key, name: m.name, ids: [], me: false, online: false, userId: m.userId || null };
+      groups.set(key, g);
+    }
+    g.ids.push(m.id);
+    if (m.id === s.deviceId) g.me = true;
+    if (m.online !== false) g.online = true;
+    if (!g.name && m.name) g.name = m.name;
+  }
+  el.chatMembers.innerHTML = [...groups.values()]
+    .map((g) => {
+      const me = g.me;
+      const label = g.ids.length > 1 ? g.name + '（' + g.ids.length + ' 台）' : g.name;
+      const cls = 'member' + (me ? ' me' : '') + (g.online === false && !me ? ' off' : '');
       const kick = me
         ? ''
-        : '<button class="member-kick" data-act="chat-kick" data-dev="' + esc(m.id) + '" title="投票把 ' +
-          esc(m.name) + ' 移出频道"><svg class="ic"><use href="#i-scale" /></svg></button>';
+        : '<button class="member-kick" data-act="chat-kick" data-dev="' + esc(g.key) + '" title="投票把 ' +
+          esc(g.name) + ' 移出频道"><svg class="ic"><use href="#i-scale" /></svg></button>';
       return (
-        '<span class="' + cls + '" data-dev="' + esc(m.id) + '" title="' +
-        esc(m.name) + (m.online === false && !me ? ' · 离线' : ' · 在线') + (me ? '' : ' · 双击拍一拍') + '">' +
-        '<i class="av" style="background:' + colorOf(m.name) + '">' + esc(initialOf(m.name, '')) + '</i>' +
-        '<span>' + esc(m.name) + (me ? '（我）' : '') + '</span>' +
+        '<span class="' + cls + '" data-dev="' + esc(g.key) + '" title="' +
+        esc(g.name) + (g.online === false && !me ? ' · 离线' : ' · 在线') + (me ? '' : ' · 双击拍一拍') + '">' +
+        '<i class="av" style="background:' + colorOf(g.name) + '">' + esc(initialOf(g.name, '')) + '</i>' +
+        '<span>' + esc(label) + (me ? '（我）' : '') + '</span>' +
         '<i class="live"></i>' + kick + '</span>'
       );
     })
@@ -4514,7 +4585,7 @@ function renderChatVotes() {
   el.chatVotes.classList.remove('hidden');
   el.chatVotes.innerHTML = list
     .map((v) => {
-      const target = v.targetId === s.deviceId;
+      const target = v.targetId === myPersonKey();
       const left = v.closesAt ? Math.max(0, Math.ceil((v.closesAt - Date.now()) / 60000)) : 0;
       return (
         '<div class="vote-row" data-vote="' + esc(v.id) + '">' +
@@ -4536,7 +4607,7 @@ function renderChatVotes() {
 async function chatVoteStart(targetId) {
   const s = curRoom();
   if (!s) return;
-  if (targetId === s.deviceId) return toast('不能投票踢自己，直接点右上角 ✕ 退出就行');
+  if (targetId === myPersonKey()) return toast('不能投票踢自己，直接点右上角 ✕ 退出就行');
   const r = await chatFetch('/api/rooms/' + encodeURIComponent(s.roomId) + '/votes', {
     method: 'POST',
     body: { deviceId: s.deviceId, token: s.token, target: targetId }
@@ -4907,7 +4978,9 @@ function chatPeekFor(room, m) {
   const idx = S.chat.rooms.indexOf(room);
   const group = roomName(room);
   const who = m.deviceName || '有人';
-  const atMe = Array.isArray(m.mentions) && m.mentions.includes(room.deviceId);
+  const myKeys = [room.deviceId];
+  if (S.account && S.account.user && S.account.user.id) myKeys.push('u:' + S.account.user.id);
+  const atMe = Array.isArray(m.mentions) && m.mentions.some((k) => myKeys.includes(k));
   const title = group + ' · ' + who + (atMe ? ' @了你' : '');
   const base = { icon: '#i-chat', time: fmtTime(m.at), room: idx, rainbow: atMe };
   if (m.kind === 'image') {
@@ -4967,6 +5040,7 @@ function chatPushMessage(room, m, silent) {
   if (room === curRoom() && S.tab === 'chat') {
     renderChatMsgs();
     chatScrollToEnd();
+    if (active) chatMarkRead(room);
   }
   return list.length - 1;
 }
@@ -5158,6 +5232,20 @@ function chatConnect(room) {
     }
     sync();
   });
+  es.addEventListener('read', (e) => {
+    if (!alive()) return;
+    try {
+      const d = JSON.parse(e.data || '{}');
+      const uid = S.account && S.account.user && S.account.user.id;
+      if (d && uid && d.userId === uid && d.deviceId !== room.deviceId) {
+        room.unread = 0;
+        chatRenderRooms();
+        renderBadges();
+      }
+    } catch {
+      /* 忽略 */
+    }
+  });
   es.addEventListener('message', (e) => {
     if (!alive()) return;
     try {
@@ -5191,6 +5279,20 @@ function chatConnect(room) {
   };
 }
 
+async function chatMarkRead(room) {
+  const r = room || curRoom();
+  if (!r || !r.messages || !r.messages.length) return;
+  const last = r.messages[r.messages.length - 1];
+  if (!last || !last.id || String(last.id).startsWith('c')) return;
+  if (r.lastReadId === last.id) return;
+  r.lastReadId = last.id;
+  const res = await chatFetch('/api/rooms/' + encodeURIComponent(r.roomId) + '/read', {
+    method: 'POST',
+    body: { deviceId: r.deviceId, token: r.token, messageId: last.id }
+  }).catch(() => null);
+  if (res && res.ok && res.data && res.data.lastReadId) r.lastReadId = res.data.lastReadId;
+}
+
 async function chatLoadHistory(room) {
   const r = room || curRoom();
   if (!r) return;
@@ -5203,6 +5305,7 @@ async function chatLoadHistory(room) {
   if (r === curRoom() && S.tab === 'chat') {
     renderChatMsgs();
     chatScrollToEnd(true);
+    chatMarkRead(r);
   }
   chatRenderRooms();
 }
@@ -5463,7 +5566,9 @@ function addMention(name, id) {
   } else {
     inp.value = v + (v && !/\s$/.test(v) ? ' ' : '') + ins;
   }
-  S.chat.mentions.set(id, id);
+  const s0 = curRoom();
+  const mm = s0 ? (s0.members || []).find((x) => x.id === id || (x.userId && 'u:' + x.userId === id)) : null;
+  S.chat.mentions.set(mm ? memberKey(mm) : id, mm ? memberKey(mm) : id);
   renderMentionTags();
   inp.focus();
   const end = inp.value.length;

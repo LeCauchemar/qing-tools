@@ -15,9 +15,9 @@
 ## 官网与下载
 
 - 官网：<https://qingtools.ccyyqq.com/>（源码在 `site/`，静态站，`deploy\site.ps1` 一键部署）
-- 开发记录：<https://qingtools.ccyyqq.com/changelog.html>（从 1.0 到 1.13.0 的过程，源码 `site/changelog.html`；纯文本版在仓库根 `CHANGELOG.md`）
-- 下载（又拍云 CDN，官网按钮指向这里）：<https://qing.ccyyqq.com/island/update/QingTools-1.13.0-setup.exe>（便携版同名 `-portable.exe`）
-- 备用镜像（本站 nginx `/download/`）：<https://qingtools.ccyyqq.com/download/QingTools-1.13.0-setup.exe>
+- 开发记录：<https://qingtools.ccyyqq.com/changelog.html>（从 1.0 到 1.14.0 的过程，源码 `site/changelog.html`；纯文本版在仓库根 `CHANGELOG.md`）
+- 下载（又拍云 CDN，官网按钮指向这里）：<https://qing.ccyyqq.com/island/update/QingTools-1.14.0-setup.exe>（便携版同名 `-portable.exe`）
+- 备用镜像（本站 nginx `/download/`）：<https://qingtools.ccyyqq.com/download/QingTools-1.14.0-setup.exe>
 - 服务器下载页：<https://chat.ccyyqq.com/island/get>（短链 `chat.ccyyqq.com/get`、`/dl`）
 
 ## 功能

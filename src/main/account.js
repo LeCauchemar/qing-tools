@@ -100,6 +100,12 @@ class Account {
     };
   }
 
+  /** 只给渲染层用来给频道接口带 Authorization：M5 的「频道跟着账号走」靠它认人。
+   *  注意不能叫 token()：实例上 this.token 就是那串 token，会把方法覆盖掉。 */
+  rawToken() {
+    return this.signedIn ? this.token : '';
+  }
+
   deviceName() {
     let host = '';
     try {
@@ -190,6 +196,13 @@ class Account {
   /** 这个账号名下的频道列表（M5：换台电脑登录，频道能自己回来） */
   myRooms() {
     return this._call('GET', '/api/me/rooms');
+  }
+
+  /** 把「登录前就加入的这台设备」挂到账号上（M5：老频道也能按人算） */
+  attachDevice(roomId, deviceId, token) {
+    return this._call('POST', '/api/rooms/' + encodeURIComponent(roomId) + '/attach', {
+      body: { deviceId: String(deviceId || ''), token: String(token || '') }
+    });
   }
 
   /** 亲密好友（M6）：列表 / 申请 / 同意 / 拒绝 / 解除 */
@@ -287,6 +300,7 @@ function registerAccountIpc(ipcMain, hooks = {}) {
       }
     };
   ipcMain.handle('account:status', () => a.status());
+  ipcMain.handle('account:token', () => a.rawToken());
   ipcMain.handle('account:check', wrap((p) => a.check(p.username)));
   ipcMain.handle(
     'account:register',
@@ -320,6 +334,10 @@ function registerAccountIpc(ipcMain, hooks = {}) {
   ipcMain.handle('account:revokeSession', wrap((p) => a.revokeSession(p.id)));
   ipcMain.handle('account:claimRoom', wrap((p) => a.claimRoom(p && p.code)));
   ipcMain.handle('account:myRooms', wrap(() => a.myRooms()));
+  ipcMain.handle(
+    'account:attachDevice',
+    wrap((p) => a.attachDevice(p && p.roomId, p && p.deviceId, p && p.token))
+  );
   ipcMain.handle('account:bindings', wrap(() => a.bindings()));
   ipcMain.handle('account:bind', wrap((p) => a.bind(p && p.username)));
   ipcMain.handle('account:bindingAct', wrap((p) => a.bindingAct(p && p.id, p && p.act)));

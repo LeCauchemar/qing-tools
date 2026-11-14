@@ -59,6 +59,7 @@ contextBridge.exposeInMainWorld('island', {
 
   account: {
     status: () => invoke('account:status'),
+    token: () => invoke('account:token'),
     check: (username) => invoke('account:check', { username }),
     register: (payload) => invoke('account:register', payload),
     login: (payload) => invoke('account:login', payload),
@@ -67,6 +68,8 @@ contextBridge.exposeInMainWorld('island', {
     revokeSession: (id) => invoke('account:revokeSession', { id }),
     claimRoom: (code) => invoke('account:claimRoom', { code }),
     myRooms: () => invoke('account:myRooms'),
+    attachDevice: (roomId, deviceId, token) =>
+      invoke('account:attachDevice', { roomId, deviceId, token }),
     // M6：亲密好友 + 事项分享
     bindings: () => invoke('account:bindings'),
     bind: (username) => invoke('account:bind', { username }),

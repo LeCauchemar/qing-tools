@@ -48,6 +48,7 @@ export async function purgeRoom(db, { mediaDir, roomId, log = () => {} }) {
   db.prepare('DELETE FROM stickers WHERE room_id = ?').run(roomId);
   db.prepare('DELETE FROM media WHERE room_id = ?').run(roomId);
   db.prepare('DELETE FROM devices WHERE room_id = ?').run(roomId);
+  db.prepare('DELETE FROM room_members WHERE room_id = ?').run(roomId);
   db.prepare('DELETE FROM rooms WHERE id = ?').run(roomId);
 
   const out = { roomId, ...before, media: mediaRows.length, cloud, local, missing };

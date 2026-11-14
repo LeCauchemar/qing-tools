@@ -31,7 +31,7 @@
     <button class="icon-btn" id="themeBtn" title="切换明暗" aria-label="切换明暗">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path class="sun" d="M12 4v2m0 12v2m8-8h-2M6 12H4m13.7-5.7-1.4 1.4M7.7 16.3l-1.4 1.4m11.4 0-1.4-1.4M7.7 7.7 6.3 6.3"/><circle cx="12" cy="12" r="3.6"/></svg>
     </button>
-    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.15.0-setup.exe">下载</a>
+    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.15.1-setup.exe">下载</a>
   </div>
 </header>
 
@@ -41,11 +41,11 @@
     <p class="kicker">开发记录</p>
     <h1>十天，六十多个版本，<br><span class="grad">一条缝长成了一个工作台</span></h1>
     <p class="lede">
-      1.0 的时候它只会伸缩和显示未读；到 1.15.0，它替你收邮件、抽验证码、接手机短信、暂存文件、
+      1.0 的时候它只会伸缩和显示未读；到 1.15.1，它替你收邮件、抽验证码、接手机短信、暂存文件、
       在群里发一句就走。下面是中间每一步到底改了什么、为什么改。
     </p>
     <div class="cl-stats">
-      <div><b>62</b><span>个可安装版本（1.0 → 1.15.0）</span></div>
+      <div><b>63</b><span>个可安装版本（1.0 → 1.15.1）</span></div>
       <div><b>10</b><span>天（11-05 → 11-14）</span></div>
       <div><b>100 MB</b><span>安装包（砍过 21 MB）</span></div>
       <div><b>7</b><span>个页签</span></div>
@@ -412,12 +412,26 @@
         </ul>
       </div>
     </article>
+    <article class="cl-item v5">
+      <div class="cl-side"><b>1.15.1</b><span>11-14</span></div>
+      <div class="cl-main">
+        <h2>Base64 能读图片了，几 MB 的数据也不会再把界面拖成 PPT</h2>
+        <ul>
+          <li>开发小工具里「Base64」多了图片这条路：可以直接选一张图片转成 Base64，也可以把一大串 Base64 解回图片，解出来就在面板里预览。</li>
+          <li>解码前先做体检：去掉换行空格、兼容 URL 安全的 <code>-</code>/<code>_</code>、剥掉 <code>data:image/png;base64,</code> 前缀，长度不对或者混进了别的字符会直接告诉你第几个字符有问题，而不是丢一句 atob 报错。</li>
+          <li>最常见的「从聊天里复制了一半」会被认出来：开头像 PNG、但只有 20 字节时，会说「数据不完整，多半是从中间截断了」。</li>
+          <li>不再把整段结果塞进文本框：超过 2 万字符只显示前 2 万（复制拿到的仍是完整内容），单次解码上限 8 MB，图片超过 6 MB 走文件选择而不是剪贴板。</li>
+          <li>顺手的：解出来的图片可以「另存为」存到下载文件夹；直接把图片 Ctrl+V 粘进输入框，会自动走图片转 Base64。</li>
+        </ul>
+      </div>
+    </article>
+
 </section>
 
   <footer class="foot">
     <div class="foot-left">
       <span class="mark small" aria-hidden="true"><i></i><b></b></span>
-      <span>Qing Tools <span class="dim">v1.15.0</span></span>
+      <span>Qing Tools <span class="dim">v1.15.1</span></span>
     </div>
     <div class="foot-right">
       <a href="index.html">回到首页</a>

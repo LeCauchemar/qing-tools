@@ -6240,3 +6240,28 @@ canvas.hearts.on{opacity:1}
 }
 .sh-time { font-size: 10px; color: color-mix(in srgb, var(--ink) 45%, transparent); font-variant-numeric: tabular-nums; }
 .sh-empty { padding: 10px 12px; text-align: center; font-size: 11.5px; color: color-mix(in srgb, var(--ink) 50%, transparent); }
+
+/* Base64 图片预览 */
+.dv-img {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+  margin-top: 6px;
+  padding: 8px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+}
+.dv-img img {
+  max-width: 100%;
+  max-height: 150px;
+  border-radius: 8px;
+  object-fit: contain;
+  background: repeating-conic-gradient(color-mix(in srgb, var(--ink) 8%, transparent) 0 25%, transparent 0 50%) 0 0 / 12px 12px;
+}
+.dv-img-meta {
+  font-size: 11px;
+  color: color-mix(in srgb, var(--ink) 55%, transparent);
+  font-variant-numeric: tabular-nums;
+}
+.dv-out { max-height: 96px; }

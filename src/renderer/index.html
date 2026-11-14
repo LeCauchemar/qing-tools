@@ -652,11 +652,17 @@
                       <button class="dv-tab" data-dv="rand">随机</button>
                     </div>
                     <textarea class="dv-in" id="dvIn" spellcheck="false" placeholder="粘一段文字、时间戳或 JSON…"></textarea>
+                    <div class="dv-img hidden" id="dvImgWrap">
+                      <img id="dvImg" alt="预览" />
+                      <div class="dv-img-meta" id="dvImgMeta"></div>
+                    </div>
                     <div class="dv-acts" id="dvActs"></div>
                     <div class="dv-out hidden" id="dvOutWrap">
                       <textarea class="dv-out" id="dvOut" readonly spellcheck="false"></textarea>
                       <button class="mini dv-copy" data-act="dv-copy">复制</button>
+                      <button class="mini dv-save hidden" id="dvSave" data-act="dv-save">另存为</button>
                     </div>
+                    <input type="file" id="dvFile" accept="image/*" hidden />
                   </div></div>
                 </div>
 

@@ -90,6 +90,13 @@ contextBridge.exposeInMainWorld('island', {
     info: () => invoke('profile:info')
   },
 
+  // M7：事项同步
+  sync: {
+    status: () => invoke('sync:status'),
+    pull: () => invoke('sync:pull'),
+    pushAll: () => invoke('sync:pushAll')
+  },
+
   sticky: {
     open: (id) => invoke('sticky:open', id),
     unstuck: (id) => invoke('sticky:unstuck', id)

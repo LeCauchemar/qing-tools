@@ -58,6 +58,7 @@ const S = {
   mode: 'idle',
   tab: 'mail',
   screenH: 0, // 屏幕工作区高度（DIP），拖高小纸条时算上限用
+  cloudBase: '', // M7：云存储域名（cloud: 图片的地址前缀）
   pinned: false,
   pointerIn: false,
   collapseT: 0,
@@ -170,6 +171,8 @@ const el = {
   accLogout: $('#accLogout'),
   accLogoutRow: $('#accLogoutRow'),
   accLogoutBottom: $('#accLogoutBottom'),
+  syncSub: $('#syncSub'),
+  syncNow: $('#syncNow'),
   accLogoutAll: $('#accLogoutAll'),
   accDelete: $('#accDelete'),
   accCode: $('#accCode'),
@@ -1256,8 +1259,30 @@ function noteToken(file) {
   return '[[img:' + file + ']]';
 }
 
+/* 图片地址：本机的走 islandclip，云端同步过来的走 CDN（cloud:<key>） */
+function imgSrcOf(file) {
+  const f = String(file || '');
+  if (!f || f === 'undefined' || f === 'null') return '';
+  if (f.startsWith('cloud:')) {
+    const base = S.cloudBase || '';
+    return base ? base + '/' + f.slice(6) : '';
+  }
+  return 'islandclip://note/' + f;
+}
+
+async function loadCloudBase() {
+  if (S.cloudBase) return S.cloudBase;
+  try {
+    const r = await fetch(CHAT_API + '/api/cloud');
+    const d = await r.json();
+    if (d && d.domain) S.cloudBase = String(d.domain).replace(/\/+$/, '');
+  } catch (_) {}
+  return S.cloudBase || '';
+}
+
 function noteImgTag(file) {
-  const url = 'islandclip://note/' + file;
+  const url = imgSrcOf(file);
+  if (!url) return '';
   return '<img class="note-img" src="' + esc(url) + '" data-img="' + esc(url) + '" alt="图片" draggable="false">';
 }
 
@@ -1308,7 +1333,8 @@ function noteThumbItems(text) {
   });
   return files
     .map((f) => {
-      const url = 'islandclip://note/' + f;
+      const url = imgSrcOf(f);
+      if (!url) return '';
       return '<img class="note-thumb" src="' + esc(url) + '" data-img="' + esc(url) + '" alt="图片" draggable="false">';
     })
     .join('');
@@ -1316,7 +1342,7 @@ function noteThumbItems(text) {
 
 /* ---- 编辑态：contenteditable 富文本（图片就在文字中间，像 iPhone 备忘录） ---- */
 function noteRichImg(f, cls) {
-  const url = 'islandclip://note/' + f;
+  const url = imgSrcOf(f);
   return (
     '<img class="' + (cls || 'note-pic') + '" src="' + esc(url) + '" data-file="' + esc(f) +
     '" data-img="' + esc(url) + '" alt="图片" contenteditable="false" draggable="false">'
@@ -1471,6 +1497,9 @@ function renderNotes() {
             : '') +
           '<div class="row-main">' +
           (n.pinned ? '<div class="row-sub"><span class="tag stuck">已钉在桌面</span></div>' : '') +
+          (n.origin && n.origin.conflict
+            ? '<div class="row-sub"><span class="tag conflict">另一台设备改过的版本</span></div>'
+            : '') +
           (editing
             ? '<div class="note-rich" contenteditable="true" data-id="' + n.id +
               '" spellcheck="false" role="textbox" aria-multiline="true">' + noteRichHtml(n.text) + '</div>' +
@@ -1679,6 +1708,26 @@ function accPaint() {
     el.accName.textContent = a.user.nick || a.user.username;
     el.accSub.textContent = '@' + a.user.username;
     accRenderDevices(a.sessions || []);
+  }
+  syncPaint();
+}
+
+/** M7：设置页那条「事项同步」状态 */
+async function syncPaint() {
+  if (!el.syncSub) return;
+  if (!S.account.signedIn) {
+    el.syncSub.textContent = '还没登录';
+    return;
+  }
+  try {
+    const st = await api.sync.status();
+    const ago = st.lastPullAt ? Math.max(0, Math.round((Date.now() - st.lastPullAt) / 1000)) : -1;
+    const when = !st.lastPullAt ? '还没同步过' : ago < 60 ? ago + ' 秒前' : Math.round(ago / 60) + ' 分钟前';
+    const n = (S.data.notes || []).length;
+    el.syncSub.textContent =
+      n + ' 条事项 · ' + when + (st.dirty ? ' · ' + st.dirty + ' 条待上传' : '') + (st.lastError ? ' · ' + st.lastError : '');
+  } catch (_) {
+    el.syncSub.textContent = '同步状态未知';
   }
 }
 
@@ -2385,6 +2434,14 @@ function bindAccountUi() {
   });
   el.accLogout.addEventListener('click', () => accDoLogout(false));
   if (el.accLogoutBottom) el.accLogoutBottom.addEventListener('click', () => accDoLogout(false));
+  if (el.syncNow)
+    el.syncNow.addEventListener('click', async () => {
+      el.syncNow.disabled = true;
+      const r = await api.sync.pull();
+      el.syncNow.disabled = false;
+      toast(r && r.ok ? '已同步' + (r.changed ? '，更新 ' + r.changed + ' 条' : '') : '同步失败');
+      syncPaint();
+    });
   el.accLogoutAll.addEventListener('click', () => {
     if (!window.confirm('退出所有设备？其它电脑上的登录会立刻失效。')) return;
     accDoLogout(true);
@@ -9249,6 +9306,9 @@ async function boot() {
     applyToolOpen();
   }, 300);
   setTimeout(smsInit, 1500);
+  loadCloudBase().then(() => {
+    if (S.data) renderNotes();
+  });
   setTimeout(() => {
     accLoadStatus();
   }, 400);

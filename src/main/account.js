@@ -241,6 +241,46 @@ class Account {
     return this._call('POST', '/api/shares/' + encodeURIComponent(id) + '/read', { body: {} });
   }
 
+  /* ---- M7：Qing 事项同步 ---- */
+
+  items(since) {
+    const q = since ? '?since=' + encodeURIComponent(since) : '';
+    return this._call('GET', '/api/items' + q);
+  }
+
+  itemCreate(item) {
+    return this._call('POST', '/api/items', { body: item });
+  }
+
+  itemPatch(id, patch) {
+    return this._call('PATCH', '/api/items/' + encodeURIComponent(id), { body: patch });
+  }
+
+  itemDelete(id) {
+    return this._call('DELETE', '/api/items/' + encodeURIComponent(id));
+  }
+
+  /** 图片直传又拍云：裸二进制，返回 { ok, key: 'cloud:...', url } */
+  async itemImage(buf, mime) {
+    if (!this.token) return { ok: false, code: 'unauthorized', message: '还没登录' };
+    try {
+      const res = await fetch(BASE + '/api/items/image', {
+        method: 'POST',
+        headers: { 'content-type': mime || 'image/png', authorization: 'Bearer ' + this.token },
+        body: buf,
+        signal: AbortSignal.timeout(60000)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        this._clear();
+        return { ok: false, code: 'unauthorized', message: '登录已过期，请重新登录' };
+      }
+      return data && typeof data === 'object' ? data : { ok: false, code: 'bad_response' };
+    } catch (e) {
+      return { ok: false, code: 'network', message: '图片上传失败，检查一下网络' };
+    }
+  }
+
   /** 拉一次账号信息 + 设备列表；顺带校验 token 是否还有效 */
   async me() {
     if (!this.token) return { ok: false, code: 'unauthorized', message: '还没登录' };

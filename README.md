@@ -15,15 +15,16 @@
 ## 官网与下载
 
 - 官网：<https://qingtools.ccyyqq.com/>（源码在 `site/`，静态站，`deploy\site.ps1` 一键部署）
-- 开发记录：<https://qingtools.ccyyqq.com/changelog.html>（从 1.0 到 1.15.2 的过程，源码 `site/changelog.html`；纯文本版在仓库根 `CHANGELOG.md`）
-- 下载（又拍云 CDN，官网按钮指向这里）：<https://qing.ccyyqq.com/island/update/QingTools-1.15.2-setup.exe>（便携版同名 `-portable.exe`）
-- 备用镜像（本站 nginx `/download/`）：<https://qingtools.ccyyqq.com/download/QingTools-1.15.2-setup.exe>
+- 开发记录：<https://qingtools.ccyyqq.com/changelog.html>（从 1.0 到 1.16.0 的过程，源码 `site/changelog.html`；纯文本版在仓库根 `CHANGELOG.md`）
+- 下载（又拍云 CDN，官网按钮指向这里）：<https://qing.ccyyqq.com/island/update/QingTools-1.16.0-setup.exe>（便携版同名 `-portable.exe`）
+- 备用镜像（本站 nginx `/download/`）：<https://qingtools.ccyyqq.com/download/QingTools-1.16.0-setup.exe>
 - 服务器下载页：<https://chat.ccyyqq.com/island/get>（短链 `chat.ccyyqq.com/get`、`/dl`）
 
 ## 功能
 
 | 模块 | 说明 |
 | --- | --- |
+| **多端同步** | 登录同一个账号的第二台电脑，20 秒内自动长出你在别的机器上写的事项；改完 0.5 秒上传，删除也会同步，冲突留副本 |
 | **账号** | 设置页最上面一组「账号」：用户名 + 密码登录或注册（注册后强制显示恢复码、勾选确认才能继续）；登录后能看到**所有已登录设备**（含这台，显示最后活跃时间），可以逐台移除、退出本机或一次性退出全部；用恢复码找回密码会换掉旧码并当场给新码；注销要用户名 + 密码 + 恢复码三重确认，**用户名永久保留、不会再放给别人**。登录态用 Windows DPAPI 加密存盘，重启自动恢复；服务端密码与恢复码都是 `scrypt` 哈希，会话 token 库里只存 SHA-256，所以「踢掉某台设备」是真的立刻失效 |
 | **亲密好友 / 咻** | 设置里绑最多 3 个好友（发申请、对方同意）；Qing 事项行上的小飞机把这条事项复制给对方，收到时岛抖一下 + 边缘粉色光点，写进对方自己的 Qing 事项 |
 | **邮件推送** | **可同时登录多个邮箱**（QQ / 163 / 126 / Gmail / Outlook / 阿里云 / 自定义）：每个账户各自保持 IMAP IDLE 长连接，新邮件秒级主动推送；邮件页顶部有账户筛选条（「全部」或只看某一个，带未读计数）；断线自动退避重连，推送不可用时自动降级成定时检查 |

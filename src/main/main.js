@@ -32,6 +32,7 @@ const sysinfo = require('./sysinfo');
 const { SearchService } = require('./search');
 const { EverythingService } = require('./everything');
 const { account: accountApi, registerAccountIpc } = require('./account');
+const sync = require('./sync');
 let searchService = null;
 let everythingService = null;
 let oauthPending = null; // 正在进行中的微软设备代码授权
@@ -1092,6 +1093,7 @@ function registerIpc() {
     if (store.data.notes.length > 300) store.data.notes.length = 300;
     store.save();
     broadcast();
+    sync.queue(note.id);
     return { ok: true, note };
   });
   // 待办打勾：备忘录里 kind==='todo' 的条目
@@ -1103,6 +1105,7 @@ function registerIpc() {
     n.updatedAt = Date.now();
     store.save();
     broadcast();
+    sync.queue(id);
     return { ok: true, note: n };
   });
   // 备忘录里的图片：粘贴进来就落盘到 userData\note-images，正文只存文件名
@@ -1310,6 +1313,7 @@ function readClipboardFiles() {
     n.updatedAt = Date.now();
     store.save();
     broadcast();
+    sync.queue(id);
     return { ok: true };
   });
   ipcMain.handle('notes:remove', (e, id) => {
@@ -1317,6 +1321,7 @@ function readClipboardFiles() {
     closeSticky(id);
     store.save();
     broadcast();
+    sync.queue(id);
     return { ok: true };
   });
   // 固定 = 钉到桌面：开一张桌面便条窗口
@@ -1327,17 +1332,25 @@ function readClipboardFiles() {
     store.save();
     syncStickies();
     broadcast();
+    sync.queue(id);
     return { ok: true, pinned: n.pinned };
   });
   // 全部删除：钉在桌面上的、以及还没做完的待办，都要保留
   ipcMain.handle('notes:clear', () => {
     const keep = store.data.notes.filter((n) => n.pinned || (n.kind === 'todo' && !n.done));
-    const removed = store.data.notes.length - keep.length;
+    const removedIds = store.data.notes.filter((n) => !keep.includes(n)).map((n) => n.id);
+    const removed = removedIds.length;
     store.data.notes = keep;
     store.save();
     broadcast();
+    removedIds.forEach((id) => sync.queue(id));
     return { ok: true, removed, kept: keep.length };
   });
+
+  // M7：同步状态与手动触发（设置页/诊断用）
+  ipcMain.handle('sync:status', () => sync.status());
+  ipcMain.handle('sync:pull', () => sync.pull());
+  ipcMain.handle('sync:pushAll', () => sync.pushLocalAll());
 
   // --- 剪贴板
   ipcMain.handle('clip:copy', async (e, id) => {
@@ -1977,8 +1990,17 @@ ipcMain.on('app:dragHold', (e, on) => {
   // 账号（M2）：登录态 / 设备 / 注册找回，全部走 https://chat.ccyyqq.com/island
   // 登录成功切到账号分区、退出切回本机分区（M3）
   registerAccountIpc(ipcMain, {
-    onSignedIn: (user) => useProfile({ kind: 'account', uid: user && user.id }),
-    onSignedOut: () => useProfile({ kind: 'local' })
+    onSignedIn: (user) => {
+      useProfile({ kind: 'account', uid: user && user.id });
+      setTimeout(() => {
+        sync.pushLocalAll().catch(() => {});
+        sync.start();
+      }, 800);
+    },
+    onSignedOut: () => {
+      sync.stop();
+      useProfile({ kind: 'local' });
+    }
   });
   ipcMain.handle('profile:info', () => profileInfo());
   // M3：首次登录后的「归属」——把本机数据复制到账号分区（只做一次，可先导出备份）
@@ -2377,6 +2399,13 @@ if (!gotLock) {
     } catch (_) {}
     store = Store.at(stateFileFor());
     migrateQingItems();
+    // M7：事项同步（登录状态才真的跑起来；未登录 pull/push 都会直接返回）
+    sync.init({
+      getStore: () => store,
+      noteImagesDir: () => noteImagesDir(),
+      notify: () => broadcast()
+    });
+    if (accountApi && accountApi.signedIn) setTimeout(() => sync.start(), 2500);
     if (store.data.settings.autoStart) applyAutoStart(true);
 
     clip = new ClipWatcher(store, broadcast);

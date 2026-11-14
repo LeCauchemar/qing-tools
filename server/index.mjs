@@ -2503,6 +2503,246 @@ function handleShareRead(req, res, id) {
   return ok(res, { ok: true });
 }
 
+// ── M7：事项同步（items / changes / SSE）──────────────────────────
+
+const SYNC_PAGE = 500;
+const syncStreams = new Map(); // userId -> Set<res>
+
+function syncNotify(userId, seq) {
+  const set = syncStreams.get(userId);
+  if (!set || !set.size) return;
+  for (const res of set) {
+    try {
+      res.write("event: sync\ndata: " + JSON.stringify({ seq }) + "\n\n");
+    } catch (_) {
+      /* 断线由 close 事件清理 */
+    }
+  }
+}
+
+function bumpChange(ownerId, entityId, op) {
+  const r = db
+    .prepare("INSERT INTO changes (owner_id, entity, entity_id, op, at) VALUES (?,?,?,?,?)")
+    .run(ownerId, "item", entityId, op, now());
+  const seq = Number(r.lastInsertRowid) || 0;
+  syncNotify(ownerId, seq);
+  return seq;
+}
+
+function maxSeqOf(ownerId) {
+  const r = db.prepare("SELECT MAX(seq) AS s FROM changes WHERE owner_id = ?").get(ownerId);
+  return (r && r.s) || 0;
+}
+
+function cleanImages(v) {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((x) => String(x || ""))
+    .filter((x) => /^(local|cloud):[A-Za-z0-9_.\/-]{1,160}$/.test(x))
+    .slice(0, 12);
+}
+
+function itemView(row) {
+  let images = [];
+  try {
+    images = JSON.parse(row.images || "[]");
+  } catch (_) {
+    images = [];
+  }
+  let origin = null;
+  try {
+    origin = row.origin ? JSON.parse(row.origin) : null;
+  } catch (_) {
+    origin = null;
+  }
+  const urls = {};
+  for (const k of images) {
+    if (String(k).startsWith("cloud:")) urls[k] = publicUrl(String(k).slice(6));
+  }
+  return {
+    id: row.id,
+    kind: row.kind === "todo" ? "todo" : "note",
+    text: row.text || "",
+    images,
+    urls,
+    done: !!row.done,
+    pinned: !!row.pinned,
+    sortAt: row.sort_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    origin,
+    deleted: !!row.deleted_at
+  };
+}
+
+function handleItemsList(req, res, url) {
+  const ctx = requireUser(req, res);
+  if (!ctx) return;
+  const since = Math.max(0, Number(url.searchParams.get("since")) || 0);
+  const max = maxSeqOf(ctx.user.id);
+  if (!since) {
+    // 首次同步：给全量快照，客户端直接整体覆盖
+    const rows = db
+      .prepare(
+        "SELECT * FROM items WHERE owner_id = ? AND deleted_at IS NULL ORDER BY sort_at DESC LIMIT 300"
+      )
+      .all(ctx.user.id);
+    return ok(res, { full: true, since: 0, seq: max, items: rows.map(itemView) });
+  }
+  const rows = db
+    .prepare(
+      "SELECT c.seq AS cseq, i.* FROM changes c JOIN items i ON i.id = c.entity_id" +
+        " WHERE c.owner_id = ? AND c.entity = ? AND c.seq > ? ORDER BY c.seq ASC LIMIT ?"
+    )
+    .all(ctx.user.id, "item", since, SYNC_PAGE);
+  const seq = rows.length ? Number(rows[rows.length - 1].cseq) : max;
+  return ok(res, { full: false, since, seq, items: rows.map(itemView), more: rows.length >= SYNC_PAGE });
+}
+
+function handleSyncPull(req, res, url) {
+  return handleItemsList(req, res, url);
+}
+
+async function handleItemCreate(req, res) {
+  const ctx = requireUser(req, res);
+  if (!ctx) return;
+  const b = readJson(await readBody(req));
+  const kind = b.kind === "todo" ? "todo" : "note";
+  const text = String(b.text || "").slice(0, 20000);
+  const images = cleanImages(b.images);
+  const pinned = b.pinned ? 1 : 0;
+  const done = b.done ? 1 : 0;
+  let id = String(b.id || "").trim();
+  if (id && !/^[A-Za-z0-9_-]{6,48}$/.test(id)) id = "";
+  const existed = id ? db.prepare("SELECT * FROM items WHERE id = ?").get(id) : null;
+  if (existed && existed.owner_id !== ctx.user.id) id = "";
+  if (!id || (existed && existed.deleted_at)) id = "itm_" + rid(9);
+  const t = now();
+  if (existed && existed.owner_id === ctx.user.id) {
+    db.prepare(
+      "UPDATE items SET kind = ?, text = ?, images = ?, done = ?, pinned = ?, sort_at = ?, updated_at = ?, deleted_at = NULL WHERE id = ?"
+    ).run(kind, text, JSON.stringify(images), done, pinned, t, t, id);
+  } else {
+    db.prepare(
+      "INSERT INTO items (id, owner_id, kind, text, images, done, pinned, sort_at, created_at, updated_at, origin) VALUES (?,?,?,?,?,?,?,?,?,?,NULL)"
+    ).run(id, ctx.user.id, kind, text, JSON.stringify(images), done, pinned, t, t, t);
+  }
+  const seq = bumpChange(ctx.user.id, id, existed ? "update" : "create");
+  const row = db.prepare("SELECT * FROM items WHERE id = ?").get(id);
+  return ok(res, { item: itemView(row), seq });
+}
+
+async function handleItemPatch(req, res, id) {
+  const ctx = requireUser(req, res);
+  if (!ctx) return;
+  const row = db.prepare("SELECT * FROM items WHERE id = ? AND owner_id = ?").get(id, ctx.user.id);
+  if (!row || row.deleted_at) return fail(res, "not_found", "这条事项不在了", 404);
+  const b = readJson(await readBody(req));
+  const base = Number(b.baseUpdatedAt || 0);
+  const t = now();
+  let conflictId = "";
+  const nextText = b.text === undefined ? row.text : String(b.text).slice(0, 20000);
+  // 我拿到的版本比服务器旧，且两边都改了 → 把服务器那份留成冲突副本（LWW + 副本）
+  if (base && row.updated_at > base + 500 && nextText !== (row.text || "")) {
+    conflictId = "itm_" + rid(9);
+    const origin = JSON.stringify({ conflict: true, of: row.id, at: t });
+    db.prepare(
+      "INSERT INTO items (id, owner_id, kind, text, images, done, pinned, sort_at, created_at, updated_at, origin) VALUES (?,?,?,?,?,?,?,?,?,?,?)"
+    ).run(conflictId, ctx.user.id, row.kind, row.text || "", row.images || "[]", row.done, row.pinned, row.sort_at, t, t, origin);
+    bumpChange(ctx.user.id, conflictId, "create");
+  }
+  const kind = b.kind === "todo" ? "todo" : b.kind === "note" ? "note" : row.kind;
+  const images = b.images === undefined ? row.images : JSON.stringify(cleanImages(b.images));
+  const done = b.done === undefined ? row.done : b.done ? 1 : 0;
+  const pinned = b.pinned === undefined ? row.pinned : b.pinned ? 1 : 0;
+  db.prepare(
+    "UPDATE items SET kind = ?, text = ?, images = ?, done = ?, pinned = ?, sort_at = ?, updated_at = ? WHERE id = ?"
+  ).run(kind, nextText, images, done, pinned, t, t, id);
+  const seq = bumpChange(ctx.user.id, id, "update");
+  const fresh = db.prepare("SELECT * FROM items WHERE id = ?").get(id);
+  return ok(res, { item: itemView(fresh), seq, conflictId: conflictId || null });
+}
+
+function handleItemDelete(req, res, id) {
+  const ctx = requireUser(req, res);
+  if (!ctx) return;
+  const row = db.prepare("SELECT * FROM items WHERE id = ? AND owner_id = ?").get(id, ctx.user.id);
+  if (!row || row.deleted_at) return fail(res, "not_found", "这条事项不在了", 404);
+  if (row.pinned) return fail(res, "pinned", "先取消钉在桌面才能删除", 409);
+  const t = now();
+  db.prepare("UPDATE items SET deleted_at = ?, updated_at = ? WHERE id = ?").run(t, t, id);
+  const seq = bumpChange(ctx.user.id, id, "delete");
+  return ok(res, { id, seq });
+}
+
+async function handleItemImage(req, res) {
+  const ctx = requireUser(req, res);
+  if (!ctx) return;
+  const mime = String(req.headers["content-type"] || "").split(";")[0].trim().toLowerCase();
+  const ext = MIME_EXT[mime];
+  if (!ext) return fail(res, "bad_type", "只支持 png / jpg / webp / gif 图片", 415);
+  const buf = await readBody(req, MAX_UPLOAD);
+  if (!buf || !buf.length) return fail(res, "empty", "没有收到文件");
+  const name = rid(9) + "." + ext;
+  if (!upyunReady()) return fail(res, "cloud_off", "云存储没配置好，暂时传不了图片", 503);
+  const cfg = upyunConfig();
+  const key = cfg.prefix + "/note/" + ctx.user.id + "/" + name;
+  const up = await putObject(key, buf, mime);
+  if (!up.ok) return fail(res, "cloud_failed", "上传失败：" + (up.message || "未知错误"), 502);
+  return ok(res, { key: "cloud:" + key, url: publicUrl(key), bytes: buf.length });
+}
+
+// EventSource 不能带 header，SSE 这条允许 ?token=
+function requireUserSse(req, res, url) {
+  let raw = bearerOf(req);
+  if (!raw && url) raw = String(url.searchParams.get("token") || "").trim();
+  if (!raw) {
+    fail(res, "unauthorized", "请先登录", 401);
+    return null;
+  }
+  const s = q.sessionByHash.get(hash(raw));
+  if (!s || s.revoked_at || s.expires_at < now()) {
+    fail(res, "unauthorized", "登录已过期，请重新登录", 401);
+    return null;
+  }
+  const u = q.userById.get(s.user_id);
+  if (!u || u.deleted_at) {
+    fail(res, "unauthorized", "账号不可用", 401);
+    return null;
+  }
+  q.touchSession.run(now(), s.id);
+  return { user: u, session: s };
+}
+
+function handleSyncStream(req, res, url) {
+  const ctx = requireUserSse(req, res, url);
+  if (!ctx) return;
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream; charset=utf-8",
+    "Cache-Control": "no-cache, no-transform",
+    Connection: "keep-alive",
+    "X-Accel-Buffering": "no",
+    ...cors()
+  });
+  res.write("retry: 4000\n\n");
+  res.write("event: hello\ndata: " + JSON.stringify({ seq: maxSeqOf(ctx.user.id) }) + "\n\n");
+  const uid = ctx.user.id;
+  if (!syncStreams.has(uid)) syncStreams.set(uid, new Set());
+  syncStreams.get(uid).add(res);
+  const timer = setInterval(() => {
+    try {
+      res.write(": ping\n\n");
+    } catch (_) {
+      /* ignore */
+    }
+  }, 25000);
+  req.on("close", () => {
+    clearInterval(timer);
+    const set = syncStreams.get(uid);
+    if (set) set.delete(res);
+  });
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://' + (req.headers.host || 'localhost'));
   let p = url.pathname;
@@ -2601,6 +2841,19 @@ const server = http.createServer(async (req, res) => {
     {
       const sr = p.match(/^\/api\/shares\/([A-Za-z0-9_]+)\/read$/);
       if (sr && req.method === 'POST') return handleShareRead(req, res, sr[1]);
+    }
+
+
+    // M7：Qing 事项增量同步
+    if (req.method === "GET" && p === "/api/items") return handleItemsList(req, res, url);
+    if (req.method === "POST" && p === "/api/items") return await handleItemCreate(req, res);
+    if (req.method === "POST" && p === "/api/items/image") return await handleItemImage(req, res);
+    if (req.method === "GET" && p === "/api/sync") return handleSyncPull(req, res, url);
+    if (req.method === "GET" && p === "/api/sync/stream") return handleSyncStream(req, res, url);
+    {
+      const im = p.match(/^\/api\/items\/([A-Za-z0-9_-]{6,48})$/);
+      if (im && req.method === "PATCH") return await handleItemPatch(req, res, im[1]);
+      if (im && req.method === "DELETE") return handleItemDelete(req, res, im[1]);
     }
 
     if (req.method === 'POST' && p === '/api/upload') return await handleUpload(req, res, url);

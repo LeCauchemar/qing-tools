@@ -6293,3 +6293,13 @@ canvas.hearts.on{opacity:1}
   font-size: 11px;
   padding: 3px 8px;
 }
+
+/* M7：同步副本 / 云端图片占位 */
+.tag.conflict {
+  background: color-mix(in srgb, #ffb020 22%, transparent);
+  color: color-mix(in srgb, var(--ink) 88%, #7a4b00);
+}
+.row.note .note-cloud-wait {
+  font-size: 12px;
+  color: color-mix(in srgb, var(--ink) 58%, transparent);
+}

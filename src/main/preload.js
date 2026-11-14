@@ -76,6 +76,7 @@ contextBridge.exposeInMainWorld('island', {
     bindingAct: (id, act) => invoke('account:bindingAct', { id, act }),
     share: (payload) => invoke('account:share', payload),
     shareInbox: () => invoke('account:shareInbox'),
+    shareHistory: () => invoke('account:shareHistory'),
     shareRead: (id) => invoke('account:shareRead', { id }),
     logout: () => invoke('account:logout'),
     logoutAll: () => invoke('account:logoutAll'),

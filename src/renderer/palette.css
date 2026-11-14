@@ -161,35 +161,9 @@
   padding: 6px 8px;
 }
 
-.check-btn {
-  flex: none;
-  width: 20px;
-  height: 20px;
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-}
-
-.check-btn .ic {
-  width: 15px;
-  height: 15px;
-}
-
-.check-btn:hover {
-  color: var(--accent);
-}
-
 .row.todo.done .row-text {
   color: var(--dim);
   text-decoration: line-through;
-}
-
-.row.todo.done .check-btn {
-  color: var(--accent);
 }
 
 .row.todo .row-tools,

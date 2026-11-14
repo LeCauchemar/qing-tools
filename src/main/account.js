@@ -232,6 +232,11 @@ class Account {
     return this._call('GET', '/api/shares/inbox');
   }
 
+  /** 咻记录：我和好友之间来过的所有条目（发出 + 收到） */
+  shareHistory() {
+    return this._call('GET', '/api/shares/history');
+  }
+
   shareRead(id) {
     return this._call('POST', '/api/shares/' + encodeURIComponent(id) + '/read', { body: {} });
   }
@@ -343,6 +348,7 @@ function registerAccountIpc(ipcMain, hooks = {}) {
   ipcMain.handle('account:bindingAct', wrap((p) => a.bindingAct(p && p.id, p && p.act)));
   ipcMain.handle('account:share', wrap((p) => a.share(p)));
   ipcMain.handle('account:shareInbox', wrap(() => a.shareInbox()));
+  ipcMain.handle('account:shareHistory', wrap(() => a.shareHistory()));
   ipcMain.handle('account:shareRead', wrap((p) => a.shareRead(p && p.id)));
 
   ipcMain.handle(

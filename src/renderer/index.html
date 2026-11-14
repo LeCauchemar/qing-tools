@@ -444,6 +444,13 @@
               <!-- 频道（最多两个） -->
               <div class="rooms hidden" id="chatRooms"></div>
 
+              <!-- 好友 + 咻记录（M6b） -->
+              <div class="chat-people hidden" id="chatPeople">
+                <span class="cp-label">好友</span>
+                <div class="cp-list" id="cpList"></div>
+                <button class="cp-more" id="cpMore" data-act="cp-hist" title="我和好友之间咻过的所有条目">咻记录</button>
+              </div>
+
               <!-- 未加入 -->
               <div class="chat-gate" id="chatGate">
                 <div class="gate-head">
@@ -1077,6 +1084,12 @@
       </div>
 
       <!-- M6：把事项咻给好友 -->
+      <!-- 咻记录 -->
+      <div class="msg-menu hidden share-hist" id="shareHist">
+        <div class="share-title" id="shTitle">咻记录</div>
+        <div class="sh-list" id="shList"></div>
+        <p class="sh-empty hidden" id="shEmpty">还没有咻过东西</p>
+      </div>
       <div class="msg-menu hidden" id="sharePop">
         <div class="share-title">咻给谁？</div>
         <div class="share-list" id="shareList"></div>

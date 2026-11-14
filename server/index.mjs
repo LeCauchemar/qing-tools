@@ -2467,6 +2467,33 @@ function handleShareInbox(req, res) {
   return ok(res, { items: rows.map(shareView), unread: rows.length });
 }
 
+function handleShareHistory(req, res) {
+  const ctx = requireUser(req, res);
+  if (!ctx) return;
+  const rows = db
+    .prepare('SELECT * FROM shares WHERE from_user = ? OR to_user = ? ORDER BY created_at DESC LIMIT 100')
+    .all(ctx.user.id, ctx.user.id);
+  const items = rows.map((s) => {
+    const out = s.from_user === ctx.user.id;
+    const other = q.userById.get(out ? s.to_user : s.from_user);
+    let snap = {};
+    try {
+      snap = JSON.parse(s.snapshot || '{}');
+    } catch {
+      snap = {};
+    }
+    return {
+      id: s.id,
+      dir: out ? 'out' : 'in',
+      peer: friendOf(other),
+      item: { kind: snap.kind === 'todo' ? 'todo' : 'note', text: String(snap.text || '').slice(0, 200) },
+      createdAt: s.created_at,
+      read: !!s.read_at
+    };
+  });
+  return ok(res, { items });
+}
+
 function handleShareRead(req, res, id) {
   const ctx = requireUser(req, res);
   if (!ctx) return;
@@ -2569,6 +2596,7 @@ const server = http.createServer(async (req, res) => {
       if (bd && req.method === 'DELETE') return handleBindAct(req, res, bd[1], 'remove');
     }
     if (req.method === 'GET' && p === '/api/shares/inbox') return handleShareInbox(req, res);
+    if (req.method === 'GET' && p === '/api/shares/history') return handleShareHistory(req, res);
     if (req.method === 'POST' && p === '/api/shares') return await handleShareCreate(req, res);
     {
       const sr = p.match(/^\/api\/shares\/([A-Za-z0-9_]+)\/read$/);

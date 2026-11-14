@@ -153,6 +153,13 @@ const el = {
   shareList: $('#shareList'),
   shareEmpty: $('#shareEmpty'),
   hearts: $('#hearts'),
+  chatPeople: $('#chatPeople'),
+  cpList: $('#cpList'),
+  cpMore: $('#cpMore'),
+  shareHist: $('#shareHist'),
+  shTitle: $('#shTitle'),
+  shList: $('#shList'),
+  shEmpty: $('#shEmpty'),
   accRefresh: $('#accRefresh'),
   accSwitch: $('#accSwitch'),
   accLogout: $('#accLogout'),
@@ -2000,6 +2007,7 @@ async function accLoadFriends() {
     S.account.outgoing = r.outgoing || [];
   }
   renderAccFriends();
+  renderChatPeople();
 }
 
 function renderAccFriends() {
@@ -2098,6 +2106,100 @@ function openSharePop(x, y, noteId) {
   nudgeRect(900);
 }
 
+/* 小纸条顶部的好友条：绑过的人一排，点开看和 TA 的咻记录 */
+function renderChatPeople() {
+  if (!el.chatPeople) return;
+  const on = !!S.account.signedIn;
+  el.chatPeople.classList.toggle('hidden', !on);
+  if (!on) return;
+  const friends = S.account.friends || [];
+  let html = friends
+    .map((f) => {
+      const name = f.nick || f.username;
+      return (
+        '<button class="cp-chip" data-act="cp-friend" data-id="' + esc(f.id) + '" data-name="' + esc(name) + '" title="' + esc('看看和 ' + name + ' 的咻记录') + '">' +
+        '<i class="cp-av">' + esc(String(name).slice(0, 1).toUpperCase()) + '</i>' +
+        '<span class="cp-name">' + esc(name) + '</span>' +
+        '</button>'
+      );
+    })
+    .join('');
+  if (!friends.length) {
+    html =
+      '<button class="cp-chip cp-add" data-act="cp-bind" title="去设置里绑定一个好友">' +
+      '<i class="cp-av">+</i><span class="cp-name">绑定好友</span></button>';
+  }
+  el.cpList.innerHTML = html;
+}
+
+function shStamp(ts) {
+  const d = new Date(Number(ts) || Date.now());
+  const now = new Date();
+  const same = d.toDateString() === now.toDateString();
+  const pad = (n) => (n < 10 ? '0' + n : '' + n);
+  return same ? pad(d.getHours()) + ':' + pad(d.getMinutes()) : d.getMonth() + 1 + '/' + d.getDate() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+
+function renderShareHist(items, title) {
+  el.shTitle.textContent = title;
+  if (!items.length) {
+    el.shList.innerHTML = '';
+    el.shEmpty.classList.remove('hidden');
+    return;
+  }
+  el.shEmpty.classList.add('hidden');
+  el.shList.innerHTML = items
+    .map((it) => {
+      const out = it.dir === 'out';
+      const who = it.peer ? it.peer.nick || it.peer.username : '?';
+      const kind = it.item && it.item.kind === 'todo' ? '待办' : '备忘录';
+      return (
+        '<div class="sh-row">' +
+        '<i class="sh-dir' + (out ? ' out' : ' inn') + '">' + (out ? '↗' : '↙') + '</i>' +
+        '<span class="sh-main"><b>' + esc(who) + '</b><em>' + (out ? '你咻给 TA' : 'TA 咻给你') + ' · ' + kind + '</em>' +
+        '<span class="sh-text">' + esc((it.item && it.item.text) || '（空）') + '</span></span>' +
+        '<span class="sh-time">' + shStamp(it.createdAt) + '</span>' +
+        '</div>'
+      );
+    })
+    .join('');
+}
+
+async function openShareHist(peerId, peerName) {
+  if (!S.account.signedIn) {
+    toast('先在设置里登录，才能看到咻记录');
+    return;
+  }
+  const r = await api.account.shareHistory();
+  if (!r || !r.ok) {
+    toast('拉咻记录失败：' + ((r && r.message) || '未知原因'), true);
+    return;
+  }
+  const all = Array.isArray(r.items) ? r.items : [];
+  const list = peerId ? all.filter((x) => x.peer && x.peer.id === peerId) : all;
+  renderShareHist(list, peerId ? '和 ' + (peerName || '好友') + ' 的咻记录' : '全部咻记录');
+  const rect = (peerId ? el.cpList : el.cpMore).getBoundingClientRect();
+  el.shareHist.classList.remove('hidden');
+  const w = el.shareHist.offsetWidth;
+  const h = el.shareHist.offsetHeight;
+  // 夹在岛的矩形里 —— 外面 .island 是 overflow:hidden，超出会被直接裁掉
+  const isl = el.island.getBoundingClientRect();
+  const pad = 10;
+  const minLeft = isl.left + pad;
+  const maxLeft = isl.right - w - pad;
+  let left = Math.min(Math.max(minLeft, rect.left), Math.max(minLeft, maxLeft));
+  let top = rect.bottom + 6;
+  if (top + h > isl.bottom - pad) top = Math.max(isl.top + pad, rect.top - h - 6);
+  if (top + h > isl.bottom - pad) top = Math.max(isl.top + pad, isl.bottom - pad - h);
+  el.shareHist.style.left = Math.round(left) + 'px';
+  el.shareHist.style.top = Math.round(top) + 'px';
+  nudgeRect(900);
+}
+
+function closeShareHist() {
+  if (el.shareHist) el.shareHist.classList.add('hidden');
+}
+
 function closeSharePop() {
   if (el.sharePop) el.sharePop.classList.add('hidden');
 }
@@ -2134,6 +2236,7 @@ async function shareNoteTo(friend, noteId, fromEl) {
     sourceItem: n.id
   });
   if (r && r.ok) toast('咻——已经发给 ' + (friend.nick || friend.username));
+  if (r && r.ok) renderChatPeople();
   else toast((r && r.message) || '没发出去');
 }
 
@@ -3448,9 +3551,14 @@ async function clearNotes() {
   const list = S.data.notes || [];
   if (!list.length) return toast('没有便笺可删');
   const pinned = list.filter((n) => n.pinned).length;
-  if (!confirmThen('notes-clear', '再点一次「全部删除」' + (pinned ? '（固定的 ' + pinned + ' 张会保留）' : ''))) return;
+  const open = list.filter((n) => n.kind === 'todo' && !n.done && !n.pinned).length;
+  const keepHint = [
+    pinned ? '钉在桌面 ' + pinned + ' 条' : '',
+    open ? '没做完的待办 ' + open + ' 条' : ''
+  ].filter(Boolean).join('、');
+  if (!confirmThen('notes-clear', '再点一次「全部删除」' + (keepHint ? '（' + keepHint + '会保留）' : ''))) return;
   const r = await api.notes.clear();
-  toast('已删除 ' + ((r && r.removed) || 0) + ' 张便笺' + (r && r.kept ? '，固定 ' + r.kept + ' 张已保留' : ''));
+  toast('已删除 ' + ((r && r.removed) || 0) + ' 条' + (r && r.kept ? '，保留 ' + r.kept + ' 条' : ''));
 }
 
 async function clearClips() {
@@ -4101,6 +4209,20 @@ async function handleAct(act, node) {
       if (who) await shareNoteTo(who, S.shareNoteId, node);
       break;
     }
+    case 'cp-friend': {
+      await openShareHist(node.dataset.id, node.dataset.name);
+      break;
+    }
+    case 'cp-hist': {
+      await openShareHist('', '');
+      break;
+    }
+    case 'cp-bind': {
+      setTab('settings');
+      const box = $('#accFriendName');
+      if (box) setTimeout(() => box.focus(), 260);
+      break;
+    }
     case 'friend-accept':
     case 'friend-reject':
     case 'friend-remove': {
@@ -4418,6 +4540,7 @@ function chatRenderRooms() {
     (rooms.length < CHAT_MAX
       ? '<button class="room-add" data-act="room-add" title="再加一个频道（最多 2 个）">+</button>'
       : '');
+  renderChatPeople();
 }
 
 function chatRender() {
@@ -6144,6 +6267,14 @@ function chatBind() {
     if (el.noteMenu && !el.noteMenu.classList.contains('hidden') && !e.target.closest('#noteMenu')) closeNoteMenu();
     if (el.editMenu && !el.editMenu.classList.contains('hidden') && !e.target.closest('#editMenu')) closeEditMenu();
     if (
+      el.shareHist &&
+      !el.shareHist.classList.contains('hidden') &&
+      !e.target.closest('#shareHist') &&
+      !e.target.closest('[data-act="cp-friend"]') &&
+      !e.target.closest('[data-act="cp-hist"]')
+    )
+      closeShareHist();
+    if (
       el.sharePop &&
       !el.sharePop.classList.contains('hidden') &&
       !e.target.closest('#sharePop') &&
@@ -7100,6 +7231,12 @@ function bindUi() {
     'keydown',
     (e) => {
       if (e.key !== 'Escape') return;
+      if (el.shareHist && !el.shareHist.classList.contains('hidden')) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeShareHist();
+        return;
+      }
       if (el.sharePop && !el.sharePop.classList.contains('hidden')) {
         e.preventDefault();
         e.stopPropagation();

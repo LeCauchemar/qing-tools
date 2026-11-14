@@ -1329,9 +1329,9 @@ function readClipboardFiles() {
     broadcast();
     return { ok: true, pinned: n.pinned };
   });
-  // 全部删除：固定的便笺保留
+  // 全部删除：钉在桌面上的、以及还没做完的待办，都要保留
   ipcMain.handle('notes:clear', () => {
-    const keep = store.data.notes.filter((n) => n.pinned);
+    const keep = store.data.notes.filter((n) => n.pinned || (n.kind === 'todo' && !n.done));
     const removed = store.data.notes.length - keep.length;
     store.data.notes = keep;
     store.save();

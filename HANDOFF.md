@@ -1,3 +1,9 @@
+## 2026-11-14 15:20 · 1.15.0 · DeepSeekRuntime
+- 改了什么：待办勾改回 17px 细圈（palette.css 旧规则删除）；`notes:clear` 保留钉住项和未完成待办；小纸条顶部加好友条与「咻记录」，新增 `GET /api/shares/history`；开发记录去重并按版本重排。
+- 为什么：用户反馈勾太大像紫块、全部删除会误删没做完的待办、小纸条只有频道没有好友与往来记录。
+- 怎么验证：dev 实测 `notes.clear()` 后保留 `ZZ-PROBE-TODO` 与用户钉住的「11」、只删掉我的测试备忘录；`api.account.shareHistory()` 返回 `{ok:true,n:0}`，弹层在岛内（截图 `shots/m6b-chat2.png`、`shots/m6b-notes.png`）；`node --check` 全通过。
+- 下一步 / 已知问题：分享到好友的事项**不会自动钉桌面**（`pollShares()` 只 `notes.add`），要钉得在设置里手动钉；好友条目前只读，没有「和好友单独对话」。
+
 ## 2026-11-14 13:20 · 1.14.0 · DeepSeekRuntime
 - 改了什么：M5 的后半段——`room_members` 双身份、`messages.user_id`、投票/@/拍一拍按人归并、已读按人同步；服务端 `softUser()`/`peopleOf()`，客户端 `chatFetch` 自动带 Authorization、成员列表按人合并、`chatMarkRead()`。
 - 为什么：用户要求「群组跟着账号走」，换电脑、开两台设备都要是同一个人。

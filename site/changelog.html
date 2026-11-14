@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>开发记录 · Qing Tools 从 1.0 到 1.14.0</title>
+<title>开发记录 · Qing Tools 从 1.0 到 1.15.0</title>
 <meta name="description" content="Qing Tools 十天六十一个版本的开发过程：从一条会伸缩的药丸，到能收邮件、短信验证码、文件和群聊的常驻小面板，再到能登录的账号。">
 <meta name="theme-color" content="#05060b">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
@@ -31,7 +31,7 @@
     <button class="icon-btn" id="themeBtn" title="切换明暗" aria-label="切换明暗">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path class="sun" d="M12 4v2m0 12v2m8-8h-2M6 12H4m13.7-5.7-1.4 1.4M7.7 16.3l-1.4 1.4m11.4 0-1.4-1.4M7.7 7.7 6.3 6.3"/><circle cx="12" cy="12" r="3.6"/></svg>
     </button>
-    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.14.0-setup.exe">下载</a>
+    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.15.0-setup.exe">下载</a>
   </div>
 </header>
 
@@ -39,54 +39,17 @@
 
   <section class="cl-hero">
     <p class="kicker">开发记录</p>
-    <h1>十天，六十个版本，<br><span class="grad">一条缝长成了一个工作台</span></h1>
+    <h1>十天，六十多个版本，<br><span class="grad">一条缝长成了一个工作台</span></h1>
     <p class="lede">
-      1.0 的时候它只会伸缩和显示未读；到 1.11.0，它替你收邮件、抽验证码、接手机短信、暂存文件、
+      1.0 的时候它只会伸缩和显示未读；到 1.15.0，它替你收邮件、抽验证码、接手机短信、暂存文件、
       在群里发一句就走。下面是中间每一步到底改了什么、为什么改。
     </p>
     <div class="cl-stats">
-      <div><b>61</b><span>个可安装版本（1.0 → 1.14.0）</span></div>
+      <div><b>62</b><span>个可安装版本（1.0 → 1.15.0）</span></div>
       <div><b>10</b><span>天（11-05 → 11-14）</span></div>
       <div><b>100 MB</b><span>安装包（砍过 21 MB）</span></div>
       <div><b>7</b><span>个页签</span></div>
     </div>
-    <article class="cl-item v5">
-      <div class="cl-side"><b>1.10.11</b><i>11-11</i></div>
-      <div class="cl-body">
-        <h3>提醒事项的日期时间看得见了，标题栏也不空着了</h3>
-        <ul>
-          <li>原生 <code>datetime-local</code> 之前按浅色 scheme 画，深色面板上是黑字黑底 —— 现在 <code>color-scheme</code> 跟着主题走，两套主题都清清楚楚。</li>
-          <li>日期框统一 26px 高、等宽数字，日历图标 hover 变亮，聚焦有强调色描边。</li>
-          <li>删掉提醒卡下面那段长提示，空状态不再占地方。</li>
-          <li>面板标题栏在时间右边补上「11月11日 周三 · 十月初三 · 11° 晴」，日期、农历/节日、天气一眼看全。</li>
-          <li>通知条上的「刚刚」放大到 12.5px 并靠右对齐；小纸条的昵称、气泡正文（14.5px）、时间、系统提示统一调大一档。</li>
-        </ul>
-      </div>
-    </article>
-    <article class="cl-item v4">
-      <div class="cl-side"><b>1.10.9</b><i>11-11</i></div>
-      <div class="cl-body">
-        <h3>安装包改走又拍云 CDN，连不通再回自己服务器</h3>
-        <ul class="cl-list">
-          <li><b>小工具里点「检查更新」下载的是 CDN。</b>100 MB 的安装包不再从 chat.ccyyqq.com 走，改成先拉 qing.ccyyqq.com（又拍云）；服务器只负责发几百字节的 latest.json，带宽留给别的事。</li>
-          <li><b>连不通会自动换地址。</b>每个来源下完都算一遍 SHA-256 和 latest.json 对一遍，不一致或者网络错误就换下一个：CDN → 清单来源的服务器 → 服务器固定地址，三条都不行才报失败。</li>
-          <li><b>官网的按钮也一样。</b>页面加载时先探一下 CDN 的 latest.json，探不通就把三个下载按钮和「备用下载」对调，下面那行字会标成「已自动切到本站镜像」。</li>
-          <li><b>清单仍然是服务器优先。</b>又拍云会把 latest.json 缓存好几天，所以「有没有新版本」还是问自己服务器，发布即生效。</li>
-        </ul>
-      </div>
-    </article>
-
-  </section>
-
-  <section class="cl-main">
-    <div class="cl-legend">
-      <span><i class="dot v1"></i>骨架</span>
-      <span><i class="dot v2"></i>做顺</span>
-      <span><i class="dot v3"></i>上云</span>
-      <span><i class="dot v4"></i>联动</span>
-      <span><i class="dot v5"></i>打磨</span>
-    </div>
-
     <article class="cl-item v1">
       <div class="cl-side"><b>1.0</b><i>11-05</i></div>
       <div class="cl-body">
@@ -99,8 +62,7 @@
         </ul>
       </div>
     </article>
-
-    <article class="cl-item v1">
+<article class="cl-item v1">
       <div class="cl-side"><b>1.2 · 1.3</b><i>11-05</i></div>
       <div class="cl-body">
         <h3>把流程做顺，少一点手滑</h3>
@@ -112,8 +74,7 @@
         </ul>
       </div>
     </article>
-
-    <article class="cl-item v1">
+<article class="cl-item v1">
       <div class="cl-side"><b>1.4 · 1.5</b><i>11-05</i></div>
       <div class="cl-body">
         <h3>小工具、能拖能收、能登微软</h3>
@@ -125,8 +86,7 @@
         </ul>
       </div>
     </article>
-
-    <article class="cl-item v2">
+<article class="cl-item v2">
       <div class="cl-side"><b>1.6</b><i>11-05</i></div>
       <div class="cl-body">
         <h3>一轮大改：表情包、浅色主题、能编辑的备忘录</h3>
@@ -139,8 +99,7 @@
         </ul>
       </div>
     </article>
-
-    <article class="cl-item v2">
+<article class="cl-item v2">
       <div class="cl-side"><b>1.7</b><i>11-05</i></div>
       <div class="cl-body">
         <h3>读得到，也装得小</h3>
@@ -151,8 +110,7 @@
         </ul>
       </div>
     </article>
-
-    <article class="cl-item v2">
+<article class="cl-item v2">
       <div class="cl-side"><b>1.8</b><i>11-05</i></div>
       <div class="cl-body">
         <h3>快：命令面板、划词、截图、待办</h3>
@@ -165,8 +123,7 @@
         </ul>
       </div>
     </article>
-
-    <article class="cl-item v3">
+<article class="cl-item v3">
       <div class="cl-side"><b>1.9.0 · 1.9.1</b><i>11-06</i></div>
       <div class="cl-body">
         <h3>上云：又拍云接管所有文件</h3>
@@ -177,8 +134,7 @@
         </ul>
       </div>
     </article>
-
-    <article class="cl-item v3">
+<article class="cl-item v3">
       <div class="cl-side"><b>1.9.2 – 1.9.8</b><i>11-06</i></div>
       <div class="cl-body">
         <h3>修：都是自己用出来的 bug</h3>
@@ -191,8 +147,7 @@
         </ul>
       </div>
     </article>
-
-    <article class="cl-item v4">
+<article class="cl-item v4">
       <div class="cl-side"><b>1.9.9 – 1.9.14</b><i>11-06</i></div>
       <div class="cl-body">
         <h3>质感：抖动、彩虹、扁平化</h3>
@@ -205,8 +160,7 @@
         </ul>
       </div>
     </article>
-
-    <article class="cl-item v4">
+<article class="cl-item v4">
       <div class="cl-side"><b>1.9.15 – 1.9.22</b><i>11-06</i></div>
       <div class="cl-body">
         <h3>手机联动：短信验证码直接落到电脑</h3>
@@ -219,8 +173,7 @@
         </ul>
       </div>
     </article>
-
-    <article class="cl-item v4">
+<article class="cl-item v4">
       <div class="cl-side"><b>1.9.23</b><i>11-06</i></div>
       <div class="cl-body">
         <h3>群的生命周期</h3>
@@ -231,8 +184,7 @@
         </ul>
       </div>
     </article>
-
-    <article class="cl-item v5">
+<article class="cl-item v5">
       <div class="cl-side"><b>1.9.24 – 1.9.28</b><i>11-07</i></div>
       <div class="cl-body">
         <h3>最后一轮：颜色、图标、节气、能复制</h3>
@@ -245,8 +197,7 @@
         </ul>
       </div>
     </article>
-
-    <article class="cl-item v5">
+<article class="cl-item v5">
       <div class="cl-side"><b>1.9.29 – 1.9.31</b><i>11-08</i></div>
       <div class="cl-body">
         <h3>小工具改卡片、Ctrl+K 全域搜索、待机显示天气</h3>
@@ -261,8 +212,7 @@
         </ul>
       </div>
     </article>
-
-    <article class="cl-item v5">
+<article class="cl-item v5">
       <div class="cl-side"><b>1.10.0</b><i>11-09</i></div>
       <div class="cl-body">
         <h3>十七处细节：引用回复、投票、@ 名单、能拖高的聊天窗</h3>
@@ -281,8 +231,7 @@
         </ul>
       </div>
     </article>
-
-    <article class="cl-item v5">
+<article class="cl-item v5">
       <div class="cl-side"><b>1.10.1 · 1.10.2</b><i>11-09</i></div>
       <div class="cl-body">
         <h3>把「不跟手」全部修掉</h3>
@@ -302,51 +251,7 @@
         </ul>
       </div>
     </article>
-
-    <article class="cl-item v5">
-      <div class="cl-side"><b>1.14.0</b><span>11-14</span></div>
-      <div class="cl-body">
-        <h3>频道跟着账号走：换台电脑，群里还是你</h3>
-        <ul>
-          <li>登录后加入的频道会记在账号上，换电脑登同一个账号，频道自己回来（先到先得认领，别人抢不走）</li>
-          <li>消息带上发送者账号；同一个人开两台电脑，群里只算一个人、只占一票</li>
-          <li>@ 与拍一拍按人走：手机式的「u:账号」标记，两台设备同时收到</li>
-          <li>投票踢人按人算，过半口径不变；被投的账号会被整体移出这个频道</li>
-          <li>已读位置按人保存，一台电脑看过，另一台的红点也灭</li>
-        </ul>
-      </div>
-    </article>
-
-  </section>
-
-  <section class="cl-notes">
-    <div class="sec-head">
-      <p class="kicker">几个绕不过去的决定</p>
-      <h2>后来被证明值得的选择</h2>
-    </div>
-    <div class="cl-cards">
-      <div class="card">
-        <div class="ic">≈</div>
-        <h4>100 MB 是这类应用的现实下限</h4>
-        <p>Electron 的 Chromium 解包后就 ~240 MB。能砍的是语言包、软件渲染 Vulkan、调试符号；再小就得换 WebView2（Tauri / Wails），但透明分层窗口、逐窗口阴影那些坑要自己填。</p>
-      </div>
-      <div class="card">
-        <div class="ic">▣</div>
-        <h4>更新器用 cmd，不用 PowerShell</h4>
-        <p>从 Electron 里 <code>spawn('powershell.exe', ['-File', …])</code> 没有任何报错，也不执行。换成 <code>cmd.exe /c apply-update.cmd</code> 一次就过，日志落在同目录。</p>
-      </div>
-      <div class="card">
-        <div class="ic">!d</div>
-        <h4>缩略图靠 <code>!default</code></h4>
-        <p>CDN 按后缀规则出一张缩略图：地址加 <code>!default</code> 是缩略图，去掉就是原图。客户端一个字段管两个用途，列表里也不会一次拉几 MB 的原图。</p>
-      </div>
-      <div class="card">
-        <div class="ic">↺</div>
-        <h4>清单优先取服务器</h4>
-        <p>CDN 把 <code>latest.json</code> 缓存八天，覆盖同名对象也不刷新，purge 接口签不过。所以更新检查先问服务器（发布即生效），CDN 只用来发安装包。</p>
-      </div>
-    </div>
-    <article class="cl-item v5">
+<article class="cl-item v5">
       <div class="cl-side"><b>1.10.3</b><i>11-10</i></div>
       <div class="cl-body">
         <h3>备忘录变成真正的富文本：图片长在文字中间</h3>
@@ -360,8 +265,7 @@
         </ul>
       </div>
     </article>
-
-    <article class="cl-item v5">
+<article class="cl-item v5">
       <div class="cl-side"><b>1.10.4</b><i>11-10</i></div>
       <div class="cl-body">
         <h3>编辑框里也有了右键菜单，粘贴不再跑到下面那条</h3>
@@ -374,8 +278,7 @@
         </ul>
       </div>
     </article>
-
-    <article class="cl-item v5">
+<article class="cl-item v5">
       <div class="cl-side"><b>1.10.5</b><i>11-10</i></div>
       <div class="cl-body">
         <h3>新建框里写的字和刚贴的图，合成同一条</h3>
@@ -387,8 +290,7 @@
         </ul>
       </div>
     </article>
-
-    <article class="cl-item v5">
+<article class="cl-item v5">
       <div class="cl-side"><b>1.10.6</b><i>11-10</i></div>
       <div class="cl-body">
         <h3>通知条底部的进度线，收回到药丸里面</h3>
@@ -399,8 +301,7 @@
         </ul>
       </div>
     </article>
-
-    <article class="cl-item v5">
+<article class="cl-item v5">
       <div class="cl-side"><b>1.10.7</b><i>11-11</i></div>
       <div class="cl-body">
         <h3>桌面便条：图片能点开看大图，纸也能拖着走、拉着改大小</h3>
@@ -411,33 +312,32 @@
         </ul>
       </div>
     </article>
-
-    <div class="cl-item v3">
-      <div class="cl-side"><b>1.10.9</b><span>11-11</span></div>
-      <div class="cl-main">
-        <h3>两张新卡：提醒事项 + 倒数日；开发小工具加随机面板</h3>
-        <ul>
-          <li>小工具页从 7 张卡涨到 9 张：新加「提醒事项」和「倒数日」，还是折叠式的、默认全收起。</li>
-          <li>提醒事项：写一句话 + 选个时间（快捷 5/10/30 分钟、1 小时、明天此时，或自定义 datetime-local），到点会像拍一拍那样抖一下，岛的<b>边缘</b>跑彩虹灯（不铺满、不盖内容）。支持推迟 5 分钟、勾完成。</li>
-          <li>倒数日：每月发薪日（自己选 1-31）、下一个法定假日（春节/五一/国庆/中秋…）、自定义纪念日（每年重复或一次性），到了那天首次启动会弹条提醒。</li>
-          <li>开发小工具新增「随机」tab：抛硬币、掷骰子、1-100 随机数、抽签（每行一个选项随机挑一个）。</li>
+<article class="cl-item v4">
+      <div class="cl-side"><b>1.10.9</b><i>11-11</i></div>
+      <div class="cl-body">
+        <h3>安装包改走又拍云 CDN，连不通再回自己服务器</h3>
+        <ul class="cl-list">
+          <li><b>小工具里点「检查更新」下载的是 CDN。</b>100 MB 的安装包不再从 chat.ccyyqq.com 走，改成先拉 qing.ccyyqq.com（又拍云）；服务器只负责发几百字节的 latest.json，带宽留给别的事。</li>
+          <li><b>连不通会自动换地址。</b>每个来源下完都算一遍 SHA-256 和 latest.json 对一遍，不一致或者网络错误就换下一个：CDN → 清单来源的服务器 → 服务器固定地址，三条都不行才报失败。</li>
+          <li><b>官网的按钮也一样。</b>页面加载时先探一下 CDN 的 latest.json，探不通就把三个下载按钮和「备用下载」对调，下面那行字会标成「已自动切到本站镜像」。</li>
+          <li><b>清单仍然是服务器优先。</b>又拍云会把 latest.json 缓存好几天，所以「有没有新版本」还是问自己服务器，发布即生效。</li>
         </ul>
       </div>
-    </div>
-
-    <div class="cl-item v4">
-      <div class="cl-side"><b>1.10.10</b><span>11-11</span></div>
-      <div class="cl-main">
-        <h3>两套主题的次要文字统一了，提醒的彩虹边真的会跑圈</h3>
+    </article>
+<article class="cl-item v5">
+      <div class="cl-side"><b>1.10.11</b><i>11-11</i></div>
+      <div class="cl-body">
+        <h3>提醒事项的日期时间看得见了，标题栏也不空着了</h3>
         <ul>
-          <li>倒计时 / 提醒卡片里的灰色小字（「每月 20 号」「还有 9 天」这类）原来在深色下偏白、浅色下偏灰，两边可读性都不稳。现在全部按主题文字色混出来，两套主题各自等比缩放。</li>
-          <li>提醒到点的彩虹边，之前其实是「一条斜渐变」被窗口圆角裁掉一半，看着像贴在顶边的光条；改成 conic 渐变绕边旋转，现在是真的沿着一圈跑马灯。</li>
-          <li>顺手加了一条 reduced-motion 保护：系统开了「减少动画」时不转，只留静态彩边。</li>
+          <li>原生 <code>datetime-local</code> 之前按浅色 scheme 画，深色面板上是黑字黑底 —— 现在 <code>color-scheme</code> 跟着主题走，两套主题都清清楚楚。</li>
+          <li>日期框统一 26px 高、等宽数字，日历图标 hover 变亮，聚焦有强调色描边。</li>
+          <li>删掉提醒卡下面那段长提示，空状态不再占地方。</li>
+          <li>面板标题栏在时间右边补上「11月11日 周三 · 十月初三 · 11° 晴」，日期、农历/节日、天气一眼看全。</li>
+          <li>通知条上的「刚刚」放大到 12.5px 并靠右对齐；小纸条的昵称、气泡正文（14.5px）、时间、系统提示统一调大一档。</li>
         </ul>
       </div>
-    </div>
-
-    <article class="cl-item v1">
+    </article>
+<article class="cl-item v1">
       <div class="cl-side"><b>1.11.0</b><i>11-13</i></div>
       <div class="cl-body">
         <h3>有账号了：登录一次，换台电脑也是你</h3>
@@ -464,7 +364,7 @@
         </ul>
       </div>
     </article>
-    <article class="cl-item v1">
+<article class="cl-item v1">
       <div class="cl-side"><b>1.12.1</b><i>11-14</i></div>
       <div class="cl-body">
         <h3>归属之后，笔记里的图片也跟着搬过去</h3>
@@ -475,8 +375,7 @@
         </ul>
       </div>
     </article>
-
-  <article class="cl-item v1">
+<article class="cl-item v1">
     <div class="cl-side"><b>1.13.0</b><span>11-14</span></div>
     <div class="cl-body">
       <h2>咻给好友：绑一个人，事项一键飞过去</h2>
@@ -488,12 +387,37 @@
       </ul>
     </div>
   </article>
+<article class="cl-item v5">
+      <div class="cl-side"><b>1.14.0</b><span>11-14</span></div>
+      <div class="cl-body">
+        <h3>频道跟着账号走：换台电脑，群里还是你</h3>
+        <ul>
+          <li>登录后加入的频道会记在账号上，换电脑登同一个账号，频道自己回来（先到先得认领，别人抢不走）</li>
+          <li>消息带上发送者账号；同一个人开两台电脑，群里只算一个人、只占一票</li>
+          <li>@ 与拍一拍按人走：手机式的「u:账号」标记，两台设备同时收到</li>
+          <li>投票踢人按人算，过半口径不变；被投的账号会被整体移出这个频道</li>
+          <li>已读位置按人保存，一台电脑看过，另一台的红点也灭</li>
+        </ul>
+      </div>
+    </article>
+  <article class="cl-item v5">
+      <div class="cl-side"><b>1.15.0</b><span>11-14</span></div>
+      <div class="cl-body">
+        <h3>待办的圈细回去了，清空不再误删，小纸条里能看见好友</h3>
+        <ul>
+          <li>待办前面那个勾改回细圈：17px、1.2px 描边，完成时只是圈和勾变成强调色 —— 不再是点击后冒出一大块紫色方块。</li>
+          <li>「全部删除」现在保留两类：钉在桌面上的（备忘录和待办）、以及还没做完的待办。确认提示会写清要保留几条。</li>
+          <li>小纸条顶部多了一条好友：绑过的好友一字排开，点谁的脑袋就看和谁的「咻记录」——谁咻给谁、备忘录还是待办、什么时候。</li>
+          <li>右边的「咻记录」看全部往来；服务端新增 <code>GET /api/shares/history</code>，取最近 100 条收发。</li>
+        </ul>
+      </div>
+    </article>
 </section>
 
   <footer class="foot">
     <div class="foot-left">
       <span class="mark small" aria-hidden="true"><i></i><b></b></span>
-      <span>Qing Tools <span class="dim">v1.14.0</span></span>
+      <span>Qing Tools <span class="dim">v1.15.0</span></span>
     </div>
     <div class="foot-right">
       <a href="index.html">回到首页</a>

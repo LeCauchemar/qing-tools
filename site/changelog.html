@@ -31,7 +31,7 @@
     <button class="icon-btn" id="themeBtn" title="切换明暗" aria-label="切换明暗">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path class="sun" d="M12 4v2m0 12v2m8-8h-2M6 12H4m13.7-5.7-1.4 1.4M7.7 16.3l-1.4 1.4m11.4 0-1.4-1.4M7.7 7.7 6.3 6.3"/><circle cx="12" cy="12" r="3.6"/></svg>
     </button>
-    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.12.0-setup.exe">下载</a>
+    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.12.1-setup.exe">下载</a>
   </div>
 </header>
 
@@ -45,7 +45,7 @@
       在群里发一句就走。下面是中间每一步到底改了什么、为什么改。
     </p>
     <div class="cl-stats">
-      <div><b>58</b><span>个可安装版本（1.0 → 1.12.0）</span></div>
+      <div><b>59</b><span>个可安装版本（1.0 → 1.12.1）</span></div>
       <div><b>9</b><span>天（11-05 → 11-13）</span></div>
       <div><b>100 MB</b><span>安装包（砍过 21 MB）</span></div>
       <div><b>7</b><span>个页签</span></div>
@@ -449,12 +449,23 @@
         </ul>
       </div>
     </article>
+    <article class="cl-item v1">
+      <div class="cl-side"><b>1.12.1</b><i>11-14</i></div>
+      <div class="cl-body">
+        <h3>归属之后，笔记里的图片也跟着搬过去</h3>
+        <ul>
+          <li>之前把本机数据归到账号时只搬了文字，图片还留在本机目录里，结果账号分区里全是裂图（列表里只剩一个「图片」占位）。</li>
+          <li>现在归属时会扫描每条笔记里的 <code>[[img:文件]]</code> 引用，把缺的图片从本机 <code>note-images</code> 复制到账号目录，重名跳过、路径做白名单校验，不会覆盖已有文件。</li>
+          <li>已经在 1.12.0 归属过的机器，这次启动后打开那条笔记就能看到图（旧的裂图会重新解析到复制过来的文件）。</li>
+        </ul>
+      </div>
+    </article>
 </section>
 
   <footer class="foot">
     <div class="foot-left">
       <span class="mark small" aria-hidden="true"><i></i><b></b></span>
-      <span>Qing Tools <span class="dim">v1.12.0</span></span>
+      <span>Qing Tools <span class="dim">v1.12.1</span></span>
     </div>
     <div class="foot-right">
       <a href="index.html">回到首页</a>

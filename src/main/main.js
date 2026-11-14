@@ -2040,6 +2040,36 @@ ipcMain.on('app:dragHold', (e, on) => {
     copied.reminders = mergeById(cur.reminders, ld.reminders);
     copied.anniversaries = mergeById(cur.countdowns.anniversaries, (ld.countdowns || {}).anniversaries);
     if (!cur.countdowns.payday && ld.countdowns && ld.countdowns.payday) cur.countdowns.payday = ld.countdowns.payday;
+    // 把笔记里引用的图片一起搬过来（本地 note-images → 账号 note-images），否则归属后图片全是裂图
+    try {
+      const srcDir = path.join(DATA_DIR, 'note-images');
+      const dstDir = noteImagesDir();
+      const files = new Set();
+      const reImg = /\[\[img:([^\]\s]+)\]\]/g;
+      for (const n of cur.notes) {
+        const t = String((n && n.text) || '');
+        let m;
+        reImg.lastIndex = 0;
+        while ((m = reImg.exec(t))) files.add(m[1]);
+        if (n && n.image) files.add(n.image);
+      }
+      let moved = 0;
+      if (files.size) await fs.promises.mkdir(dstDir, { recursive: true });
+      for (const f of files) {
+        const safe = /^[A-Za-z0-9._-]+$/.test(f);
+        if (!safe) continue;
+        const to = path.join(dstDir, f);
+        try {
+          await fs.promises.access(to);
+          continue;
+        } catch (_) {}
+        try {
+          await fs.promises.copyFile(path.join(srcDir, f), to);
+          moved += 1;
+        } catch (_) {}
+      }
+      if (moved) copied.images = moved;
+    } catch (_) {}
     // 记一笔「谁认领了本机数据」，以后不再提示
     ld.meta = ld.meta || {};
     ld.meta.claimedBy = profile.uid;

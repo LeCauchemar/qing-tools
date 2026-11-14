@@ -153,6 +153,11 @@ function useProfile(next) {
   try {
     if (clip && typeof clip.hydrate === 'function') clip.hydrate();
   } catch (_) {}
+  // 分区一换，桌上该贴哪几张便条也跟着变：启动时先按 local 分区贴过一次，
+  // 登录态恢复后切到账号分区，这里必须重贴，否则「钉在桌面」的便条会消失。
+  try {
+    if (typeof syncStickies === 'function') syncStickies();
+  } catch (_) {}
   try {
     broadcast();
   } catch (_) {}

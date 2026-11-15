@@ -295,7 +295,14 @@ function broadcast() {
     if (!w || w.isDestroyed()) continue;
     const n = noteById(id);
     if (!n) continue;
-    w.webContents.send('sticky:update', { id: n.id, text: n.text, updatedAt: n.updatedAt });
+    w.webContents.send('sticky:update', {
+      id: n.id,
+      text: n.text,
+      updatedAt: n.updatedAt,
+      kind: n.kind,
+      done: n.done,
+      doneLines: n.doneLines || []
+    });
   }
 }
 function send(channel, payload) {
@@ -373,6 +380,36 @@ function setMask(on) {
 // ---------------------------------------------------------------- 桌面小便条
 function noteById(id) {
   return (store.data.notes || []).find((n) => n.id === id) || null;
+}
+
+/** 待办按行勾选：一行一个圆圈，全勾完自动算整条完成；取消任意一行就恢复未完成 */
+function toggleNoteLine(n, line) {
+  if (!n || n.kind !== 'todo') return { ok: false };
+  const idx = Math.floor(Number(line));
+  const lines = String(n.text || '').split('\n');
+  if (!(idx >= 0 && idx < lines.length) || !lines[idx].trim()) return { ok: false };
+  const set = new Set(Array.isArray(n.doneLines) ? n.doneLines : []);
+  if (set.has(idx)) set.delete(idx);
+  else set.add(idx);
+  n.doneLines = [...set].sort((a, b) => a - b);
+  const meaningful = lines.map((s, i) => (s.trim() ? i : -1)).filter((i) => i >= 0);
+  n.done = meaningful.length > 0 && meaningful.every((i) => set.has(i));
+  n.doneAt = n.done ? Date.now() : 0;
+  n.updatedAt = Date.now();
+  store.save();
+  broadcast();
+  sync.queue(n.id);
+  return { ok: true, done: !!n.done, doneLines: n.doneLines };
+}
+
+/** 整条勾选时把行状态对齐：勾上=每一行都完成，取消=全部恢复 */
+function applyWholeDone(n, done) {
+  const lines = String(n.text || '').split('\n');
+  const meaningful = lines.map((s, i) => (s.trim() ? i : -1)).filter((i) => i >= 0);
+  n.done = !!done;
+  n.doneLines = n.done ? meaningful : [];
+  n.doneAt = n.done ? Date.now() : 0;
+  n.updatedAt = Date.now();
 }
 
 function stickyDefaultPos(note) {
@@ -1090,6 +1127,7 @@ function registerIpc() {
       text: t.slice(0, 4000),
       kind: kind === 'todo' ? 'todo' : 'note',
       done: false,
+      doneLines: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
       pinned: false
@@ -1105,13 +1143,17 @@ function registerIpc() {
   ipcMain.handle('notes:done', (e, { id, done }) => {
     const n = (store.data.notes || []).find((x) => x.id === id);
     if (!n) return { ok: false };
-    n.done = done === undefined ? !n.done : !!done;
-    n.doneAt = n.done ? Date.now() : 0;
-    n.updatedAt = Date.now();
+    applyWholeDone(n, done === undefined ? !n.done : done);
     store.save();
     broadcast();
     sync.queue(id);
     return { ok: true, note: n };
+  });
+  // 待办里的一行打勾（多行待办每行一个圆圈）
+  ipcMain.handle('notes:lineDone', (e, { id, line }) => {
+    const n = (store.data.notes || []).find((x) => x.id === id);
+    if (!n) return { ok: false };
+    return toggleNoteLine(n, line);
   });
   // 备忘录里的图片：粘贴进来就落盘到 userData\note-images，正文只存文件名
   ipcMain.handle('notes:addImage', async (e, payload) => {
@@ -1315,6 +1357,10 @@ function readClipboardFiles() {
     const n = store.data.notes.find((x) => x.id === id);
     if (!n) return { ok: false };
     n.text = String(text || '').slice(0, 4000);
+    // 正文改过之后行号就不可信了：行完成状态归零，整条回到未完成
+    n.doneLines = [];
+    n.done = false;
+    n.doneAt = 0;
     n.updatedAt = Date.now();
     store.save();
     broadcast();
@@ -1850,10 +1896,19 @@ function readClipboardFiles() {
     const n = noteById(id);
     if (!n) return { ok: false };
     n.text = String(text == null ? '' : text).slice(0, 4000);
+    n.doneLines = [];
+    n.done = false;
+    n.doneAt = 0;
     n.updatedAt = Date.now();
     store.save();
     broadcast();
     return { ok: true };
+  });
+  // 便条里的待办圆圈：点一下切一行
+  ipcMain.handle('sticky:lineDone', (e, id, line) => {
+    const n = noteById(id);
+    if (!n) return { ok: false };
+    return toggleNoteLine(n, line);
   });
   ipcMain.handle('sticky:remove', (e, id) => {
     store.data.notes = (store.data.notes || []).filter((x) => x.id !== id);
@@ -1865,7 +1920,18 @@ function readClipboardFiles() {
   ipcMain.handle('sticky:snapshot', (e, id) => {
     const n = noteById(id);
     return n
-      ? { ok: true, note: { id: n.id, text: n.text, updatedAt: n.updatedAt, fontSize: n.fontSize } }
+      ? {
+          ok: true,
+          note: {
+            id: n.id,
+            text: n.text,
+            kind: n.kind,
+            done: n.done,
+            doneLines: n.doneLines || [],
+            updatedAt: n.updatedAt,
+            fontSize: n.fontSize
+          }
+        }
       : { ok: false };
   });
 
@@ -1907,7 +1973,14 @@ function readClipboardFiles() {
     store.save();
     const w = stickies.get(id);
     if (w && !w.isDestroyed())
-      w.webContents.send('sticky:update', { id: n.id, text: n.text, fontSize: n.fontSize });
+      w.webContents.send('sticky:update', {
+        id: n.id,
+        text: n.text,
+        fontSize: n.fontSize,
+        kind: n.kind,
+        done: n.done,
+        doneLines: n.doneLines || []
+      });
     return { ok: true, fontSize: n.fontSize };
   });
 

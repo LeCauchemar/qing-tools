@@ -123,6 +123,37 @@ body {
   color: rgba(90, 76, 42, 0.45);
 }
 
+/* 待办便条：每行前一个圆圈，点一下切换完成 */
+.note .chk {
+  display: inline-grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  margin: 0 5px 0 0;
+  border: 1.4px solid rgba(70, 58, 32, 0.42);
+  border-radius: 50%;
+  vertical-align: -2px;
+  cursor: pointer;
+  user-select: none;
+}
+.note .chk.on {
+  background: rgba(70, 58, 32, 0.78);
+  border-color: transparent;
+}
+.note .chk.on::after {
+  content: '';
+  width: 6px;
+  height: 3px;
+  margin-top: -2px;
+  border-left: 1.6px solid var(--paper);
+  border-bottom: 1.6px solid var(--paper);
+  transform: rotate(-45deg);
+}
+.note .tl.done {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+
 /* 便条里的截图：正文里按顺序显示（长图也能看全，纸面内部滚动） */
 .note .pic {
   display: block;

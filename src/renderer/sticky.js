@@ -16,6 +16,8 @@
   let last = '';
   let saveT = null;
   let loading = true;
+  // 待办便条要按行画圆圈：kind / done / doneLines 由主进程推过来
+  const meta = { kind: 'note', done: false, doneLines: [] };
 
   function applyFont(size, persist) {
     fs = Math.max(FS_MIN, Math.min(FS_MAX, Math.round(size)));
@@ -28,7 +30,30 @@
 
   function setText(text) {
     last = String(text == null ? '' : text);
-    note.replaceChildren(noteDom(last));
+    note.replaceChildren(meta.kind === 'todo' ? todoDom(last) : noteDom(last));
+  }
+
+  /** 待办便条：每行前面一个圆圈，已完成的行划线变灰 */
+  function todoDom(text) {
+    const frag = document.createDocumentFragment();
+    const lines = String(text || '').split('\n');
+    const doneLines = Array.isArray(meta.doneLines) ? meta.doneLines : [];
+    lines.forEach((ln, i) => {
+      if (i) frag.appendChild(document.createElement('br'));
+      if (!ln.trim()) return;
+      const done = !!meta.done || doneLines.indexOf(i) >= 0;
+      const chk = document.createElement('span');
+      chk.className = 'chk' + (done ? ' on' : '');
+      chk.contentEditable = 'false';
+      chk.dataset.line = String(i);
+      chk.title = done ? '取消完成' : '完成';
+      frag.appendChild(chk);
+      const tl = document.createElement('span');
+      tl.className = 'tl' + (done ? ' done' : '');
+      tl.textContent = ' ' + ln;
+      frag.appendChild(tl);
+    });
+    return frag;
   }
 
   /* 正文里的图片标记：[[img:<file>]]，渲染成一张小图，保存时再写回标记 */
@@ -106,6 +131,8 @@
           if (f) out += '\n[[img:' + f + ']]\n';
           return;
         }
+        // 待办行前的圆圈是控件，不算正文
+        if (n.classList && n.classList.contains('chk')) return;
         if (n.nodeName === 'DIV' || n.nodeName === 'P') {
           if (out && !/\n$/.test(out)) out += '\n';
           walk(n);
@@ -157,14 +184,19 @@
   note.addEventListener(
     'mousedown',
     (e) => {
-      const img = e.target.closest && e.target.closest('img.pic');
-      if (!img) return;
-      // 拦住 contenteditable 落光标，避免点完图光标跳到图前面
-      e.preventDefault();
+      // 待办圆圈和图片都不该让 contenteditable 落光标
+      if (e.target.closest && (e.target.closest('img.pic') || e.target.closest('.chk'))) e.preventDefault();
     },
     true
   );
   note.addEventListener('click', (e) => {
+    const chk = e.target.closest && e.target.closest('.chk');
+    if (chk) {
+      e.preventDefault();
+      e.stopPropagation();
+      api.lineDone(Number(chk.dataset.line));
+      return;
+    }
     const img = e.target.closest && e.target.closest('img.pic');
     if (!img) return;
     e.preventDefault();
@@ -240,16 +272,44 @@
     }
   });
 
+  /** 只刷新圆圈与划线，不重建 contenteditable（否则正在打字的光标会丢） */
+  function paintChk() {
+    const doneLines = Array.isArray(meta.doneLines) ? meta.doneLines : [];
+    note.querySelectorAll('.chk').forEach((el) => {
+      const i = Number(el.dataset.line);
+      const done = !!meta.done || doneLines.indexOf(i) >= 0;
+      el.classList.toggle('on', done);
+      el.title = done ? '取消完成' : '完成';
+      const tl = el.nextElementSibling;
+      if (tl && tl.classList && tl.classList.contains('tl')) tl.classList.toggle('done', done);
+    });
+  }
+
   // 主进程推送（岛上面板改了同一张便条）
   api.onUpdate((n) => {
     if (!n || n.id !== api.id) return;
     if (typeof n.fontSize === 'number') applyFont(n.fontSize, false);
-    if (document.activeElement === note) return;
-    if (n.text !== last) setText(n.text);
+    meta.kind = n.kind === 'todo' ? 'todo' : 'note';
+    meta.done = !!n.done;
+    meta.doneLines = Array.isArray(n.doneLines) ? n.doneLines : [];
+    if (n.text !== last) {
+      // 正在这张便条里打字时不要重建，等失焦保存后再同步
+      if (document.activeElement === note) return;
+      setText(n.text);
+      return;
+    }
+    if (document.activeElement === note) {
+      paintChk();
+      return;
+    }
+    note.replaceChildren(meta.kind === 'todo' ? todoDom(last) : noteDom(last));
   });
 
   api.snapshot().then((r) => {
     if (r && r.ok) {
+      meta.kind = r.note.kind === 'todo' ? 'todo' : 'note';
+      meta.done = !!r.note.done;
+      meta.doneLines = Array.isArray(r.note.doneLines) ? r.note.doneLines : [];
       setText(r.note.text);
       if (typeof r.note.fontSize === 'number') applyFont(r.note.fontSize, false);
     }

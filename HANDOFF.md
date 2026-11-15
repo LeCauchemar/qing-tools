@@ -1,3 +1,9 @@
+## 2026-11-15 21:45 · 1.16.6 · DeepSeekRuntime
+- 改了什么：① 好友申请提醒 —— 新增 `pollBindings()`（每 20 秒，boot 的 `setInterval` 与 `accLoadStatus` 都调），新申请弹 peek（`tab:'settings'`）+ `toast` + 设置页红点 `#tabDotSet`（`paintFriendDot()`，`setTab` 时清）；`accLoadFriends()` 置 `S.account.bindPrimed`，启动不弹历史。② 咻分享跳转 —— `showPeek()` 支持 `o.tab`，`pollShares()` 传 `tab:'notes'`，peek 点击 `openPanel(S.peekTab||'mail')`（原来一律 `openPanel('mail')`）。③ 多行待办 —— `note.doneLines` 行状态；主进程 `toggleNoteLine()` / `applyWholeDone()`、IPC `notes:lineDone` / `sticky:lineDone`，`notes:add` 初始化 `doneLines`，`notes:update` / `sticky:update` 重置行状态；渲染层 `todoLineStats()` / `todoBodyHtml()` 每行一个圆圈，`data-act="note-line-done"`；CSS `.todo-lines/.todo-line/.tl-text`；便签 `sticky.js` 的 `todoDom()` 画 `.chk` + `.tl`，`paintChk()` 只刷圆圈不重建 contenteditable，`readNote()` 跳过 `.chk`；`broadcast` / `sticky:snapshot` / `sticky:font` 带 `kind/done/doneLines`；`preload.js` / `sticky-preload.js` 暴露 `lineDone`。
+- 为什么：用户报了三个问题 —— 好友申请对方无提示；咻来的事项点通知条后界面收起/跳错页；一条待办写多行只有一个圆圈，钉桌面后也没有圆圈、完成不能划线。
+- 怎么验证：dev（CDP 9333）与装机版 1.16.6 各测：多行待办 2 行/2 圆圈/0 整条圆圈；勾第一行 `doneLines=[0]`、删除线 `line-through`、第二行 `none`；取消后 `[]`、恢复；全勾 `done=true`、`doneLines=[0,1]`；便签窗口 2 个 `.chk`，点击后 `on=2`、`done=2`、主进程 `doneLines=[0,1]`；`showPeek({tab:'notes'})` → `S.peekTab='notes'`，点击 `#viewPeek` 后 `mode=panel`、`tab=notes`；`#tabDotSet` 存在且 `paintFriendDot()` 在伪造 pending 时 `on`。
+- 下一步 / 已知问题：好友申请轮询 20 秒一次（与分享轮询同频），没有 SSE；便签里编辑正文后行状态会归零（行号不可信）；`doneLines` 不参与 M7 云端同步（服务端 items 表没有该字段，跨设备只同步整条 `done`）。
+
 ## 2026-11-15 21:10 · 1.16.5 · DeepSeekRuntime
 - 改了什么：`styles.css` 的 `.select option` 背景从写死 `#12141c` 改为 `var(--surface-base)`（文字仍 `var(--ink)`）。
 - 为什么：浅色主题下 `--ink` 是近黑色，写死的深色背景让原生下拉弹层变成黑底黑字 —— 倒数日「每月发薪日」的 31 个选项只剩当前选中那一行能看见。

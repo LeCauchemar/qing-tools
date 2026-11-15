@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('sticky', {
   id,
   snapshot: () => ipcRenderer.invoke('sticky:snapshot', id),
   update: (text) => ipcRenderer.invoke('sticky:update', id, text),
+  lineDone: (line) => ipcRenderer.invoke('sticky:lineDone', id, line),
   font: (size) => ipcRenderer.invoke('sticky:font', id, size),
   unstuck: () => ipcRenderer.invoke('sticky:unstuck', id),
   remove: () => ipcRenderer.invoke('sticky:remove', id),

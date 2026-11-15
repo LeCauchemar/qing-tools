@@ -6083,6 +6083,25 @@ body.resizing .island * {
 .row.note.todo.done .note-rich { opacity: 0.55; text-decoration: line-through; }
 .row.note.todo.done .row-sub .tag { opacity: 0.7; }
 
+/* 多行待办：每行一个圆圈，完成的行划线 + 变灰 */
+.todo-lines { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.todo-line { display: flex; align-items: flex-start; gap: 7px; min-width: 0; }
+.todo-line.blank { height: 4px; }
+.todo-line .check-btn { margin-top: 1px; }
+.todo-line .tl-text {
+  min-width: 0;
+  font-size: 13px;
+  line-height: 20px;
+  word-break: break-word;
+  white-space: pre-wrap;
+  transition: color 140ms var(--smooth), opacity 140ms var(--smooth);
+}
+.todo-line.done .tl-text {
+  opacity: 0.55;
+  text-decoration: line-through;
+  color: color-mix(in srgb, var(--ink) 55%, transparent);
+}
+
 .check-btn {
   flex: none;
   align-self: flex-start;

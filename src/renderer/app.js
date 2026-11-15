@@ -759,6 +759,7 @@ function setTab(name) {
     if (el.timerM) setTimeout(() => el.timerM.select(), 260);
   }
   markSeen(name);
+  paintFriendDot();
 }
 
 /* ---------------------------------------------------------------- 提示 */
@@ -780,7 +781,8 @@ function showPeek(o) {
   }
   S.peekCode = o.code || '';
   S.peekRoom = o.room === undefined ? null : o.room;
-  S.peekTab = o.room === undefined ? 'mail' : 'chat';
+  // 通知条点开后去哪个页签：默认邮件；聊天消息去小纸条；咻分享去「Qing 事项」
+  S.peekTab = o.tab || (o.room === undefined ? 'mail' : 'chat');
   el.stage.classList.toggle('peek-copy', !!o.code);
   // 被 @ 的时候整条岛和通知条都滚彩虹色
   el.stage.classList.toggle('rainbow-peek', !!o.rainbow);
@@ -1292,6 +1294,7 @@ function notePlain(text) {
 
 function noteBodyHtml(n) {
   const text = String(n.text || '');
+  if (n.kind === 'todo') return todoBodyHtml(n, text);
   let head = '';
   // 老数据：图片存在 note.image 字段、正文里没有标记
   if (n.image && text.indexOf(noteToken(n.image)) < 0) head = noteImgTag(n.image);
@@ -1304,6 +1307,42 @@ function noteBodyHtml(n) {
     })
     .join('');
   return head + html;
+}
+
+/** 一条待办里有多行时：每行一个圆圈，完成的行划线变灰 */
+function todoLineStats(n) {
+  const lines = String((n && n.text) || '').split('\n');
+  const indexes = lines.map((s, i) => (s.trim() ? i : -1)).filter((i) => i >= 0);
+  return { lines, indexes, multi: indexes.length > 1 };
+}
+
+function todoBodyHtml(n, text) {
+  const { lines, multi } = todoLineStats(n);
+  if (!multi) return '<div class="row-text">' + esc(text) + '</div>';
+  const doneLines = Array.isArray(n.doneLines) ? n.doneLines : [];
+  return (
+    '<div class="todo-lines">' +
+    lines
+      .map((ln, i) => {
+        if (!ln.trim()) return '<div class="todo-line blank"></div>';
+        const done = !!n.done || doneLines.indexOf(i) >= 0;
+        return (
+          '<div class="todo-line' + (done ? ' done' : '') + '">' +
+          '<button class="check-btn' + (done ? ' on' : '') + '" data-act="note-line-done" data-line="' +
+          i +
+          '" title="' +
+          (done ? '取消完成' : '完成') +
+          '"><svg class="ic"><use href="#i-' +
+          (done ? 'check' : 'circle') +
+          '"/></svg></button>' +
+          '<span class="tl-text">' +
+          esc(ln) +
+          '</span></div>'
+        );
+      })
+      .join('') +
+    '</div>'
+  );
 }
 
 /** 把正文拆成「文字段 / 图片段」，顺手去掉图片两边多余的空行（图片本来就独占一行） */
@@ -1490,7 +1529,7 @@ function renderNotes() {
           (editing ? ' editing' : '') + (todo ? ' todo' : '') + (todo && n.done ? ' done' : '') +
           '" data-id="' + n.id + '" role="button" style="animation-delay:' +
           Math.min(i * 18, 220) + 'ms">' +
-          (todo
+          (todo && !todoLineStats(n).multi
             ? '<button class="check-btn' + (n.done ? ' on' : '') + '" data-act="note-done" title="' +
               (n.done ? '标记未完成' : '完成') + '"><svg class="ic"><use href="#i-' +
               (n.done ? 'check' : 'circle') + '"/></svg></button>'
@@ -1761,7 +1800,10 @@ async function accLoadStatus() {
     const hasUser = !!(S.sms && S.sms.kind === 'user');
     if (wantUser !== hasUser) await smsReset();
   } catch (_) {}
-  if (S.account.signedIn) pollShares();
+  if (S.account.signedIn) {
+    pollShares();
+    pollBindings();
+  }
 }
 
 // M3：本机旧数据归属——登录后如果本机还有没归属过的数据，就把卡片亮出来
@@ -2075,9 +2117,51 @@ async function accLoadFriends() {
     S.account.friends = r.friends || [];
     S.account.requests = r.incoming || [];
     S.account.outgoing = r.outgoing || [];
+    // 启动时那次只记账，不当成「刚来的申请」弹通知
+    S.account.bindPrimed = true;
   }
   renderAccFriends();
   renderChatPeople();
+  paintFriendDot();
+}
+
+/** 轮询好友申请：别人申请后本机要能立刻看到，并给设置页签亮红点 */
+async function pollBindings() {
+  if (!S.account.signedIn || !api.account.bindings) return;
+  const r = await api.account.bindings();
+  if (!r || !r.ok) return;
+  const incoming = r.incoming || [];
+  const prev = new Set((S.account.requests || []).map((x) => x.id));
+  S.account.friends = r.friends || [];
+  S.account.requests = incoming;
+  S.account.outgoing = r.outgoing || [];
+  renderAccFriends();
+  renderChatPeople();
+  paintFriendDot();
+  if (S.account.bindPrimed) {
+    const fresh = incoming.filter((x) => !prev.has(x.id));
+    if (fresh.length) {
+      const q = fresh[0];
+      const who = (q.from && (q.from.nick || q.from.username)) || '有人';
+      showPeek({
+        icon: '#i-heart',
+        title: who + ' 想加你为好友',
+        sub: '去「设置 → 账号」点同意',
+        dur: 9000,
+        force: true,
+        tab: 'settings'
+      });
+      toast(who + ' 想加你为好友 · 设置 → 账号 里同意', true);
+    }
+  }
+  S.account.bindPrimed = true;
+}
+
+/** 设置页签上的好友申请红点 */
+function paintFriendDot() {
+  const dot = $('#tabDotSet');
+  if (!dot) return;
+  dot.classList.toggle('on', (S.account.requests || []).length > 0 && S.tab !== 'settings');
 }
 
 function renderAccFriends() {
@@ -2385,7 +2469,8 @@ async function pollShares() {
     sub: String((first.item && first.item.text) || '（空）').slice(0, 42),
     time: '刚刚',
     dur: 7200,
-    force: true
+    force: true,
+    tab: 'notes'
   });
   renderNotes();
   nudgeRect(900);
@@ -4518,6 +4603,12 @@ async function handleAct(act, node) {
       const next = !(cur && cur.done);
       await api.notes.done(id, next);
       toast(next ? '完成了一条待办' : '又变回没完成了');
+      break;
+    }
+    case 'note-line-done': {
+      const line = Number(node.dataset.line);
+      const r = await api.notes.lineDone(id, line);
+      if (r && r.ok && r.done) toast('这一条待办全做完了');
       break;
     }
     case 'note-del': {
@@ -6690,7 +6781,7 @@ function bindUi() {
         chatSelect(S.peekRoom, false);
         openPanel('chat');
       } else {
-        openPanel('mail');
+        openPanel(S.peekTab || 'mail');
       }
       return;
     }
@@ -9435,6 +9526,7 @@ async function boot() {
   }, 400);
   setInterval(() => {
     pollShares();
+    pollBindings();
   }, 20000);
   setInterval(smsWatchdog, 30000);
   setTimeout(() => {

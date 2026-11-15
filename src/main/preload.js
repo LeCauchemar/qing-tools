@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('island', {
     remove: (id) => invoke('notes:remove', id),
     togglePin: (id) => invoke('notes:togglePin', id),
     done: (id, done) => invoke('notes:done', { id, done }),
+    lineDone: (id, line) => invoke('notes:lineDone', { id, line }),
     clear: () => invoke('notes:clear')
   },
 

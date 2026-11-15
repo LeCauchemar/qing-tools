@@ -1,3 +1,9 @@
+## 2026-11-15 10:32 · 1.16.3 · DeepSeekRuntime（GitHub 补齐）
+- 改了什么：用户打开 Clash 后，把 `main`（→ `c0220d7`）与 `v1.16.2`、`v1.16.3` 两个 tag 推到 GitHub，并按 tag 建了两个 Release；新增 `tools/gh-assets.mjs` 把安装包挂成 Release 附件（1.16.3 两个已传完，1.16.0–1.16.2 在补传）。
+- 为什么：此前 GitHub 一直 `Recv failure: Connection was reset`，Release 只有 CDN 链接、没有附件；用户最初的要求是「源码 + 安装包」都放上去。
+- 怎么验证：`git ls-remote github` 有 `main=c0220d7`、`refs/tags/v1.16.2`、`refs/tags/v1.16.3`；`api.github.com/repos/.../releases/tags/v1.16.3` 返回 200，`assets` 里 `QingTools-1.16.3-setup.exe` 106,795,485B、`-portable.exe` 97,481,657B 均 `state=uploaded`。
+- 下一步 / 已知问题：1.12.0–1.15.2 的 Release 只带 CDN 链接（当时没传附件），需要时对每个 tag 跑 `node tools\gh-assets.mjs vX.Y.Z dist\QingTools-X.Y.Z-setup.exe`；GitHub 附件走上传接口，本机 100MB 约 15 秒（Clash TUN 生效时）。
+
 ## 2026-11-14 18:48 · 1.16.3 · DeepSeekRuntime
 - 改了什么：`useProfile()` 切换数据分区后重新调用 `syncStickies()`，让桌面便条跟着分区走。
 - 为什么：启动时 900ms 那次 `syncStickies()` 按本机分区执行，登录态恢复切到账号分区后没再贴，钉住的便条重启后消失。

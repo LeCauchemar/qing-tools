@@ -1,8 +1,8 @@
 ## 2026-11-15 10:32 · 1.16.3 · DeepSeekRuntime（GitHub 补齐）
-- 改了什么：用户打开 Clash 后，把 `main`（→ `c0220d7`）与 `v1.16.2`、`v1.16.3` 两个 tag 推到 GitHub，并按 tag 建了两个 Release；新增 `tools/gh-assets.mjs` 把安装包挂成 Release 附件（1.16.3 两个已传完，1.16.0–1.16.2 在补传）。
+- 改了什么：用户打开 Clash 后，把 `main`（→ `c0220d7`）与缺失的 tag `v1.16.1`、`v1.16.2`、`v1.16.3` 推到 GitHub；补齐 `v1.16.1`、`v1.16.2`、`v1.16.3` 三个 Release，又补建了原先完全没有的 `v1.15.0`、`v1.15.1`、`v1.15.2` 三个 Release；新增 `tools/gh-release-11623.mjs`、`tools/gh-release-one.mjs`、`tools/gh-assets.mjs`，把 1.11.0–1.16.3 共 12 个 Release 全部挂上 setup + portable 两个附件。
 - 为什么：此前 GitHub 一直 `Recv failure: Connection was reset`，Release 只有 CDN 链接、没有附件；用户最初的要求是「源码 + 安装包」都放上去。
-- 怎么验证：`git ls-remote github` 有 `main=c0220d7`、`refs/tags/v1.16.2`、`refs/tags/v1.16.3`；`api.github.com/repos/.../releases/tags/v1.16.3` 返回 200，`assets` 里 `QingTools-1.16.3-setup.exe` 106,795,485B、`-portable.exe` 97,481,657B 均 `state=uploaded`。
-- 下一步 / 已知问题：1.12.0–1.15.2 的 Release 只带 CDN 链接（当时没传附件），需要时对每个 tag 跑 `node tools\gh-assets.mjs vX.Y.Z dist\QingTools-X.Y.Z-setup.exe`；GitHub 附件走上传接口，本机 100MB 约 15 秒（Clash TUN 生效时）。
+- 怎么验证：`api.github.com/repos/.../releases?per_page=20` 返回 12 条，`v1.11.0`–`v1.16.3` 每个 `assets=2`（如 `QingTools-1.16.3-setup.exe` 106,795,485B、`-portable.exe` 97,481,657B，均 `state=uploaded`）；`git ls-remote github` 的 `main=c0220d7`、tag 从 `v1.16.0` 到 `v1.16.3` 齐全。
+- 下一步 / 已知问题：附件是**手工挂的**，以后每个新版本发完要跑 `node tools\gh-assets.mjs vX.Y.Z dist\QingTools-X.Y.Z-setup.exe dist\QingTools-X.Y.Z-portable.exe`（Clash TUN 生效时 100MB 约 15 秒）；1.10.x 及更早的 Release 没补（若需要同样一条命令即可）。
 
 ## 2026-11-14 18:48 · 1.16.3 · DeepSeekRuntime
 - 改了什么：`useProfile()` 切换数据分区后重新调用 `syncStickies()`，让桌面便条跟着分区走。

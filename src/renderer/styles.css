@@ -1609,7 +1609,8 @@ body.island-drag .island {
 }
 
 .select option {
-  background: #12141c;
+  /* 下拉弹层由 Chromium 原生绘制，背景不能写死深色：浅色主题下会变成黑底黑字 */
+  background: var(--surface-base);
   color: var(--ink);
 }
 

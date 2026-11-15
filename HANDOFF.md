@@ -1,8 +1,15 @@
+## 2026-11-15 21:10 · 1.16.5 · DeepSeekRuntime
+- 改了什么：`styles.css` 的 `.select option` 背景从写死 `#12141c` 改为 `var(--surface-base)`（文字仍 `var(--ink)`）。
+- 为什么：浅色主题下 `--ink` 是近黑色，写死的深色背景让原生下拉弹层变成黑底黑字 —— 倒数日「每月发薪日」的 31 个选项只剩当前选中那一行能看见。
+- 怎么验证：dev（CDP 9333）与装机版 1.16.5 各测一遍：浅色下 `option` 背景 `rgb(255,255,255)`、文字 `rgb(20,22,31)`；深色下背景 `rgb(15,17,23)`、文字 `rgb(234,238,248)`；`#cdPayday` 32 个选项（未设置 + 1–31）。
+- 下一步 / 已知问题：原生弹层不在页面合成里，没法用页面截图断言，已按计算样式 + 旧 bug 的因果关系确认；提醒事项、倒数日「每年 / 只这一次」共用同一规则，一并修好。
+
 ## 2026-11-15 18:10 · 1.16.4 · DeepSeekRuntime
 - 改了什么：短信验证码从「每台电脑一个身份（`sms_owners`）」改为「跟着账号走」——服务端 `sms_devices.user_id` / `sms.user_id` 新列（`server/index.mjs:291-304` 建表迁移），`resolveReader(req, url)` 三档身份（账号 Bearer / SSE `?token=` > 服务器主密钥 > 未登录的本机身份，约 510 行），`handleHookSms`（入库写 user_id、`pushSms` 按 userId 或 ownerId 匹配）、`handleSmsDevices` / `handleSmsDeviceCreate` / `ownDevice` / `handleSmsStream` / `handleSmsList` / `handleHookInfo`（返回 `mode`），`handleSmsEnroll` 对已登录客户端返回 `use_account`；客户端 `src/renderer/app.js` 新增 `smsIdentity / smsAuth / smsQuery / smsReset / paintSmsRows`，改写 `smsInit / smsAccept / smsDevicesLoad / smsDeviceCreate / smsDeviceRevoke / smsDeviceRemove / paintSms`，登录 / 注册 / 找回 / `accLoadStatus` 恢复登录态后调用 `smsReset()`；`index.html` 短信卡片加 `#smsAccRow`（账号同步说明）并把主密钥行命名 `#smsLocalRow`；新增 `tools/test-sms-account.mjs`。
 - 为什么：用户明确要「真正跟账号走」——同一账号换台电脑登录也该收到同一批手机的验证码；旧实现把身份 token 存在按账号分区的 `state.json` 里，换账号等于换了一份身份，行为与「跟机器走」的直觉不一致。
-- 怎么验证：`node tools\test-sms-account.mjs` 28/28（账号间设备/历史/SSE 隔离、未登录 owner 兼容、撤销权限 404、主密钥看全部、已登录 enroll 被拒）；服务端已部署生产（`deploy.ps1` 成功，外网健康检查 ok，部署前备份 `/root/island-bak/20261115-175927`），生产库 `PRAGMA` 确认两列就位、7 个 owner / 4 台旧设备均 `user_id=null`，`owner/token` 200 `mode=owner`、主密钥 200 `mode=master`、匿名与错 token 403；打包 1.16.4 后解包 asar 确认含 `smsIdentity/smsReset/#smsAccRow/#smsLocalRow`、`package.json=1.16.4`。
-- 下一步 / 已知问题：**还没发版**（`dist\QingTools-1.16.4-setup.exe` / `-portable.exe` 已出，未 publish、未装机自测）。发版要跑 `deploy\publish.ps1 -Version 1.16.4`（会顺带 `site.ps1` 更新官网）+ 按 1.16.3 的做法挂 GitHub Release 附件。线上 4 台旧手机（`cyq` / `iPhone` ×2 / `zhaxiaobao`）仍挂在旧 owner 下：用户登录账号后要在手机端重新粘一次新密钥（旧密钥还能推，但只进旧的本机身份流，账号看不到）。`settings.smsDevices`（本机存的设备 token，用于「复制配置」）仍按账号分区，换账号/换电脑看不到旧 token，属预期。
+- 怎么验证：`node tools\test-sms-account.mjs` 28/28（账号间设备/历史/SSE 隔离、未登录 owner 兼容、撤销权限 404、主密钥看全部、已登录 enroll 被拒）；服务端已部署生产（`deploy.ps1` 成功，外网健康检查 ok，部署前备份 `/root/island-bak/20261115-175927`），生产库 `PRAGMA` 确认两列就位、7 个 owner / 4 台旧设备均 `user_id=null`，`owner/token` 200 `mode=owner`、主密钥 200 `mode=master`、匿名与错 token 403；装机版 1.16.4（CDP 9223）实测：登录账号 `chenyuqing1995` → `S.sms.kind=user`、`#smsLocalRow` 隐藏、`#smsAccRow` 显示、`smsDeviceCreate('自测-删除')` → 推送 `445566` → `S.sms.lastId` 更新且 peek 弹条 → `smsDeviceRemove` 后设备数回 0。
+- 已发版：`publish.ps1 -Version 1.16.4` 三处清单全 OK（服务器 / 官网 / CDN）；官网 changelog 线上抓取含 1.16.4；GitHub `main=878f126`、tag `v1.16.4`、Release `https://github.com/LeCauchemar/qing-tools/releases/tag/v1.16.4`（附件 setup + portable 由 `tools\gh-assets.mjs` 上传）。
+- 下一步 / 已知问题：线上 4 台旧手机（`cyq` / `iPhone` ×2 / `zhaxiaobao`）仍挂在旧 owner 下，登录账号后要在手机端重新粘一次新密钥（旧密钥还能推，但只进旧的本机身份流，账号看不到）。`settings.smsDevices`（本机存的设备 token，用于「复制配置」）仍按账号分区，换账号/换电脑看不到旧 token，属预期。
 
 ## 2026-11-15 10:32 · 1.16.3 · DeepSeekRuntime（GitHub 补齐）
 - 改了什么：用户打开 Clash 后，把 `main`（→ `c0220d7`）与缺失的 tag `v1.16.1`、`v1.16.2`、`v1.16.3` 推到 GitHub；补齐 `v1.16.1`、`v1.16.2`、`v1.16.3` 三个 Release，又补建了原先完全没有的 `v1.15.0`、`v1.15.1`、`v1.15.2` 三个 Release；新增 `tools/gh-release-11623.mjs`、`tools/gh-release-one.mjs`、`tools/gh-assets.mjs`，把 1.11.0–1.16.3 共 12 个 Release 全部挂上 setup + portable 两个附件。

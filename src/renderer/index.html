@@ -780,15 +780,18 @@
                       <span class="update-actions"><button class="btn ghost small" id="smsCopy">手机端配置</button></span>
                     </div>
                     <div class="setting flush">
-                      <span class="setting-main"><b>手机密钥</b><i>每台手机一把，只属于这台电脑：别人电脑上看不到你的手机，你也看不到别人的</i></span>
+                      <span class="setting-main"><b>手机密钥</b><i>每台手机一把：登录后跟着账号走，同一账号在别的电脑上也能收到；未登录时只归这台电脑</i></span>
                       <span class="update-actions">
                         <input class="input sms-key" id="smsDevName" placeholder="设备名，如 小米" spellcheck="false" />
                         <button class="btn ghost small" id="smsDevAdd">新建密钥</button>
                       </span>
                     </div>
                     <div class="sms-devs" id="smsDevList"></div>
-                    <div class="setting flush">
-                      <span class="setting-main"><b>服务器主密钥</b><i>24 位，只在第一次绑定这台电脑时填一次；绑定后本机用自己的身份，和别人互不可见</i></span>
+                    <div class="setting flush hidden" id="smsAccRow">
+                      <span class="setting-main"><b>账号同步</b><i>已登录 <b id="smsAccName">当前账号</b>：手机推来的验证码跟着账号走，换台电脑登录同一账号就能收到</i></span>
+                    </div>
+                    <div class="setting flush" id="smsLocalRow">
+                      <span class="setting-main"><b>服务器主密钥</b><i>24 位，只在没登录、第一次绑定这台电脑时填一次；登录账号后不需要它</i></span>
                       <span class="update-actions">
                         <input class="input sms-key" id="smsRead" placeholder="粘贴服务器主密钥" spellcheck="false" />
                         <button class="btn ghost small" id="smsReadSave">绑定</button>

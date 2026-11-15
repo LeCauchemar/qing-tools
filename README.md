@@ -15,9 +15,9 @@
 ## 官网与下载
 
 - 官网：<https://qingtools.ccyyqq.com/>（源码在 `site/`，静态站，`deploy\site.ps1` 一键部署）
-- 开发记录：<https://qingtools.ccyyqq.com/changelog.html>（从 1.0 到 1.16.3 的过程，源码 `site/changelog.html`；纯文本版在仓库根 `CHANGELOG.md`）
-- 下载（又拍云 CDN，官网按钮指向这里）：<https://qing.ccyyqq.com/island/update/QingTools-1.16.3-setup.exe>（便携版同名 `-portable.exe`）
-- 备用镜像（本站 nginx `/download/`）：<https://qingtools.ccyyqq.com/download/QingTools-1.16.3-setup.exe>
+- 开发记录：<https://qingtools.ccyyqq.com/changelog.html>（从 1.0 到 1.16.4 的过程，源码 `site/changelog.html`；纯文本版在仓库根 `CHANGELOG.md`）
+- 下载（又拍云 CDN，官网按钮指向这里）：<https://qing.ccyyqq.com/island/update/QingTools-1.16.4-setup.exe>（便携版同名 `-portable.exe`）
+- 备用镜像（本站 nginx `/download/`）：<https://qingtools.ccyyqq.com/download/QingTools-1.16.4-setup.exe>
 - 服务器下载页：<https://chat.ccyyqq.com/island/get>（短链 `chat.ccyyqq.com/get`、`/dl`）
 
 ## 功能
@@ -216,12 +216,13 @@
 - **安卓**：装一个小 APK（[QingToolsSMS.apk](https://qing.ccyyqq.com/island/update/QingToolsSMS.apk)，v1.3 起 21 KB、带前台常驻服务），点一下「从剪贴板粘贴配置」把设置页复制的那段配置粘进去、给短信权限、再点「开启后台常驻」即可。后台被系统冻结时靠常驻服务每 60 秒扫一次收件箱补发，重启手机也会自己起来；只转发含「验证码 / 校验码 / 口令 / code / otp」等关键词的短信（也可以在 APK 里勾「转发所有短信」）。
 - **iPhone**：iOS 26 的「我收到符合以下条件的信息时」触发器能把短信正文传进快捷指令，所以可以全自动 —— 触发器写成「信息包含 码」，动作是 `获取 URL 内容`（**POST**，JSON 体 `text` = 输入快捷指令的信息）打 hook 地址即可；如果你更习惯手动，也可以在键盘上方「从短信拷贝验证码」，桌面端扫到剪贴板里的验证码照样弹条。
 - **鸿蒙（HarmonyOS NEXT）**：ArkTS 源码 [QingToolsSMS-harmony.zip](https://qing.ccyyqq.com/island/update/QingToolsSMS-harmony.zip)（约 13 KB，备用 [下载页](https://qingtools.ccyyqq.com/download/QingToolsSMS-harmony.zip)）。鸿蒙不让普通应用读短信（`RECEIVE_SMS` / `NOTIFICATION_CONTROLLER` 都是受限权限），所以默认走「复制验证码 → 点一下应用」的路线，申请到 ACL 后才能开「自动监听通知」。用 DevEco Studio 5.0+ 按 `mobile/harmony/README.md` 建工程覆盖文件即可。
-- **每台手机一把密钥**：设置 → 「短信验证码」一行里输入设备名（如「小米」）点「新建密钥」，配置（地址 + 密钥 + APK 链接）会自动进剪贴板，发到手机粘一下就行。下面列出这台电脑名下的手机：谁在用、最近什么时候推过、累计多少条，可以单独「撤销」（那台手机立即失效）或「删除」。密钥只在本机 `settings.smsDevices` 里存一份，服务器不保留明文。
-- **几台电脑互不串门（多租户）**：第一次用时在「服务器主密钥」那行粘一次 24 位主密钥点「绑定」，服务器就给这台电脑发一把**只属于它的身份密钥**（`settings.smsOwnerToken`）。之后：
-  - 手机密钥、短信记录、实时弹条**全部按身份隔离** —— 别人电脑上建的手机，你这边看不到、也收不到；你的手机同理；
-  - 主密钥只在换电脑时用一次，泄露影响面比原来小得多；想重新划归属点「重新绑定」即可（会重新换一把身份密钥，并认领还没归属的手机）。
-- **两类密钥分开**：手机那把只能「发」，本机身份只能「读自己的」，存在服务器 `/www/wwwroot/island/data/hook.json`（600）与 `sms_owners` 表里，可用环境变量 `ISLAND_HOOK_TOKEN` / `ISLAND_READ_TOKEN` 覆盖主密钥。老的共用 hook 密钥仍然能用（会显示成「旧版共用密钥」），建议建好设备后把旧 APK 换掉。
-- 服务端接口：`POST /island/api/hook/sms?token=<设备密钥>`（body `{"from":"1069…","text":"…验证码 518204…"}`，也支持 `GET …?token=…&text=…` 方便快捷指令），返回 `{ok,code,device}`；桌面端靠 `GET /island/api/sms/stream?token=<本机身份>`（SSE）即时收到，服务端按身份只推自己名下的手机。验证码抽取在服务端做，`code` 字段直接给结果。设备管理：`GET|POST /island/api/sms/devices?token=<本机身份>`、`POST /island/api/sms/devices/<id>/revoke`、`POST …/remove`。身份管理（仅主密钥）：`POST /island/api/sms/enroll`、`GET /island/api/sms/owners`。`/api/sms`、`/api/hook/info` 也要带身份密钥，否则 403；同一台手机每分钟最多推 20 条。
+- **每台手机一把密钥**：设置 → 「手机验证码同步」卡片里输入设备名（如「小米」）点「新建密钥」，配置（地址 + 密钥 + APK 链接）会自动进剪贴板，发到手机粘一下就行。下面列出**这个身份**名下的手机：谁在用、最近什么时候推过、累计多少条，可以单独「撤销」（那台手机立即失效）或「删除」。密钥只在本机 `settings.smsDevices` 里存一份，服务器不保留明文。
+- **登录后跟着账号走（1.16.4 起）**：登录账号时不填任何密钥，手机密钥、短信记录、实时弹条**全部按账号隔离** —— 同一个账号在办公室和家里两台电脑上都能同时收到同一批手机的验证码；别人的账号看不到、也收不到。
+  - 登录前已经建过的手机密钥属于「本机身份」，**换到账号身份后不会自动带过来**：手机端要重新粘一次新密钥（旧密钥还能推，但只会进旧的「本机身份」流，账号看不到）。桌面端「重新绑定」按钮只对未登录状态有意义。
+  - 账号模式新增的设备写 `sms_devices.user_id`，推上来的短信写 `sms.user_id`；`GET /api/sms/devices`、`/api/sms`、SSE 都按这个字段过滤。
+- **没登录时仍用本机身份（兼容旧行为）**：在「服务器主密钥」那行粘一次 24 位主密钥点「绑定」，服务器给这台电脑发一把只属于它的身份密钥（`settings.smsOwnerToken`），之后手机密钥与短信按 `owner_id` 隔离；主密钥只在换电脑时用一次，想重新划归属点「重新绑定」。
+- **两类密钥分开**：手机那把只能「发」，账号登录态 / 本机身份只能「读自己的」，主密钥存在服务器 `/www/wwwroot/island/data/hook.json`（600），可用环境变量 `ISLAND_HOOK_TOKEN` / `ISLAND_READ_TOKEN` 覆盖。老的共用 hook 密钥仍然能用（会显示成「旧版共用密钥」），建议建好设备后把旧 APK 换掉。
+- 服务端接口：`POST /island/api/hook/sms?token=<设备密钥>`（body `{"from":"1069…","text":"…验证码 518204…"}`，也支持 `GET …?token=…&text=…` 方便快捷指令），返回 `{ok,code,device}`；桌面端靠 `GET /island/api/sms/stream?token=<账号登录态 | 本机身份>`（SSE）即时收到，服务端按身份只推自己名下的手机。验证码抽取在服务端做，`code` 字段直接给结果。设备管理：`GET|POST /island/api/sms/devices`、`POST /island/api/sms/devices/<id>/revoke`、`POST …/remove`（登录后带 `Authorization: Bearer <账号 token>`，未登录带 `?token=<本机身份>`）。身份管理（仅主密钥）：`POST /island/api/sms/enroll`（已登录会被拒绝，返回 `use_account`）、`GET /island/api/sms/owners`。`/api/sms`、`/api/hook/info` 同样认这两种身份，否则 403；同一台手机每分钟最多推 20 条。
 - **断线自己长回来**：SSE 被网络切换、睡眠唤醒、改过身份之后可能一直停在 CLOSED（服务器收得到、桌面一声不响）。桌面端每 30 秒做一次健康检查，发现流已关闭或 3 分钟没有事件就自己重建连接，所以不会再出现「明明推送成功却没有弹条」。
 - 详细步骤（含 APK 源码与免 Gradle 的打包脚本 `mobile\android\build.ps1`、快捷指令配方、curl 示例）见 [mobile/README.md](mobile/README.md)。
 

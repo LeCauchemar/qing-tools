@@ -1755,6 +1755,12 @@ async function accLoadStatus() {
   await claimLocalRooms();
   await bindRoomsToAccount();
   await syncAccountRooms();
+  // 启动时登录态是异步恢复的：短信通道要按「账号 / 本机身份」重新选一次
+  try {
+    const wantUser = !!(S.account.signedIn && S.account.userToken);
+    const hasUser = !!(S.sms && S.sms.kind === 'user');
+    if (wantUser !== hasUser) await smsReset();
+  } catch (_) {}
   if (S.account.signedIn) pollShares();
 }
 
@@ -1962,6 +1968,7 @@ async function accDoLogin() {
   await claimLocalRooms();
   await bindRoomsToAccount();
   await syncAccountRooms();
+  await smsReset();
   toast('已登录：' + ((r.user && (r.user.nick || r.user.username)) || username));
 }
 
@@ -1986,6 +1993,7 @@ async function accDoRegister() {
   await claimLocalRooms();
   await bindRoomsToAccount();
   await syncAccountRooms();
+  await smsReset();
 }
 
 async function accDoRecover() {
@@ -2007,6 +2015,7 @@ async function accDoRecover() {
   accShowCode(r.recoveryCode || '');
   await accFetchSessions();
   accPaint();
+  await smsReset();
   toast('密码已更新，恢复码也换了一把');
 }
 
@@ -3082,10 +3091,13 @@ function renderToolsSummaries() {
     const devs = (S.smsDev && S.smsDev.items) || [];
     const live = devs.filter((d) => !d.revoked).length;
     const s = S.sms || {};
+    const signed = !!(S.account && S.account.signedIn);
     el.smsCardSub.textContent = !s.token
-      ? '未配置'
+      ? signed
+        ? '账号同步待连接'
+        : '未配置'
       : s.ok
-        ? (live ? live + ' 台手机' : '已连接') 
+        ? (live ? live + ' 台手机' : '已连接') + (s.kind === 'user' ? ' · 账号' : '')
         : '连接中…';
   }
 }
@@ -7726,6 +7738,10 @@ function bindUi() {
     if (S.data && S.data.settings && S.data.settings.smsReadToken) smsRead.value = S.data.settings.smsReadToken;
     smsReadSave.addEventListener('click', async (e) => {
       e.stopPropagation();
+      if (S.account && S.account.signedIn) {
+        toast('已登录账号：验证码跟着账号走，不用再给这台电脑单独绑定', true);
+        return;
+      }
       const v = smsRead.value.trim();
       if (!v) {
         toast('先粘贴电脑端密钥', true);
@@ -7751,6 +7767,10 @@ function bindUi() {
   if (smsRebind) {
     smsRebind.addEventListener('click', async (e) => {
       e.stopPropagation();
+      if (S.account && S.account.signedIn) {
+        toast('已登录账号：验证码跟着账号走，换电脑登录同一账号即可，不用重新绑定', true);
+        return;
+      }
       // 忘掉本机身份，用主密钥重新换一把（换了电脑/想重新划分归属时用）
       await api.settings.save({ smsOwnerToken: '', smsDevices: [] });
       if (S.data && S.data.settings) {
@@ -8969,19 +8989,42 @@ function smsCodeFrom(text) {
   return before ? before[1] : '';
 }
 
+/** 账号模式隐掉「服务器主密钥」那行（已经不需要给这台电脑单独发身份），换成账号说明行 */
+function paintSmsRows() {
+  const s = S.sms || {};
+  const acc = s.kind === 'user';
+  const local = $('#smsLocalRow');
+  const row = $('#smsAccRow');
+  if (local) local.classList.toggle('hidden', acc);
+  if (row) {
+    row.classList.toggle('hidden', !acc);
+    const name = $('#smsAccName');
+    if (name) {
+      name.textContent =
+        s.ownerName || (S.account && S.account.user && (S.account.user.nick || S.account.user.username)) || '当前账号';
+    }
+  }
+}
+
 function paintSms(extra) {
   const sub = $('#smsSub');
-  if (!sub) return;  const s = S.sms || {};
+  if (!sub) return;
+  const s = S.sms || {};
+  paintSmsRows();
   if (!s.token) {
-    sub.textContent = extra || '服务端还没开这个通道（升级服务端后自动可用）';
+    sub.textContent =
+      extra || (S.account && S.account.signedIn ? '已登录，正在恢复验证码通道…' : '服务端还没开这个通道（升级服务端后自动可用）');
+    renderToolsSummaries();
     return;
   }
+  const who = s.kind === 'user' ? '账号「' + (s.ownerName || '我的账号') + '」' : s.ownerName || '这台电脑';
   sub.textContent = s.ok
-    ? '已连接' +
-      (s.ownerName ? ' · ' + s.ownerName : '') +
+    ? '已连接 · ' +
+      who +
       ' · 手机端发来验证码会自动复制并弹条' +
-      (extra ? ' · ' + extra : '')
-    : '已拿到密钥 · 正在连接…' + (extra ? ' · ' + extra : '');
+      (s.kind === 'user' ? '（这个账号在别的电脑上也能同时收到）' : '')
+    : '已拿到身份 · 正在连接…';
+  if (extra) sub.textContent += ' · ' + extra;
   renderToolsSummaries();
 }
 
@@ -8998,11 +9041,13 @@ function smsShow(m) {
 }
 
 /**
- * 只接收「本机建过密钥」的手机推来的短信。
- * 服务器是所有电脑共用的一条流，不做过滤的话同事那台手机的验证码也会弹到你这台电脑上。
- * 老共用密钥（没有 deviceId）仍然放行，免得旧 APK 突然收不到。
+ * 只接收「自己名下」的手机推来的短信。
+ * 账号模式：服务端已经按账号过滤过，这里一律放行（别的电脑建的设备也该弹到这台电脑上）。
+ * 本机身份：只认本机建过密钥的设备；老共用密钥（没有 deviceId）仍然放行，免得旧 APK 突然收不到。
  */
 function smsAccept(m) {
+  const s = S.sms || {};
+  if (s.kind === 'user') return true;
   const id = (m && m.deviceId) || '';
   if (!id) return true;
   const mine = smsDeviceTokens();
@@ -9072,32 +9117,91 @@ function smsWatchdog() {
   }
 }
 
+/**
+ * 当前短信身份：
+ *   登录后 → user（跟着账号走，同一账号换台电脑也收到同一批手机的验证码）
+ *   未登录 → owner（本机身份，只看这台电脑名下的手机）
+ */
+async function smsIdentity() {
+  const acc = S.account || {};
+  if (acc.signedIn) {
+    if (!acc.userToken) await loadAccountToken();
+    if (acc.userToken) {
+      const u = acc.user || {};
+      return { kind: 'user', token: acc.userToken, label: u.nick || u.username || '我的账号' };
+    }
+  }
+  const own = await smsEnsureOwner();
+  if (!own) return null;
+  const st = (S.data && S.data.settings) || {};
+  return { kind: 'owner', token: own, label: st.smsOwnerName || '这台电脑' };
+}
+
+/** 认证头 / 查询串：账号身份带 Bearer（SSE 例外，只能走 query） */
+function smsAuth(token, kind) {
+  return kind === 'user' ? { Authorization: 'Bearer ' + token } : {};
+}
+function smsQuery(token, kind) {
+  return kind === 'user' ? '' : '?token=' + encodeURIComponent(token);
+}
+
+/** 登录 / 退出后重建通道：身份换了，旧 EventSource 与设备列表都得扔掉 */
+async function smsReset() {
+  const s = S.sms;
+  if (s && s.es) {
+    try {
+      s.es.close();
+    } catch (_) {}
+  }
+  S.sms = { token: '', hook: '', es: null, ok: false, lastId: '' };
+  S.smsDev = { items: [] };
+  renderSmsDevList();
+  await smsInit();
+  await smsDevicesLoad();
+}
+
 async function smsInit() {
   S.sms = S.sms || { token: '', hook: '', es: null, ok: false, lastId: '' };
-  // 多租户：这台电脑先用自己的「本机身份」跟服务器绑定一次，之后只看得见自己名下的手机
-  const owner = await smsEnsureOwner();
-  if (!owner) {
+  const ident = await smsIdentity();
+  if (!ident) {
     S.sms.token = '';
-    paintSms('还没绑定这台电脑：在下面粘贴一次服务器主密钥就行');
+    S.sms.kind = '';
+    paintSms(
+      S.account && S.account.signedIn ? '登录态失效了，重新登录后自动恢复' : '还没绑定这台电脑：在下面粘贴一次服务器主密钥就行'
+    );
     return;
   }
-  if (S.sms.token === owner && S.sms.es && S.sms.es.readyState !== 2) return;
-  S.sms.token = owner;
+  if (S.sms.token === ident.token && S.sms.kind === ident.kind && S.sms.es && S.sms.es.readyState !== 2) return;
+  S.sms.kind = ident.kind;
+  S.sms.token = ident.token;
+  S.sms.ownerName = ident.label;
+  if (S.sms.es) {
+    try {
+      S.sms.es.close();
+    } catch (_) {}
+  }
   S.sms.es = null;
   try {
-    const r = await fetch(`${CHAT_API}/api/hook/info?token=${encodeURIComponent(owner)}`, { cache: 'no-store' });
+    const r = await fetch(`${CHAT_API}/api/hook/info${smsQuery(ident.token, ident.kind)}`, {
+      cache: 'no-store',
+      headers: smsAuth(ident.token, ident.kind)
+    });
     const info = await r.json();
     if (info && info.ok) {
       S.sms.hook = info.hook || '';
       S.sms.post = info.post;
-      S.sms.ownerName = (info.owner && info.owner.name) || (S.data.settings && S.data.settings.smsOwnerName) || '';
+      S.sms.mode = info.mode || ident.kind;
       smsConnect();
       paintSms();
       S.sms.ready = true;
-      smsDevicesLoad();
+      await smsDevicesLoad();
       return;
     }
-    paintSms('服务器不认这台电脑的身份（' + (info && info.message ? info.message : '未知原因') + '），可以点「重新绑定」');
+    paintSms(
+      ident.kind === 'user'
+        ? '服务器不认这个账号的登录态（' + (info && info.message ? info.message : '未知原因') + '），重新登录试试'
+        : '服务器不认这台电脑的身份（' + (info && info.message ? info.message : '未知原因') + '），可以点「重新绑定」'
+    );
   } catch (err) {
     paintSms('连不上服务器：' + (err && err.message ? err.message : err));
   }
@@ -9105,6 +9209,8 @@ async function smsInit() {
 
 /** 这台电脑的身份密钥：没有就用手上的主密钥去服务器换一把（只换一次） */
 async function smsEnsureOwner() {
+  // 登录后跟账号走，不再给电脑发身份（服务端也会拒绝）
+  if (S.account && S.account.signedIn) return '';
   const st = (S.data && S.data.settings) || {};
   const own = String(st.smsOwnerToken || '').trim();
   if (own) return own;
@@ -9131,8 +9237,7 @@ async function smsEnsureOwner() {
 
 /* ---------- 手机密钥：每台手机一把，可单独撤销 ---------- */
 function smsReadKey() {
-  const st = (S.data && S.data.settings) || {};
-  return String(st.smsOwnerToken || '').trim();
+  return String((S.sms && S.sms.token) || '').trim();
 }
 
 function smsMasterKey() {
@@ -9150,6 +9255,7 @@ function smsConfigText(token) {
     '安卓 APK：https://qing.ccyyqq.com/island/update/QingToolsSMS.apk\n' +
     'POST https://chat.ccyyqq.com/island/api/hook/sms\n' +
     '密钥 ' + token + '\n' +
+    '这台手机推来的验证码会弹到登录同一账号的电脑上（未登录时只归建它的那台电脑）\n' +
     'iPhone：复制验证码后灵动岛会自动识别（也可在快捷指令里用这个密钥推同样的地址）'
   );
 }
@@ -9196,10 +9302,14 @@ function renderSmsDevList() {
 async function smsDevicesLoad() {
   const read = smsReadKey();
   if (!read) return;
+  const kind = (S.sms && S.sms.kind) || 'owner';
   try {
-    const r = await fetch(`${CHAT_API}/api/sms/devices?token=${encodeURIComponent(read)}`, { cache: 'no-store' });
+    const r = await fetch(`${CHAT_API}/api/sms/devices${smsQuery(read, kind)}`, {
+      cache: 'no-store',
+      headers: smsAuth(read, kind)
+    });
     const d = await r.json();
-    S.smsDev = { items: (d && d.items) || [] };
+    S.smsDev = { items: (d && d.items) || [], mode: (d && d.mode) || kind };
     // 服务器上已经不存在的手机（被删了）就别再留本机的死记录了
     const alive = new Set(((d && d.items) || []).map((x) => x.id));
     const local = smsDeviceTokens();
@@ -9212,19 +9322,21 @@ async function smsDevicesLoad() {
     S.smsDev = { items: [] };
   }
   renderSmsDevList();
+  renderToolsSummaries();
 }
 
 async function smsDeviceCreate(name) {
   const read = smsReadKey();
   if (!read) {
-    toast('先填电脑端密钥，才能管理手机密钥', true);
+    toast(S.account && S.account.signedIn ? '先登录账号，再建手机密钥' : '先填服务器主密钥，才能管理手机密钥', true);
     return null;
   }
+  const kind = (S.sms && S.sms.kind) || 'owner';
   const label = (name || '').trim() || '手机';
   try {
-    const r = await fetch(`${CHAT_API}/api/sms/devices?token=${encodeURIComponent(read)}`, {
+    const r = await fetch(`${CHAT_API}/api/sms/devices${smsQuery(read, kind)}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      headers: { 'Content-Type': 'application/json; charset=utf-8', ...smsAuth(read, kind) },
       body: JSON.stringify({ name: label })
     });
     const d = await r.json();
@@ -9247,8 +9359,10 @@ async function smsDeviceCreate(name) {
 async function smsDeviceRevoke(id) {
   const read = smsReadKey();
   if (!read) return;
-  await fetch(`${CHAT_API}/api/sms/devices/${encodeURIComponent(id)}/revoke?token=${encodeURIComponent(read)}`, {
-    method: 'POST'
+  const kind = (S.sms && S.sms.kind) || 'owner';
+  await fetch(`${CHAT_API}/api/sms/devices/${encodeURIComponent(id)}/revoke${smsQuery(read, kind)}`, {
+    method: 'POST',
+    headers: smsAuth(read, kind)
   }).catch(() => {});
   toast('已撤销，那台手机再也推不上来了');
   await smsDevicesLoad();
@@ -9257,8 +9371,10 @@ async function smsDeviceRevoke(id) {
 async function smsDeviceRemove(id) {
   const read = smsReadKey();
   if (!read) return;
-  await fetch(`${CHAT_API}/api/sms/devices/${encodeURIComponent(id)}/remove?token=${encodeURIComponent(read)}`, {
-    method: 'POST'
+  const kind = (S.sms && S.sms.kind) || 'owner';
+  await fetch(`${CHAT_API}/api/sms/devices/${encodeURIComponent(id)}/remove${smsQuery(read, kind)}`, {
+    method: 'POST',
+    headers: smsAuth(read, kind)
   }).catch(() => {});
   const list = smsDeviceTokens().filter((x) => x.id !== id);
   await api.settings.save({ smsDevices: list });

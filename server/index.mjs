@@ -288,14 +288,19 @@ CREATE TABLE IF NOT EXISTS changes (
 CREATE INDEX IF NOT EXISTS idx_changes_owner ON changes(owner_id, seq);
 `);
 
-// 多租户：每台电脑自己一个 owner，只看得到自己名下的手机
+// 多租户：未登录时每台电脑一个 owner，只看得到自己名下的手机；
+// 登录后短信跟着账号走（user_id），同一账号换台电脑也能收到同一批手机的验证码
 {
   const devCols = db.prepare('PRAGMA table_info(sms_devices)').all().map((c) => c.name);
   if (!devCols.includes('owner_id')) db.exec('ALTER TABLE sms_devices ADD COLUMN owner_id TEXT');
+  if (!devCols.includes('user_id')) db.exec('ALTER TABLE sms_devices ADD COLUMN user_id TEXT');
   const smsCols2 = db.prepare('PRAGMA table_info(sms)').all().map((c) => c.name);
   if (!smsCols2.includes('owner_id')) db.exec('ALTER TABLE sms ADD COLUMN owner_id TEXT');
+  if (!smsCols2.includes('user_id')) db.exec('ALTER TABLE sms ADD COLUMN user_id TEXT');
   db.exec('CREATE INDEX IF NOT EXISTS idx_sms_dev_owner ON sms_devices(owner_id)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_sms_owner ON sms(owner_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_sms_dev_user ON sms_devices(user_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_sms_user ON sms(user_id)');
 }
 
 // 老库补列：sms 现在记录是哪台设备推来的
@@ -385,13 +390,19 @@ function codeFromText(text) {
   return pick;
 }
 
-/** 短信推给在线的桌面端（按 owner 隔离：同一个人自己的电脑才收得到） */
+/** 短信推给在线的桌面端（按身份隔离：同账号/同一台电脑自己的设备才收得到） */
 const smsStreams = new Set();
 
 function pushSms(entry) {
   for (const s of smsStreams) {
-    // 主密钥订阅（管理端）收全部；本机身份只收自己名下手机推来的
-    if (s.ownerId && s.ownerId !== entry.ownerId) continue;
+    // 主密钥订阅（管理端）收全部
+    // 账号订阅：只收这个账号名下手机推来的（entry.userId）
+    // 本机身份订阅：只收这台电脑名下手机推来的（entry.ownerId）
+    if (s.userId) {
+      if (s.userId !== entry.userId) continue;
+    } else if (s.ownerId && s.ownerId !== entry.ownerId) {
+      continue;
+    }
     try {
       s.res.write(`event: sms\ndata: ${JSON.stringify(entry)}\n\n`);
     } catch {
@@ -445,10 +456,11 @@ async function handleHookSms(req, res, url, body) {
     device: devName,
     deviceId: device ? device.id : '',
     ownerId: device && device.owner_id ? device.owner_id : '',
+    userId: device && device.user_id ? device.user_id : '',
     at: Date.now()
   };
   db.prepare(
-    'INSERT INTO sms (id, from_no, body, code, src, created_at, device_id, device_name, owner_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    'INSERT INTO sms (id, from_no, body, code, src, created_at, device_id, device_name, owner_id, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ).run(
     entry.id,
     entry.from,
@@ -458,7 +470,8 @@ async function handleHookSms(req, res, url, body) {
     entry.at,
     device ? device.id : null,
     devName,
-    entry.ownerId || null
+    entry.ownerId || null,
+    entry.userId || null
   );
   if (device) {
     db.prepare('UPDATE sms_devices SET last_seen = ?, last_ip = ?, count = count + 1 WHERE id = ?').run(
@@ -487,11 +500,21 @@ function ownerByToken(token) {
   return row;
 }
 
-/** 返回 {kind:'master'} / {kind:'owner', owner} / null */
-function resolveReader(token) {
-  if (!token) return null;
-  if (token === readToken) return { kind: 'master' };
-  const owner = ownerByToken(token);
+/**
+ * 谁来读短信。三种身份，优先级：账号 > 服务器主密钥 > 本机身份。
+ *   {kind:'user', user}   —— 登录账号：手机密钥与短信都跟着账号走
+ *   {kind:'master'}       —— 服务器主密钥：管理端，看全部
+ *   {kind:'owner', owner} —— 未登录时的本机身份，只看这台电脑名下的手机
+ * token 可以走 header（X-Read-Token / Authorization），也可以走 ?token=（SSE 只能用 query）。
+ */
+function resolveReader(req, url) {
+  const queryToken = url ? String(url.searchParams.get('token') || '').trim() : '';
+  const headerToken = String(req.headers['x-read-token'] || '').trim();
+  const user = softUser(req) || userByRawToken(queryToken);
+  if (user) return { kind: 'user', user };
+  if (headerToken && headerToken === readToken) return { kind: 'master' };
+  if (queryToken && queryToken === readToken) return { kind: 'master' };
+  const owner = ownerByToken(headerToken) || ownerByToken(queryToken);
   return owner ? { kind: 'owner', owner } : null;
 }
 
@@ -507,8 +530,7 @@ function requireRead(req, res, url) {
 
 /** 主密钥或本机身份都行 */
 function requireReader(req, res, url) {
-  const token = String(req.headers['x-read-token'] || url.searchParams.get('token') || '');
-  const reader = resolveReader(token);
+  const reader = resolveReader(req, url);
   if (!reader) {
     fail(res, 'unauthorized', '这台电脑还没绑定（或密钥不对）', 403);
     return null;
@@ -546,8 +568,16 @@ function handleSmsDevices(req, res, url, body) {
   const rows =
     reader.kind === 'master'
       ? db.prepare('SELECT * FROM sms_devices ORDER BY created_at DESC').all()
-      : db.prepare('SELECT * FROM sms_devices WHERE owner_id = ? ORDER BY created_at DESC').all(reader.owner.id);
-  return ok(res, { items: rows.map(publicSmsDevice), master: reader.kind === 'master' });
+      : reader.kind === 'user'
+        ? db.prepare('SELECT * FROM sms_devices WHERE user_id = ? ORDER BY created_at DESC').all(reader.user.id)
+        : db.prepare('SELECT * FROM sms_devices WHERE owner_id = ? ORDER BY created_at DESC').all(reader.owner.id);
+  return ok(res, {
+    items: rows.map(publicSmsDevice),
+    master: reader.kind === 'master',
+    mode: reader.kind,
+    owner: reader.kind === 'owner' ? { id: reader.owner.id, name: reader.owner.name } : null,
+    user: reader.kind === 'user' ? { id: reader.user.id, username: reader.user.username } : null
+  });
 }
 
 function handleSmsDeviceCreate(req, res, url, body) {
@@ -562,13 +592,16 @@ function handleSmsDeviceCreate(req, res, url, body) {
   const name = String(data.name || '').slice(0, 24).trim() || '新设备';
   const token = crypto.randomBytes(15).toString('base64url');
   const id = 'dev_' + crypto.randomBytes(4).toString('hex');
-  const ownerId = reader.kind === 'master' ? String(data.ownerId || '') : reader.owner.id;
-  db.prepare('INSERT INTO sms_devices (id, name, token, created_at, owner_id) VALUES (?, ?, ?, ?, ?)').run(
+  // 登录后新建的设备直接挂在账号上：换台电脑登录同一账号也能收到这批手机的验证码
+  const ownerId = reader.kind === 'owner' ? reader.owner.id : reader.kind === 'master' ? String(data.ownerId || '') : '';
+  const userId = reader.kind === 'user' ? reader.user.id : String(data.userId || '');
+  db.prepare('INSERT INTO sms_devices (id, name, token, created_at, owner_id, user_id) VALUES (?, ?, ?, ?, ?, ?)').run(
     id,
     name,
     token,
     Date.now(),
-    ownerId || null
+    ownerId || null,
+    userId || null
   );
   const d = db.prepare('SELECT * FROM sms_devices WHERE id = ?').get(id);
   return ok(res, { item: publicSmsDevice(d), token });
@@ -579,6 +612,7 @@ function ownDevice(reader, id) {
   const d = db.prepare('SELECT * FROM sms_devices WHERE id = ?').get(id);
   if (!d) return null;
   if (reader.kind === 'master') return d;
+  if (reader.kind === 'user') return d.user_id && d.user_id === reader.user.id ? d : null;
   return d.owner_id && d.owner_id === reader.owner.id ? d : null;
 }
 
@@ -600,6 +634,11 @@ function handleSmsDeviceRemove(req, res, url, id) {
 
 /* 给一台新电脑发身份：主密钥换一把只属于自己的读密钥，并把无主手机认领过来 */
 function handleSmsEnroll(req, res, url, body) {
+  // 已经登录账号的客户端不该再走「本机身份」：短信跟着账号走，不需要给电脑发密钥
+  const signed = softUser(req);
+  if (signed) {
+    return fail(res, 'use_account', '已登录账号，验证码已经跟着账号走了，不用再绑定本机身份', 400);
+  }
   if (!requireRead(req, res, url)) return;
   let data = {};
   try {
@@ -649,7 +688,11 @@ function handleSmsStream(req, res, url) {
   });
   res.write('retry: 4000\n\n');
   res.write('event: hello\ndata: {}\n\n');
-  const sub = { res, ownerId: reader.kind === 'owner' ? reader.owner.id : '' };
+  const sub = {
+    res,
+    userId: reader.kind === 'user' ? reader.user.id : '',
+    ownerId: reader.kind === 'owner' ? reader.owner.id : ''
+  };
   smsStreams.add(sub);
   if (reader.kind === 'owner') {
     db.prepare('UPDATE sms_owners SET last_seen = ? WHERE id = ?').run(Date.now(), reader.owner.id);
@@ -678,11 +721,17 @@ function handleSmsList(req, res, url) {
             'SELECT id, from_no AS "from", body AS text, code, src, created_at AS at FROM sms ORDER BY created_at DESC LIMIT ?'
           )
           .all(limit)
-      : db
-          .prepare(
-            'SELECT id, from_no AS "from", body AS text, code, src, created_at AS at FROM sms WHERE owner_id = ? ORDER BY created_at DESC LIMIT ?'
-          )
-          .all(reader.owner.id, limit);
+      : reader.kind === 'user'
+        ? db
+            .prepare(
+              'SELECT id, from_no AS "from", body AS text, code, src, created_at AS at FROM sms WHERE user_id = ? ORDER BY created_at DESC LIMIT ?'
+            )
+            .all(reader.user.id, limit)
+        : db
+            .prepare(
+              'SELECT id, from_no AS "from", body AS text, code, src, created_at AS at FROM sms WHERE owner_id = ? ORDER BY created_at DESC LIMIT ?'
+            )
+            .all(reader.owner.id, limit);
   return ok(res, { items: rows });
 }
 
@@ -692,10 +741,12 @@ function handleHookInfo(req, res, url) {
   if (!reader) return;
   return ok(res, {
     enabled: true,
+    mode: reader.kind,
     hook: reader.kind === 'master' ? hookToken : '',
     post: 'https://chat.ccyyqq.com/island/api/hook/sms',
     stream: 'https://chat.ccyyqq.com/island/api/sms/stream',
-    owner: reader.kind === 'owner' ? { id: reader.owner.id, name: reader.owner.name } : null
+    owner: reader.kind === 'owner' ? { id: reader.owner.id, name: reader.owner.name } : null,
+    account: reader.kind === 'user' ? { id: reader.user.id, username: reader.user.username } : null
   });
 }
 
@@ -2020,19 +2071,27 @@ function bearerOf(req) {
   return String(req.headers['x-island-session'] || '').trim();
 }
 
-/**
- * 软身份：带了合法 token 就返回账号，没带或过期返回 null。
- * 频道接口用它给设备/消息打上「这是谁」，匿名设备照旧能用。
- */
-function softUser(req) {
+/** 会话 token（明文）→ 用户；SSE 不能带 header，所以也可能从 ?token= 传进来 */
+function userByRawToken(raw) {
   try {
-    const raw = bearerOf(req);
     if (!raw) return null;
     const s = q.sessionByHash.get(hash(raw));
     if (!s || s.revoked_at || s.expires_at < now()) return null;
     const u = q.userById.get(s.user_id);
     if (!u || u.deleted_at) return null;
     return u;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 软身份：带了合法 token 就返回账号，没带或过期返回 null。
+ * 频道接口用它给设备/消息打上「这是谁」，匿名设备照旧能用。
+ */
+function softUser(req) {
+  try {
+    return userByRawToken(bearerOf(req));
   } catch {
     return null;
   }

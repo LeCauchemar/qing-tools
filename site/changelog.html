@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>开发记录 · Qing Tools 从 1.0 到 1.16.3</title>
-<meta name="description" content="Qing Tools 十天六十八个版本的开发过程：从一条会伸缩的药丸，到能收邮件、短信验证码、文件和群聊的常驻小面板，再到能登录的账号。">
+<title>开发记录 · Qing Tools 从 1.0 到 1.16.4</title>
+<meta name="description" content="Qing Tools 十一天六十九个版本的开发过程：从一条会伸缩的药丸，到能收邮件、短信验证码、文件和群聊的常驻小面板，再到能登录、验证码跟着账号走的账号体系。">
 <meta name="theme-color" content="#05060b">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/site.css?v=12">
@@ -31,7 +31,7 @@
     <button class="icon-btn" id="themeBtn" title="切换明暗" aria-label="切换明暗">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path class="sun" d="M12 4v2m0 12v2m8-8h-2M6 12H4m13.7-5.7-1.4 1.4M7.7 16.3l-1.4 1.4m11.4 0-1.4-1.4M7.7 7.7 6.3 6.3"/><circle cx="12" cy="12" r="3.6"/></svg>
     </button>
-    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.16.3-setup.exe">下载</a>
+    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.16.4-setup.exe">下载</a>
   </div>
 </header>
 
@@ -39,14 +39,14 @@
 
   <section class="cl-hero">
     <p class="kicker">开发记录</p>
-    <h1>十天，六十多个版本，<br><span class="grad">一条缝长成了一个工作台</span></h1>
+    <h1>十一天，六十多个版本，<br><span class="grad">一条缝长成了一个工作台</span></h1>
     <p class="lede">
-      1.0 的时候它只会伸缩和显示未读；到 1.15.2，它替你收邮件、抽验证码、接手机短信、暂存文件、
-      在群里发一句就走。下面是中间每一步到底改了什么、为什么改。
+      1.0 的时候它只会伸缩和显示未读；到 1.16.4，它替你收邮件、抽验证码、接手机短信、暂存文件、
+      在群里发一句就走，验证码还跟着账号在几台电脑之间跑。下面是中间每一步到底改了什么、为什么改。
     </p>
     <div class="cl-stats">
-      <div><b>68</b><span>个可安装版本（1.0 → 1.16.3）</span></div>
-      <div><b>10</b><span>天（11-05 → 11-14）</span></div>
+      <div><b>69</b><span>个可安装版本（1.0 → 1.16.4）</span></div>
+      <div><b>11</b><span>天（11-05 → 11-15）</span></div>
       <div><b>100 MB</b><span>安装包（砍过 21 MB）</span></div>
       <div><b>7</b><span>个页签</span></div>
     </div>
@@ -489,12 +489,26 @@
         </ul>
       </div>
     </article>
+
+    <article class="cl-item v1">
+      <div class="cl-side"><b>1.16.4</b><span>11-15</span></div>
+      <div class="cl-body">
+        <h3>验证码跟着账号走，不再跟着某台电脑</h3>
+        <ul>
+          <li>之前短信通道是「每台电脑一个身份」：换台电脑登录同一个账号，之前建的手机密钥就看不见了，还得再粘一次主密钥重新绑一台「电脑」。</li>
+          <li>现在登录账号后，手机密钥、短信记录、实时弹条全部按账号隔离：办公室和家里两台电脑登录同一账号，同一批手机的验证码两边同时收到。</li>
+          <li>服务端 <code>sms_devices</code> / <code>sms</code> 加了 <code>user_id</code>，短信接口同时认账号登录态（<code>Authorization: Bearer</code>，SSE 用 <code>?token=</code>）和未登录时的本机身份；已登录的客户端不会再被要求「绑定这台电脑」。</li>
+          <li>没登录时仍按本机身份工作，老数据与旧 APK 都不受影响；但升级前建过的手机密钥属于旧的本机身份，登录账号后不会自动带过来 —— 在手机上重新粘一次新密钥（或撤销后重建）即可。</li>
+          <li>界面也换了：登录后「服务器主密钥」那行自动收起，换成「账号同步」说明；手机密钥的文案改成「登录后跟着账号走」。</li>
+        </ul>
+      </div>
+    </article>
     </section>
 
   <footer class="foot">
     <div class="foot-left">
       <span class="mark small" aria-hidden="true"><i></i><b></b></span>
-      <span>Qing Tools <span class="dim">v1.16.3</span></span>
+      <span>Qing Tools <span class="dim">v1.16.4</span></span>
     </div>
     <div class="foot-right">
       <a href="index.html">回到首页</a>

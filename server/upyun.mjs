@@ -131,6 +131,32 @@ export async function putObject(key, buf, contentType = 'application/octet-strea
   return { ok: true, key: clean, url: publicUrl(clean) };
 }
 
+/**
+ * 给客户端直传用的签名（服务器只发签名，文件不经过服务器）。
+ * 客户端拿到 headers 后自己 PUT 到 uploadUrl。
+ * @param {string} key 云端路径
+ * @param {string} contentType
+ */
+export function signUpload(key, contentType = 'application/octet-stream') {
+  const c = upyunConfig();
+  if (!c) return { ok: false, message: '又拍云未配置' };
+  const clean = String(key).replace(/^\/+/, '');
+  const uri = `/${c.service}/${clean}`;
+  const date = new Date().toUTCString();
+  return {
+    ok: true,
+    key: clean,
+    url: publicUrl(clean),
+    uploadUrl: 'https://v0.api.upyun.com' + uri,
+    headers: {
+      Authorization: sign('PUT', uri, date, ''),
+      Date: date,
+      'Content-Type': contentType
+    },
+    expiresAt: Date.now() + 10 * 60 * 1000
+  };
+}
+
 /** 删除云端对象（失败不抛，日志交给调用方） */
 export async function deleteObject(key) {
   const c = upyunConfig();

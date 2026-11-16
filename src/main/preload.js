@@ -128,7 +128,11 @@ contextBridge.exposeInMainWorld('island', {
     search: (query, opts) => invoke('files:search', query, opts),
     readText: (p) => invoke('files:readText', p),
     // Everything 联动：'status' | 'ensure' | 'install'
-    everything: (action) => invoke('files:everything', action)
+    everything: (action) => invoke('files:everything', action),
+    // 文件流转「嗖一下」：直传又拍云 + 元数据走服务器
+    cloudSend: (friendId, ids) => invoke('files:cloudSend', friendId, ids),
+    cloudInbox: () => invoke('files:cloudInbox'),
+    cloudReceive: (shareId) => invoke('files:cloudReceive', shareId)
   },
 
   mail: {

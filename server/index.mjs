@@ -24,7 +24,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
-import { upyunReady, upyunConfig, publicUrl, thumbUrl, putObject, deleteObject } from './upyun.mjs';
+import { upyunReady, upyunConfig, publicUrl, thumbUrl, putObject, deleteObject, signUpload } from './upyun.mjs';
 import { purgeRoom } from './room-purge.mjs';
 
 const PORT = Number(process.env.ISLAND_PORT || 3311);
@@ -277,6 +277,20 @@ CREATE TABLE IF NOT EXISTS items (
   deleted_at INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_items_owner ON items(owner_id, deleted_at, sort_at DESC);
+CREATE TABLE IF NOT EXISTS file_shares (
+  id         TEXT PRIMARY KEY,
+  from_user  TEXT NOT NULL,
+  to_user    TEXT NOT NULL,
+  name       TEXT NOT NULL,
+  size       INTEGER NOT NULL DEFAULT 0,
+  kind       TEXT NOT NULL DEFAULT 'file',
+  key        TEXT NOT NULL,
+  url        TEXT NOT NULL,
+  note       TEXT,
+  created_at INTEGER NOT NULL,
+  read_at    INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_fileshare_to ON file_shares(to_user, created_at DESC);
 CREATE TABLE IF NOT EXISTS changes (
   seq       INTEGER PRIMARY KEY AUTOINCREMENT,
   owner_id  TEXT NOT NULL,
@@ -2751,6 +2765,94 @@ async function handleItemImage(req, res) {
   return ok(res, { key: "cloud:" + key, url: publicUrl(key), bytes: buf.length });
 }
 
+/* ------------------------------------------------- 文件流转（嗖一下）
+ * 文件本体由客户端直传又拍云（服务器只发签名），元数据走这里。
+ * 这样服务器不承担下载流量，好友拿到的是 CDN 链接。
+ */
+const FILE_MAX_BYTES = 2 * 1024 * 1024 * 1024;
+
+function safeFileName(name) {
+  const base = String(name || 'file')
+    .replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_')
+    .trim();
+  return (base || 'file').slice(0, 80);
+}
+
+async function handleFileSign(req, res) {
+  const ctx = requireUser(req, res);
+  if (!ctx) return;
+  if (!upyunReady()) return fail(res, 'cloud_off', '云存储没配置好，暂时传不了文件', 503);
+  const b = readJson(await readBody(req));
+  const name = safeFileName(b.name);
+  const size = Math.max(0, Number(b.size) || 0);
+  if (size > FILE_MAX_BYTES) return fail(res, 'too_big', '单个文件最大 2GB', 413);
+  const kind = b.kind === 'dir' ? 'dir' : 'file';
+  const d = new Date();
+  const ym = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}`;
+  const cfg = upyunConfig();
+  const prefix = (cfg && cfg.prefix ? cfg.prefix + '/' : '') + 'files/' + ym + '/';
+  const cloudName = kind === 'dir' && !/\.zip$/i.test(name) ? name + '.zip' : name;
+  const key = prefix + rid(9) + '-' + cloudName;
+  const signed = signUpload(key, String(b.type || 'application/octet-stream'));
+  if (!signed.ok) return fail(res, 'cloud_off', signed.message || '云存储签名失败', 503);
+  return ok(res, { key: signed.key, url: signed.url, uploadUrl: signed.uploadUrl, headers: signed.headers });
+}
+
+async function handleFileShareCreate(req, res) {
+  const ctx = requireUser(req, res);
+  if (!ctx) return;
+  const b = readJson(await readBody(req));
+  const to = String(b.toUserId || '').trim();
+  if (!to) return fail(res, 'bad_request', '要指定发给谁');
+  if (to === ctx.user.id) return fail(res, 'bad_request', '不能发给自己');
+  if (!areFriends(ctx.user.id, to)) return fail(res, 'forbidden', '只有好友之间才能嗖文件', 403);
+  const key = String(b.key || '').replace(/^\/+/, '').slice(0, 300);
+  const url = String(b.url || '').slice(0, 600);
+  if (!key || !url) return fail(res, 'bad_request', '文件还没传上去');
+  const name = safeFileName(b.name);
+  const size = Math.max(0, Number(b.size) || 0);
+  const kind = b.kind === 'dir' ? 'dir' : 'file';
+  const id = 'fsh_' + rid(9);
+  db.prepare(
+    'INSERT INTO file_shares (id, from_user, to_user, name, size, kind, key, url, note, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)'
+  ).run(id, ctx.user.id, to, name, size, kind, key, url, String(b.note || '').slice(0, 200), now());
+  log('[file] share', ctx.user.username, '->', to, name, size);
+  return ok(res, { ok: true, id });
+}
+
+function handleFileInbox(req, res) {
+  const ctx = requireUser(req, res);
+  if (!ctx) return;
+  const rows = db
+    .prepare('SELECT * FROM file_shares WHERE to_user = ? ORDER BY created_at DESC LIMIT 60')
+    .all(ctx.user.id);
+  const items = rows.map((r) => {
+    const u = q.userById.get(r.from_user);
+    return {
+      id: r.id,
+      from: friendOf(u),
+      name: r.name,
+      size: r.size,
+      kind: r.kind,
+      key: r.key,
+      url: r.url,
+      note: r.note || '',
+      createdAt: r.created_at,
+      readAt: r.read_at || 0
+    };
+  });
+  return ok(res, { items, unread: items.filter((x) => !x.readAt).length });
+}
+
+function handleFileShareRead(req, res, id) {
+  const ctx = requireUser(req, res);
+  if (!ctx) return;
+  const row = db.prepare('SELECT * FROM file_shares WHERE id = ? AND to_user = ?').get(id, ctx.user.id);
+  if (!row) return fail(res, 'not_found', '没有这条文件', 404);
+  if (!row.read_at) db.prepare('UPDATE file_shares SET read_at = ? WHERE id = ?').run(now(), id);
+  return ok(res, { ok: true });
+}
+
 // EventSource 不能带 header，SSE 这条允许 ?token=
 function requireUserSse(req, res, url) {
   let raw = bearerOf(req);
@@ -2925,6 +3027,13 @@ const server = http.createServer(async (req, res) => {
         prefix: c ? c.prefix : '',
         thumbRule: c ? c.thumbRule : ''
       });
+    }
+    if (req.method === 'POST' && p === '/api/files/sign') return await handleFileSign(req, res);
+    if (req.method === 'POST' && p === '/api/files/share') return await handleFileShareCreate(req, res);
+    if (req.method === 'GET' && p === '/api/files/inbox') return handleFileInbox(req, res);
+    {
+      const fr = p.match(/^\/api\/files\/inbox\/([A-Za-z0-9_]+)\/read$/);
+      if (fr && req.method === 'POST') return handleFileShareRead(req, res, fr[1]);
     }
     if (req.method === 'POST' && p === '/api/files') return await handleFileUpload(req, res);
 

@@ -20,6 +20,7 @@ const {
 const path = require('node:path');
 const os = require('node:os');
 const fs = require('node:fs');
+const https = require('node:https');
 const { execFile, spawn } = require('node:child_process');
 const crypto = require('node:crypto');
 const { pathToFileURL } = require('node:url');
@@ -1538,7 +1539,16 @@ function readClipboardFiles() {
       limit: Math.max(1, Math.min(100, Number(o.limit) || 40)),
       mode: o.mode === 'content' ? 'content' : 'name'
     };
-    const first = await search().search(q, args);
+    // 内容搜索在没开 Everything 内容索引时会退化成整盘扫描（实测 6 秒以上），
+    // 给一个上限，超时就放弃这一轮，别让文件区一直转圈
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), args.mode === 'content' ? 3000 : 8000);
+    let first;
+    try {
+      first = await search().search(q, { ...args, signal: ctrl.signal });
+    } finally {
+      clearTimeout(timer);
+    }
     // 内置扫描只看桌面/文档/下载这些常用目录；没有结果时再做一次「整盘浅扫」，
     // 免得用户以为搜索坏了（有 Everything 时永远走不到这里）
     const roots = store.data.settings.searchRoots;
@@ -1775,10 +1785,187 @@ function readClipboardFiles() {
       const iconPath = path.join(ASSETS, 'drag.png');
       let icon = nativeImage.createFromPath(iconPath);
       if (icon.isEmpty()) icon = nativeImage.createFromPath(path.join(ASSETS, 'icon.png'));
-      win.webContents.startDrag({ file: f.path, icon });
-      return { ok: true };
+      // 用 files 数组而不是单个 file：目录（文件夹）也能被资源管理器正确接收
+      win.webContents.startDrag({ files: [f.path], icon });
+      return { ok: true, isDir: !!f.isDir, path: f.path };
     } catch (err) {
       return { ok: false, message: String(err) };
+    }
+  });
+
+  /* ------------------------------------------------ 文件流转「嗖一下」
+   * 文件本体由客户端直传又拍云（服务器只发签名），元数据写服务器；
+   * 好友下载走 CDN，不占服务器带宽。
+   */
+  function httpsPutFile(uploadUrl, headers, filePath, size) {
+    return new Promise((resolve, reject) => {
+      let u;
+      try {
+        u = new URL(uploadUrl);
+      } catch (err) {
+        return reject(err);
+      }
+      const req = https.request(
+        {
+          host: u.hostname,
+          path: u.pathname + u.search,
+          method: 'PUT',
+          headers: Object.assign({}, headers, { 'Content-Length': String(size) }),
+          timeout: 0
+        },
+        (res) => {
+          let body = '';
+          res.setEncoding('utf8');
+          res.on('data', (d) => {
+            body += d;
+          });
+          res.on('end', () => resolve({ status: res.statusCode || 0, body }));
+        }
+      );
+      req.on('error', reject);
+      const rs = fs.createReadStream(filePath);
+      rs.on('error', (err) => {
+        try {
+          req.destroy();
+        } catch (_) {}
+        reject(err);
+      });
+      rs.pipe(req);
+    });
+  }
+
+  function httpsDownload(url, dest) {
+    return new Promise((resolve, reject) => {
+      let u;
+      try {
+        u = new URL(url);
+      } catch (err) {
+        return reject(err);
+      }
+      const req = https.get({ host: u.hostname, path: u.pathname + u.search, timeout: 0 }, (res) => {
+        if (res.statusCode !== 200) {
+          res.resume();
+          return reject(new Error('HTTP ' + res.statusCode));
+        }
+        const ws = fs.createWriteStream(dest);
+        res.pipe(ws);
+        ws.on('finish', () => resolve(dest));
+        ws.on('error', reject);
+      });
+      req.on('error', reject);
+    });
+  }
+
+  function runPowerShell(cmd) {
+    return new Promise((resolve, reject) => {
+      execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', cmd], { windowsHide: true }, (err) =>
+        err ? reject(err) : resolve()
+      );
+    });
+  }
+
+  ipcMain.handle('files:cloudSend', async (e, friendId, ids) => {
+    const acc = accountApi();
+    if (!acc.signedIn) return { ok: false, message: '先在设置里登录，才能嗖给好友' };
+    const list = store.data.files.filter((f) => (ids || []).includes(f.id));
+    if (!list.length) return { ok: false, message: '没有要发的文件' };
+    const sent = [];
+    const failed = [];
+    for (const f of list) {
+      let tmp = '';
+      let src = f.path;
+      let size = Number(f.size) || 0;
+      let name = f.name;
+      const kind = f.isDir ? 'dir' : 'file';
+      try {
+        if (!fs.existsSync(f.path)) throw new Error('源文件已经不在了');
+        if (f.isDir) {
+          tmp = path.join(app.getPath('temp'), 'qt-send-' + f.id + '.zip');
+          await runPowerShell(
+            `Compress-Archive -LiteralPath ${JSON.stringify(f.path)} -DestinationPath ${JSON.stringify(tmp)} -Force`
+          );
+          src = tmp;
+          size = fs.statSync(tmp).size;
+          name = f.name + '.zip';
+        }
+        const sign = await acc.fileSign({
+          name,
+          size,
+          kind,
+          type: f.isDir ? 'application/zip' : 'application/octet-stream'
+        });
+        if (!sign || !sign.ok || !sign.uploadUrl) throw new Error((sign && sign.message) || '拿不到上传签名');
+        const up = await httpsPutFile(sign.uploadUrl, sign.headers || {}, src, size);
+        if (up.status < 200 || up.status >= 300) throw new Error('上传失败 HTTP ' + up.status);
+        const share = await acc.fileShare({ toUserId: friendId, key: sign.key, url: sign.url, name: f.name, size, kind });
+        if (!share || !share.ok) throw new Error((share && share.message) || '分享失败');
+        sent.push({ id: f.id, name: f.name, url: sign.url });
+      } catch (err) {
+        failed.push({ id: f.id, name: f.name, message: String((err && err.message) || err) });
+      } finally {
+        if (tmp)
+          try {
+            fs.unlinkSync(tmp);
+          } catch (_) {}
+      }
+    }
+    if (sent.length) log('[file] sent', sent.length, 'failed', failed.length);
+    return { ok: sent.length > 0, sent, failed };
+  });
+
+  ipcMain.handle('files:cloudInbox', async () => {
+    const acc = accountApi();
+    if (!acc.signedIn) return { ok: false, items: [], unread: 0 };
+    try {
+      return await acc.fileInbox();
+    } catch (err) {
+      return { ok: false, items: [], unread: 0, message: String((err && err.message) || err) };
+    }
+  });
+
+  ipcMain.handle('files:cloudReceive', async (e, shareId) => {
+    const acc = accountApi();
+    if (!acc.signedIn) return { ok: false, message: '先在设置里登录' };
+    const box = await acc.fileInbox();
+    const it = ((box && box.items) || []).find((x) => x.id === shareId);
+    if (!it) return { ok: false, message: '找不到这个文件' };
+    const dir = path.join(app.getPath('userData'), 'stash');
+    fs.mkdirSync(dir, { recursive: true });
+    const safe = String(it.name || 'file').replace(/[\\/:*?"<>|]/g, '_').slice(0, 120) || 'file';
+    const tmp = path.join(dir, 'dl-' + Date.now() + '-' + (it.kind === 'dir' ? safe + '.zip' : safe));
+    try {
+      await httpsDownload(it.url, tmp);
+      let outPath = tmp;
+      if (it.kind === 'dir') {
+        const dest = path.join(dir, 'dl-' + Date.now() + '-' + safe);
+        fs.mkdirSync(dest, { recursive: true });
+        await runPowerShell(`Expand-Archive -LiteralPath ${JSON.stringify(tmp)} -DestinationPath ${JSON.stringify(dest)} -Force`);
+        try {
+          fs.unlinkSync(tmp);
+        } catch (_) {}
+        outPath = dest;
+      }
+      const meta = fileMeta(outPath);
+      if (!meta.exists) throw new Error('落盘后找不到文件');
+      store.data.files.unshift({
+        id: uid('file'),
+        path: outPath,
+        name: path.basename(outPath).replace(/^dl-\d+-/, '') || safe,
+        isDir: !!it.kind && it.kind === 'dir',
+        size: meta.size,
+        ext: it.kind === 'dir' ? '' : path.extname(outPath).replace('.', '').toLowerCase().slice(0, 6),
+        addedAt: Date.now()
+      });
+      if (store.data.files.length > 30) store.data.files.length = 30;
+      store.save();
+      await acc.fileRead(shareId).catch(() => {});
+      broadcast();
+      return { ok: true, name: it.name, path: outPath };
+    } catch (err) {
+      try {
+        fs.unlinkSync(tmp);
+      } catch (_) {}
+      return { ok: false, message: String((err && err.message) || err) };
     }
   });
 

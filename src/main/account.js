@@ -241,6 +241,28 @@ class Account {
     return this._call('POST', '/api/shares/' + encodeURIComponent(id) + '/read', { body: {} });
   }
 
+  /* ---- 文件流转（嗖一下）：服务器只发上传签名与元数据，文件本体走又拍云 ---- */
+
+  fileSign({ name, size, kind, type } = {}) {
+    return this._call('POST', '/api/files/sign', {
+      body: { name: String(name || ''), size: Number(size) || 0, kind: kind === 'dir' ? 'dir' : 'file', type: String(type || '') }
+    });
+  }
+
+  fileShare({ toUserId, key, url, name, size, kind, note } = {}) {
+    return this._call('POST', '/api/files/share', {
+      body: { toUserId, key, url, name, size: Number(size) || 0, kind: kind === 'dir' ? 'dir' : 'file', note: String(note || '') }
+    });
+  }
+
+  fileInbox() {
+    return this._call('GET', '/api/files/inbox');
+  }
+
+  fileRead(id) {
+    return this._call('POST', '/api/files/inbox/' + encodeURIComponent(id) + '/read', { body: {} });
+  }
+
   /* ---- M7：Qing 事项同步 ---- */
 
   items(since) {

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>开发记录 · Qing Tools 从 1.0 到 1.16.7</title>
+<title>开发记录 · Qing Tools 从 1.0 到 1.17.0</title>
 <meta name="description" content="Qing Tools 十一天七十一个版本的开发过程：从一条会伸缩的药丸，到能收邮件、短信验证码、文件和群聊的常驻小面板，再到能登录、验证码跟着账号走的账号体系。">
 <meta name="theme-color" content="#05060b">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
@@ -31,7 +31,7 @@
     <button class="icon-btn" id="themeBtn" title="切换明暗" aria-label="切换明暗">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path class="sun" d="M12 4v2m0 12v2m8-8h-2M6 12H4m13.7-5.7-1.4 1.4M7.7 16.3l-1.4 1.4m11.4 0-1.4-1.4M7.7 7.7 6.3 6.3"/><circle cx="12" cy="12" r="3.6"/></svg>
     </button>
-    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.16.7-setup.exe">下载</a>
+    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.17.0-setup.exe">下载</a>
   </div>
 </header>
 
@@ -41,11 +41,11 @@
     <p class="kicker">开发记录</p>
     <h1>十一天，六十多个版本，<br><span class="grad">一条缝长成了一个工作台</span></h1>
     <p class="lede">
-      1.0 的时候它只会伸缩和显示未读；到 1.16.7，它替你收邮件、抽验证码、接手机短信、暂存文件、
+      1.0 的时候它只会伸缩和显示未读；到 1.17.0，它替你收邮件、抽验证码、接手机短信、暂存文件、
       在群里发一句就走，验证码还跟着账号在几台电脑之间跑。下面是中间每一步到底改了什么、为什么改。
     </p>
     <div class="cl-stats">
-      <div><b>72</b><span>个可安装版本（1.0 → 1.16.7）</span></div>
+      <div><b>73</b><span>个可安装版本（1.0 → 1.17.0）</span></div>
       <div><b>11</b><span>天（11-05 → 11-15）</span></div>
       <div><b>100 MB</b><span>安装包（砍过 21 MB）</span></div>
       <div><b>7</b><span>个页签</span></div>
@@ -542,12 +542,25 @@
         </ul>
       </div>
     </article>
+
+    <article class="cl-item v1">
+      <div class="cl-side"><b>1.17.0</b><span>11-16</span></div>
+      <div class="cl-body">
+        <h3>文件区：搜索不再卡，文件夹能拖出来了，还能「嗖」给好友</h3>
+        <ul>
+          <li><b>搜索快回来了。</b>以前文件区一输入就要等 6 秒多——它在等「内容命中」把整盘扫一遍。现在文件名结果立刻出来（Everything 通常 4 毫秒），内容命中的结果在后台补，3 秒补不到就放弃，不再拖住输入。</li>
+          <li><b>暂存箱里的文件夹可以拖回资源管理器了。</b>拖拽改用系统原生多文件方式启动，文件夹不会再被当成「拖不动的项目」。</li>
+          <li><b>新动作「嗖一下」：</b>文件或文件夹直接发给好友。文件本体由客户端直传又拍云，服务器只发上传签名和一条元数据（谁发给谁、多大、在哪），好友下载走 CDN —— 不占服务器带宽。</li>
+          <li>好友收到的文件会出现在文件区顶部，点「接收」就下载到本机暂存箱；文件夹会自动解压还原成目录。</li>
+        </ul>
+      </div>
+    </article>
     </section>
 
   <footer class="foot">
     <div class="foot-left">
       <span class="mark small" aria-hidden="true"><i></i><b></b></span>
-      <span>Qing Tools <span class="dim">v1.16.7</span></span>
+      <span>Qing Tools <span class="dim">v1.17.0</span></span>
     </div>
     <div class="foot-right">
       <a href="index.html">回到首页</a>

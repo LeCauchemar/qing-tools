@@ -432,6 +432,17 @@ class SearchService {
       }
 
       /* 2) 内置扫描兜底 */
+      // 已经超时/取消就不要再扫了 —— 内容模式整盘扫描动辄几秒，用户早就不等了
+      if (signal && signal.aborted) {
+        return {
+          ok: false,
+          engine: 'local',
+          took: Date.now() - started,
+          total: 0,
+          results: [],
+          message: '搜索已取消（内容扫描太慢，已跳过）'
+        };
+      }
       const local = await this._scanLocal(cfg, q, { limit, mode, signal });
       const result = {
         ok: true,

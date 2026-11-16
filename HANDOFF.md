@@ -1,3 +1,9 @@
+## 2026-11-16 17:58 · 1.17.0 · DeepSeekRuntime
+- 改了什么：① 文件区搜索提速 —— `runFsSearch()` 先渲染名称结果、内容命中后台补（`S.fs.seq` 序号丢弃迟到结果）；`main.js` 的 `files:search` 对 content 模式加 3s `AbortController`；`search.js` 在 signal 已取消时直接返回、不再回退整盘扫描（6.5s → 3.0s，且不阻塞输入）。② 暂存箱文件夹拖出 —— `files:dragOut` 改 `startDrag({files:[path]})`。③ 新功能「嗖一下」——服务端 `file_shares` 表 + `/api/files/{sign,share,inbox,inbox/:id/read}`（`upyun.mjs` 新增导出 `signUpload`）；客户端 `files:cloudSend / cloudInbox / cloudReceive`（`node:https` 流式 PUT，目录先 `Compress-Archive`；接收下载到 `userData/stash` 并解压）；渲染层文件行加「嗖」按钮、`#sharePop` 标题按 `S.shareTarget.kind` 切换、文件区顶部渲染待接收项 + 20s `pollFileShares`。
+- 为什么：用户反馈文件区搜索慢（内容搜索在扫整盘）、暂存箱文件夹拖不出来、要给好友传文件（命名定为「嗖一下」），且明确要求文件流量走又拍云 CDN、不走自建服务器。
+- 怎么验证：`POST /api/files/sign` 200；用返回的 `uploadUrl/headers` 直传又拍云 200，CDN GET 200 内容一致；`files:cloudSend` 端到端 `sent:1`；「发给自己」被 400 拦；content 搜索 3015ms 返回「已取消」。测试产生的 2 条 `file_shares`、2 个云对象、本地测试暂存项已删除。
+- 下一步 / 已知问题：真机拖出（文件夹 → 资源管理器）需要人工试一次；「嗖」目前一次只发一个暂存项（多选发送留到下一版）；接收的文件落在 `%APPDATA%\DynamicIsland\stash`，还没有「打开所在文件夹」入口；又拍云对象没有过期清理策略（长期会累积）。
+
 ## 2026-11-16 11:50 · 1.16.7 · DeepSeekRuntime
 - 改了什么：① 桌面便条续写/删行同步圆圈 —— `sticky.js` 新增 `caretOffset/placeCaret/syncTodoChk`，`todoDom` 跳过空行并不再给文本加前导空格（改由 `.chk` 的 margin 控制间距）；`onUpdate` 焦点在正文时走 `syncTodoChk()`，行数变化重建（保光标），整行删空则清理正文并 `api.update` 写回。② 咻分享自动钉桌面 —— `pollShares()` 里 `api.notes.add` 后 `togglePin`。③ 页签「备忘录」→「Qing 事项」——`index.html` 两处 + 空状态/搜索分组/右键菜单/分享标签/toast/归属卡片文案（`app.js` 多处）。④ 官网演示台 —— `site/index.html` 快捷条与页签改名、notes 面板换成带圆圈的多行待办、功能卡与首屏文案；`site.css` 加 `.p-todo`；`site.js` 演出新增「勾 Qing 事项」一段并调整小工具文案。
 - 为什么：用户反馈「在钉桌面的待办里继续添加就没有圆圈了」「删掉整行内容圆圈还在」「页签名还叫备忘录」「官网演示动图很久没更新」。

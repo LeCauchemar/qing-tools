@@ -1660,9 +1660,10 @@ function extClass(ext, isDir) {
 
 function renderFiles() {
   const files = S.data.files || [];
+  const inbox = (S.fileInbox || []).filter((x) => !x.readAt);
   el.fileStat.textContent = files.length ? files.length + ' 个项目' : '暂无文件';
   $('#fileCopyAll').toggleAttribute('disabled', !files.length);
-  if (!files.length) {
+  if (!files.length && !inbox.length) {
     paint(
       el.fileList,
       '<div class="empty" style="min-height:120px"><div class="empty-ic"><svg class="ic"><use href="#i-folder"/></svg></div>' +
@@ -1670,10 +1671,25 @@ function renderFiles() {
     );
     return;
   }
+  const inboxHtml = inbox
+    .map((it) => {
+      const who = (it.from && (it.from.nick || it.from.username)) || '好友';
+      return (
+        '<div class="row file recv" data-share-id="' + esc(it.id) + '">' +
+        '<div class="file-ic snd"><svg class="ic"><use href="#i-send"/></svg></div>' +
+        '<div class="row-main"><div class="row-title">' + esc(it.name) + '</div>' +
+        '<div class="row-sub">' + esc(who + ' 嗖来 · ' + (it.kind === 'dir' ? '文件夹' : fmtSize(it.size))) + '</div></div>' +
+        '<div class="row-side"><div class="row-tools">' +
+        '<button class="btn ghost small" data-act="file-recv" data-share-id="' + esc(it.id) + '">接收</button>' +
+        '</div></div></div>'
+      );
+    })
+    .join('');
   paint(
     el.fileList,
-    files
-      .map((f, i) => {
+    inboxHtml +
+      files
+        .map((f, i) => {
         const cls = extClass(f.ext, f.isDir);
         const label = f.isDir ? 'DIR' : String(f.ext || 'FILE').slice(0, 4);
         return (
@@ -1683,6 +1699,7 @@ function renderFiles() {
           '<div class="row-main"><div class="row-title">' + esc(f.name) + '</div>' +
           '<div class="row-sub">' + (f.isDir ? '文件夹' : fmtSize(f.size)) + ' · ' + esc(fmtTime(f.addedAt)) + '</div></div>' +
           '<div class="row-side"><div class="row-tools">' +
+          '<button class="icon-btn tool" data-act="file-send" title="嗖给好友"><svg class="ic"><use href="#i-send"/></svg></button>' +
           '<button class="icon-btn tool" data-act="file-copy" title="复制文件"><svg class="ic"><use href="#i-copy"/></svg></button>' +
           '<button class="icon-btn tool" data-act="file-path" title="复制路径"><svg class="ic"><use href="#i-text"/></svg></button>' +
           '<button class="icon-btn tool" data-act="file-reveal" title="在文件夹中显示"><svg class="ic"><use href="#i-folder"/></svg></button>' +
@@ -1803,6 +1820,7 @@ async function accLoadStatus() {
   if (S.account.signedIn) {
     pollShares();
     pollBindings();
+    pollFileShares(true);
   }
 }
 
@@ -2232,6 +2250,8 @@ async function accFriendAct(id, act) {
 
 function renderShareList() {
   if (!el.shareList) return;
+  const t = document.getElementById('shareTitle');
+  if (t) t.textContent = S.shareTarget && S.shareTarget.kind === 'files' ? '嗖给谁？' : '咻给谁？';
   const fs = S.account.friends || [];
   el.shareList.innerHTML = fs
     .map(
@@ -2246,8 +2266,9 @@ function renderShareList() {
   if (el.shareEmpty) el.shareEmpty.classList.toggle('hidden', fs.length > 0);
 }
 
-function openSharePop(x, y, noteId) {
-  S.shareNoteId = noteId;
+function openSharePop(x, y, target) {
+  S.shareTarget = typeof target === 'string' ? { kind: 'note', id: target } : target || { kind: 'note', id: '' };
+  S.shareNoteId = S.shareTarget.kind === 'note' ? S.shareTarget.id : '';
   renderShareList();
   const m = el.sharePop;
   if (!m) return;
@@ -2482,6 +2503,53 @@ async function pollShares() {
   });
   renderNotes();
   nudgeRect(900);
+}
+
+/* ---- 文件流转「嗖一下」：直传又拍云，服务器只签名；收到后下载到暂存箱 ---- */
+async function shareFilesTo(friend, ids, fromEl) {
+  if (!ids || !ids.length) return toast('没有要发的文件');
+  if (!S.account.signedIn) return toast('先在设置里登录，才能嗖给好友', true);
+  planeFly(fromEl);
+  toast('正在嗖给 ' + (friend.nick || friend.username) + '…');
+  const r = await api.files.cloudSend(friend.id, ids);
+  if (r && r.ok) {
+    const n = (r.sent || []).length;
+    toast('嗖——已经发给 ' + (friend.nick || friend.username) + (n > 1 ? '（' + n + ' 项）' : ''));
+  } else {
+    const first = r && r.failed && r.failed[0];
+    toast('嗖失败：' + ((first && first.message) || (r && r.message) || '未知原因'), true);
+  }
+}
+
+async function pollFileShares(baseline) {
+  if (!S.account.signedIn || !api.files.cloudInbox) return;
+  const r = await api.files.cloudInbox();
+  if (!r || !r.ok) return;
+  S.fileInbox = r.items || [];
+  const fresh = S.fileInbox.filter((x) => !x.readAt);
+  const seen = S.fileSeen || [];
+  S.fileSeen = fresh.map((x) => x.id);
+  if (baseline) return;
+  const newOnes = fresh.filter((x) => seen.indexOf(x.id) < 0);
+  if (!newOnes.length) return;
+  const first = newOnes[0];
+  const who = (first.from && (first.from.nick || first.from.username)) || '好友';
+  const line = who + ' 嗖来 ' + (newOnes.length > 1 ? newOnes.length + ' 个文件' : first.name);
+  toast(line);
+  showPeek({ icon: '#i-send', title: line, sub: '点开去文件区接收', time: '刚刚', dur: 7200, force: true, tab: 'files' });
+  renderFiles();
+  nudgeRect(900);
+}
+
+async function receiveFile(shareId) {
+  const r = await api.files.cloudReceive(shareId);
+  if (r && r.ok) {
+    toast('已接收 ' + r.name);
+    await pollFileShares(true);
+    renderFiles();
+  } else {
+    toast('接收失败：' + ((r && r.message) || '未知原因'), true);
+  }
 }
 
 function bindAccountUi() {
@@ -4575,10 +4643,30 @@ async function handleAct(act, node) {
       openSharePop(rect.left - 110, rect.bottom + 6, node.dataset.id || id);
       break;
     }
+    case 'file-send': {
+      if (!S.account.signedIn) {
+        toast('先在设置里登录，才能嗖给好友', true);
+        break;
+      }
+      const frow = node.closest('.row.file');
+      const fid = frow && frow.dataset.id;
+      if (!fid) break;
+      const frect = node.getBoundingClientRect();
+      openSharePop(frect.left - 110, frect.bottom + 6, { kind: 'files', ids: [fid] });
+      break;
+    }
+    case 'file-recv': {
+      const sid = node.dataset.shareId || (node.closest('.row.recv') && node.closest('.row.recv').dataset.shareId);
+      if (sid) await receiveFile(sid);
+      break;
+    }
     case 'share-to': {
       const who = (S.account.friends || []).find((f) => f.id === node.dataset.id);
+      const target = S.shareTarget || { kind: 'note', id: S.shareNoteId };
       closeSharePop();
-      if (who) await shareNoteTo(who, S.shareNoteId, node);
+      if (!who) break;
+      if (target.kind === 'files') await shareFilesTo(who, target.ids || [], node);
+      else await shareNoteTo(who, target.id, node);
       break;
     }
     case 'cp-friend': {
@@ -7011,6 +7099,7 @@ function bindUi() {
       return;
     }
     S.fs.q = q;
+    const seq = (S.fs.seq = (S.fs.seq || 0) + 1);
     const box = fsBox();
     if (box) {
       box.classList.remove('hidden');
@@ -7018,23 +7107,29 @@ function bindUi() {
       nudgeRect(1200);
     }
     const nameR = await api.files.search(q, { mode: 'name', limit: 40 });
+    if (seq !== S.fs.seq) return;
     let items = ((nameR && nameR.results) || []).map((it) => Object.assign({}, it));
     S.fs.engine = (nameR && nameR.engine) || '';
     S.fs.wide = !!(nameR && nameR.wide);
-    // 文件名命中的不多时，再补一轮「内容命中」，两种结果合并显示
-    if (items.length < 6 && q.length >= 2) {
-      const contentR = await api.files.search(q, { mode: 'content', limit: 20 });
-      const seen = new Set(items.map((x) => x.path));
-      for (const it of (contentR && contentR.results) || []) {
-        if (seen.has(it.path)) continue;
-        seen.add(it.path);
-        items.push(Object.assign({}, it, { content: true }));
-      }
-    }
     S.fs.items = items;
     S.fs.sel.clear();
     renderFsResults();
     if (nameR && !nameR.ok) toast((nameR && nameR.message) || '搜索失败', true);
+    // 文件名命中的不多时，后台补一轮「内容命中」：先让名称结果立刻可见，
+    // 内容扫描（没开 Everything 内容索引时很慢）不阻塞输入，序号变了就丢弃
+    if (items.length < 6 && q.length >= 2) {
+      const contentR = await api.files.search(q, { mode: 'content', limit: 20 });
+      if (seq !== S.fs.seq || !contentR || !contentR.ok) return;
+      const seen = new Set(S.fs.items.map((x) => x.path));
+      let added = 0;
+      for (const it of contentR.results || []) {
+        if (seen.has(it.path)) continue;
+        seen.add(it.path);
+        S.fs.items.push(Object.assign({}, it, { content: true }));
+        added++;
+      }
+      if (added) renderFsResults();
+    }
   }
 
   // 把选中的搜索结果放进文件区；内容命中的文件顺手把正文放进剪贴板
@@ -9535,6 +9630,7 @@ async function boot() {
   setInterval(() => {
     pollShares();
     pollBindings();
+    pollFileShares();
   }, 20000);
   setInterval(smsWatchdog, 30000);
   setTimeout(() => {

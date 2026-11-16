@@ -1,3 +1,10 @@
+## 2026-11-16 11:50 · 1.16.7 · DeepSeekRuntime
+- 改了什么：① 桌面便条续写/删行同步圆圈 —— `sticky.js` 新增 `caretOffset/placeCaret/syncTodoChk`，`todoDom` 跳过空行并不再给文本加前导空格（改由 `.chk` 的 margin 控制间距）；`onUpdate` 焦点在正文时走 `syncTodoChk()`，行数变化重建（保光标），整行删空则清理正文并 `api.update` 写回。② 咻分享自动钉桌面 —— `pollShares()` 里 `api.notes.add` 后 `togglePin`。③ 页签「备忘录」→「Qing 事项」——`index.html` 两处 + 空状态/搜索分组/右键菜单/分享标签/toast/归属卡片文案（`app.js` 多处）。④ 官网演示台 —— `site/index.html` 快捷条与页签改名、notes 面板换成带圆圈的多行待办、功能卡与首屏文案；`site.css` 加 `.p-todo`；`site.js` 演出新增「勾 Qing 事项」一段并调整小工具文案。
+- 为什么：用户反馈「在钉桌面的待办里继续添加就没有圆圈了」「删掉整行内容圆圈还在」「页签名还叫备忘录」「官网演示动图很久没更新」。
+- 怎么验证：dev + 装机版 1.16.7（CDP 9333）：便条 2 行→2 圆圈；插入 `<br>第三行` 后变 3 圆圈、主进程文本 3 行；删掉第三行后变 2 圆圈、空行从正文消失、无前导空格累积；页签 `textContent` = 「Qing 事项」，搜索分组 = 「Qing 事项」；官网本地截图 `?state=panel&nofx=1` 页签显示「Qing 事项」、布局正常。
+- 已发版：`publish.ps1 -Version 1.16.7` 三处清单全 OK；GitHub `main=2418555`、`tag v1.16.7`、Release 附件已上传。
+- 下一步 / 已知问题：便条里删的是**中间**某行时，光标按字符偏移放回（不一定是上一行末尾）；`doneLines` 仍不参与云端同步；官网 `assets/shots/*.webp` 是旧截图且页面已不引用，需要的话可以后续清理。
+
 ## 2026-11-15 21:45 · 1.16.6 · DeepSeekRuntime
 - 改了什么：① 好友申请提醒 —— 新增 `pollBindings()`（每 20 秒，boot 的 `setInterval` 与 `accLoadStatus` 都调），新申请弹 peek（`tab:'settings'`）+ `toast` + 设置页红点 `#tabDotSet`（`paintFriendDot()`，`setTab` 时清）；`accLoadFriends()` 置 `S.account.bindPrimed`，启动不弹历史。② 咻分享跳转 —— `showPeek()` 支持 `o.tab`，`pollShares()` 传 `tab:'notes'`，peek 点击 `openPanel(S.peekTab||'mail')`（原来一律 `openPanel('mail')`）。③ 多行待办 —— `note.doneLines` 行状态；主进程 `toggleNoteLine()` / `applyWholeDone()`、IPC `notes:lineDone` / `sticky:lineDone`，`notes:add` 初始化 `doneLines`，`notes:update` / `sticky:update` 重置行状态；渲染层 `todoLineStats()` / `todoBodyHtml()` 每行一个圆圈，`data-act="note-line-done"`；CSS `.todo-lines/.todo-line/.tl-text`；便签 `sticky.js` 的 `todoDom()` 画 `.chk` + `.tl`，`paintChk()` 只刷圆圈不重建 contenteditable，`readNote()` 跳过 `.chk`；`broadcast` / `sticky:snapshot` / `sticky:font` 带 `kind/done/doneLines`；`preload.js` / `sticky-preload.js` 暴露 `lineDone`。
 - 为什么：用户报了三个问题 —— 好友申请对方无提示；咻来的事项点通知条后界面收起/跳错页；一条待办写多行只有一个圆圈，钉桌面后也没有圆圈、完成不能划线。

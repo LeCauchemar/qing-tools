@@ -33,14 +33,16 @@
     note.replaceChildren(meta.kind === 'todo' ? todoDom(last) : noteDom(last));
   }
 
-  /** 待办便条：每行前面一个圆圈，已完成的行划线变灰 */
+  /** 待办便条：每行前面一个圆圈，已完成的行划线变灰；空行直接不显示 */
   function todoDom(text) {
     const frag = document.createDocumentFragment();
     const lines = String(text || '').split('\n');
     const doneLines = Array.isArray(meta.doneLines) ? meta.doneLines : [];
+    let first = true;
     lines.forEach((ln, i) => {
-      if (i) frag.appendChild(document.createElement('br'));
       if (!ln.trim()) return;
+      if (!first) frag.appendChild(document.createElement('br'));
+      first = false;
       const done = !!meta.done || doneLines.indexOf(i) >= 0;
       const chk = document.createElement('span');
       chk.className = 'chk' + (done ? ' on' : '');
@@ -50,7 +52,8 @@
       frag.appendChild(chk);
       const tl = document.createElement('span');
       tl.className = 'tl' + (done ? ' done' : '');
-      tl.textContent = ' ' + ln;
+      // 不能带前导空格：readNote() 会把它读回正文，反复保存会越积越多
+      tl.textContent = ln;
       frag.appendChild(tl);
     });
     return frag;
@@ -285,6 +288,77 @@
     });
   }
 
+  /** 当前光标在正文里的字符偏移（重建 DOM 前记下来，重建后放回去） */
+  function caretOffset() {
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return null;
+    const range = sel.getRangeAt(0);
+    if (!note.contains(range.startContainer)) return null;
+    const pre = document.createRange();
+    pre.selectNodeContents(note);
+    pre.setEnd(range.startContainer, range.startOffset);
+    return pre.toString().length;
+  }
+
+  function placeCaret(off) {
+    // off 为空 = 放到末尾（删掉空行之后光标回到上一行末尾）
+    if (off == null) {
+      const r0 = document.createRange();
+      r0.selectNodeContents(note);
+      r0.collapse(false);
+      const s0 = window.getSelection();
+      s0.removeAllRanges();
+      s0.addRange(r0);
+      return;
+    }
+    let acc = 0;
+    const walker = document.createTreeWalker(note, NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = walker.nextNode())) {
+      const len = node.nodeValue.length;
+      if (acc + len >= off) {
+        const r = document.createRange();
+        r.setStart(node, Math.max(0, Math.min(len, off - acc)));
+        r.collapse(true);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(r);
+        return;
+      }
+      acc += len;
+    }
+    const r = document.createRange();
+    r.selectNodeContents(note);
+    r.collapse(false);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(r);
+  }
+
+  /** 在便条里继续加行（按回车）后，行数会多于圆圈数：重建一次补上圆圈，并尽量保住光标 */
+  function syncTodoChk() {
+    if (meta.kind !== 'todo') return;
+    const lines = String(last).split('\n');
+    const cleaned = lines.filter((s) => s.trim());
+    // 整行删空：把这一行连同圆圈一起去掉，光标回到末尾（上一行末尾）
+    if (cleaned.length !== lines.length) {
+      last = cleaned.join('\n');
+      note.replaceChildren(todoDom(last));
+      placeCaret(null);
+      api.update(last);
+      return;
+    }
+    const need = cleaned.length;
+    const have = note.querySelectorAll('.chk').length;
+    if (need !== have) {
+      const off = caretOffset();
+      note.replaceChildren(todoDom(last));
+      placeCaret(off);
+      return;
+    }
+    paintChk();
+  }
+
   // 主进程推送（岛上面板改了同一张便条）
   api.onUpdate((n) => {
     if (!n || n.id !== api.id) return;
@@ -299,7 +373,7 @@
       return;
     }
     if (document.activeElement === note) {
-      paintChk();
+      syncTodoChk();
       return;
     }
     note.replaceChildren(meta.kind === 'todo' ? todoDom(last) : noteDom(last));

@@ -597,6 +597,23 @@ details p { margin: 0 0 16px; color: var(--muted); font-size: 13.5px; }
   color: var(--ink-soft);
 }
 .p-note.dim { color: var(--muted); }
+.p-todo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.85;
+  color: var(--ink);
+}
+.p-todo i {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  border: 1.4px solid color-mix(in srgb, currentColor 45%, transparent);
+  border-radius: 50%;
+}
+.p-todo.done { opacity: 0.55; text-decoration: line-through; }
+.p-todo.done i { background: var(--accent); border-color: var(--accent); }
 .p-tools-row {
   display: flex;
   justify-content: space-between;

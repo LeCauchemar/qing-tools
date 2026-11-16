@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Qing Tools — 把屏幕顶部那条缝，变成你的工作台</title>
-<meta name="description" content="Qing Tools 是常驻 Windows 屏幕顶部的灵动岛：邮件主动推送与验证码一键复制、备忘录与桌面便利贴、剪贴板、文件中转站、四人以内的小纸条群聊、计时器与免打扰。">
+<meta name="description" content="Qing Tools 是常驻 Windows 屏幕顶部的灵动岛：邮件主动推送与验证码一键复制、Qing 事项与桌面便利贴、剪贴板、文件中转站、四人以内的小纸条群聊、计时器与免打扰。">
 <meta name="theme-color" content="#05060b">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/site.css?v=13">
@@ -32,7 +32,7 @@
     <button class="icon-btn" id="themeBtn" title="切换明暗" aria-label="切换明暗">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path class="sun" d="M12 4v2m0 12v2m8-8h-2M6 12H4m13.7-5.7-1.4 1.4M7.7 16.3l-1.4 1.4m11.4 0-1.4-1.4M7.7 7.7 6.3 6.3"/><circle cx="12" cy="12" r="3.6"/></svg>
     </button>
-    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.16.6-setup.exe">下载</a>
+    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.16.7-setup.exe">下载</a>
   </div>
 </header>
 
@@ -43,19 +43,19 @@
     <div class="hero-copy">
       <h1>把屏幕顶部那条缝，<br><span class="grad">变成第二个工作台</span></h1>
       <p class="lede">
-        邮件来了主动推送、验证码点一下就进剪贴板；随手记的备忘可以钉到桌面上变成便利贴；
+        邮件来了主动推送、验证码点一下就进剪贴板；随手记的事项和待办可以钉到桌面上变成便利贴；
         拖过来的文件先落进暂存箱，再一键上云拿链接；四个人以内还能用匹配码互传小纸条。
         全都藏在那条细细的药丸里——不想看的时候，它只是一条时间。
       </p>
       <div class="actions">
-        <a class="btn btn-primary btn-lg js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.16.6-setup.exe">
+        <a class="btn btn-primary btn-lg js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.16.7-setup.exe">
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11m0 0 4-4m-4 4-4-4M4 18v1.5A1.5 1.5 0 0 0 5.5 21h13A1.5 1.5 0 0 0 20 19.5V18"/></svg>
           下载安装包 <span class="dim" id="heroSize">100 MB</span>
         </a>
-        <a class="btn btn-ghost btn-lg js-dl-portable" href="https://qing.ccyyqq.com/island/update/QingTools-1.16.6-portable.exe">便携版（免安装）</a>
+        <a class="btn btn-ghost btn-lg js-dl-portable" href="https://qing.ccyyqq.com/island/update/QingTools-1.16.7-portable.exe">便携版（免安装）</a>
       </div>
       <p class="fineprint">
-        <span id="heroVer">v1.16.6</span> · 安装后自动开机启动 · 可随时在设置里关掉 ·
+        <span id="heroVer">v1.16.7</span> · 安装后自动开机启动 · 可随时在设置里关掉 ·
         <a href="https://chat.ccyyqq.com/island/" target="_blank" rel="noopener">小纸条网页版</a>
       </p>
     </div>
@@ -66,7 +66,7 @@
   <section class="demo" id="demo">
     <div class="sec-head">
       <h2>它就在屏幕顶端动</h2>
-      <p class="sec-sub">不用点，它自己会一段一段演示下去：伸开、看邮件、切小纸条、收起来、再来一条通知。想自己玩也行，鼠标移上去就归你控制。</p>
+      <p class="sec-sub">不用点，它自己会一段一段演示下去：伸开、看邮件、勾 Qing 事项、切小纸条、收起来、再来一条通知。想自己玩也行，鼠标移上去就归你控制。</p>
     </div>
 
     <div class="stage" id="stage" data-state="idle" data-style="island">
@@ -101,7 +101,7 @@
 
           <div class="v v-compact">
             <span class="quick"><b>邮件</b><i class="q red">3</i></span>
-            <span class="quick"><b>备忘录</b></span>
+            <span class="quick"><b>Qing 事项</b></span>
             <span class="quick"><b>剪贴板</b><i class="q">2</i></span>
             <span class="quick"><b>暂存</b></span>
             <span class="quick"><b>小纸条</b><i class="q pur">1</i></span>
@@ -117,7 +117,7 @@
             <div class="p-tabs">
               <button class="p-tab active" data-pane="mail">邮件<i class="p-dot red"></i></button>
               <button class="p-tab" data-pane="chat">小纸条</button>
-              <button class="p-tab" data-pane="notes">备忘录</button>
+              <button class="p-tab" data-pane="notes">Qing 事项</button>
               <button class="p-tab" data-pane="tools">小工具</button>
             </div>
             <div class="p-body">
@@ -143,8 +143,12 @@
                 <div class="p-msg them"><span class="p-bub img"></span></div>
               </div>
               <div class="p-pane" data-pane="notes">
-                <div class="p-note"><b>一、商户：…</b><br>二、账号：…<br>三、备注：换行和缩进都保留</div>
-                <div class="p-note dim">周会要点：把定时拉取改成常连接推送</div>
+                <div class="p-note">
+                  <span class="p-todo done"><i></i>把定时拉取改成常连接推送</span>
+                  <span class="p-todo"><i></i>周会要点：三端同步</span>
+                  <span class="p-todo"><i></i>给「咻」加一个已读回执</span>
+                </div>
+                <div class="p-note dim">钉在桌面上的那张便条，勾选状态也同步</div>
               </div>
               <div class="p-pane" data-pane="tools">
                 <div class="p-tools-row"><span>专注 25 分钟</span><b class="p-run">25:00</b></div>
@@ -186,8 +190,8 @@
       </article>
       <article class="card reveal">
         <span class="ic i-note"></span>
-        <h3>备忘录：能钉到桌面上</h3>
-        <p>随手记一条，重要的点「钉到桌面」——变成一张拟真便利贴贴在屏幕上，能拖动、能缩放、Ctrl+滚轮调字号。取消钉住就收回岛里。</p>
+        <h3>Qing 事项：待办一行一个圆圈，还能钉到桌面</h3>
+        <p>随手记一条，或者写成待办：每行一个圆圈，做完划线变灰，再点一次恢复。重要的「钉到桌面」——变成一张拟真便利贴，桌面上也能直接勾。取消钉住就收回岛里。</p>
       </article>
       <article class="card reveal">
         <span class="ic i-clip"></span>
@@ -246,7 +250,7 @@
         <ul class="dots">
           <li>聊天里的图片右键 →「查看大图」「添加到表情包」（群里共享）</li>
           <li>频道标签右键 → 重命名（只存本机），左键点 ⧉ 复制匹配码</li>
-          <li>备忘录行右键 → 复制全文 / 发送到小纸条</li>
+          <li>事项行右键 → 复制全文 / 发送到小纸条</li>
         </ul>
       </div>
     </div>
@@ -257,18 +261,18 @@
     <div class="dl-card reveal">
       <div class="dl-left">
         <p class="kicker">下载</p>
-        <h2>装上就是现在这个版本<br><span class="grad" id="dlVer">v1.16.6</span></h2>
+        <h2>装上就是现在这个版本<br><span class="grad" id="dlVer">v1.16.7</span></h2>
         <p class="sec-sub" id="dlNotes">云端存储接入：聊天图片与表情包上 CDN、暂存箱可一键上云、更新走 CDN。</p>
         <div class="actions">
-          <a class="btn btn-primary btn-lg js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.16.6-setup.exe">下载安装包 <span class="dim" id="dlSize">100 MB</span></a>
-          <a class="btn btn-ghost btn-lg js-dl-portable" href="https://qing.ccyyqq.com/island/update/QingTools-1.16.6-portable.exe">便携版</a>
+          <a class="btn btn-primary btn-lg js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.16.7-setup.exe">下载安装包 <span class="dim" id="dlSize">100 MB</span></a>
+          <a class="btn btn-ghost btn-lg js-dl-portable" href="https://qing.ccyyqq.com/island/update/QingTools-1.16.7-portable.exe">便携版</a>
         </div>
         <ul class="req">
           <li>Windows 10 / 11（64 位）</li>
           <li>安装到 <code>%LOCALAPPDATA%\Programs\dynamic-island</code>，约 280 MB</li>
           <li>首次运行自动写入开机启动，可在设置里关闭</li>
         </ul>
-        <p class="mirror" id="dlMirror"><span id="dlMirrorText">下载由又拍云 CDN 加速（qing.ccyyqq.com），不占本站带宽。</span>镜像：<a class="js-mirror" href="/download/QingTools-1.16.6-setup.exe">备用下载</a></p>
+        <p class="mirror" id="dlMirror"><span id="dlMirrorText">下载由又拍云 CDN 加速（qing.ccyyqq.com），不占本站带宽。</span>镜像：<a class="js-mirror" href="/download/QingTools-1.16.7-setup.exe">备用下载</a></p>
       </div>
       <div class="dl-right">
         <div class="mini-card">
@@ -307,7 +311,7 @@
   <footer class="foot">
     <div class="foot-left">
       <span class="mark small" aria-hidden="true"><i></i><b></b></span>
-      <span>Qing Tools <span class="dim" id="footVer">v1.16.6</span></span>
+      <span>Qing Tools <span class="dim" id="footVer">v1.16.7</span></span>
     </div>
     <div class="foot-right">
       <span class="stat" id="stat"><i></i>检查服务状态…</span>

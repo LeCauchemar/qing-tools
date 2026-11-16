@@ -1,7 +1,7 @@
 {
   "name": "dynamic-island",
   "productName": "Qing Tools",
-  "version": "1.16.6",
+  "version": "1.16.7",
   "private": true,
   "description": "Windows 顶部灵动岛 / 刘海：邮件推送与阅读、备忘录、剪贴板、文件暂存、双频道小纸条、待办、命令面板",
   "main": "src/main/main.js",

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>开发记录 · Qing Tools 从 1.0 到 1.16.6</title>
+<title>开发记录 · Qing Tools 从 1.0 到 1.16.7</title>
 <meta name="description" content="Qing Tools 十一天七十一个版本的开发过程：从一条会伸缩的药丸，到能收邮件、短信验证码、文件和群聊的常驻小面板，再到能登录、验证码跟着账号走的账号体系。">
 <meta name="theme-color" content="#05060b">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
@@ -31,7 +31,7 @@
     <button class="icon-btn" id="themeBtn" title="切换明暗" aria-label="切换明暗">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path class="sun" d="M12 4v2m0 12v2m8-8h-2M6 12H4m13.7-5.7-1.4 1.4M7.7 16.3l-1.4 1.4m11.4 0-1.4-1.4M7.7 7.7 6.3 6.3"/><circle cx="12" cy="12" r="3.6"/></svg>
     </button>
-    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.16.6-setup.exe">下载</a>
+    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.16.7-setup.exe">下载</a>
   </div>
 </header>
 
@@ -41,11 +41,11 @@
     <p class="kicker">开发记录</p>
     <h1>十一天，六十多个版本，<br><span class="grad">一条缝长成了一个工作台</span></h1>
     <p class="lede">
-      1.0 的时候它只会伸缩和显示未读；到 1.16.6，它替你收邮件、抽验证码、接手机短信、暂存文件、
+      1.0 的时候它只会伸缩和显示未读；到 1.16.7，它替你收邮件、抽验证码、接手机短信、暂存文件、
       在群里发一句就走，验证码还跟着账号在几台电脑之间跑。下面是中间每一步到底改了什么、为什么改。
     </p>
     <div class="cl-stats">
-      <div><b>71</b><span>个可安装版本（1.0 → 1.16.6）</span></div>
+      <div><b>72</b><span>个可安装版本（1.0 → 1.16.7）</span></div>
       <div><b>11</b><span>天（11-05 → 11-15）</span></div>
       <div><b>100 MB</b><span>安装包（砍过 21 MB）</span></div>
       <div><b>7</b><span>个页签</span></div>
@@ -529,12 +529,25 @@
         </ul>
       </div>
     </article>
+
+    <article class="cl-item v1">
+      <div class="cl-side"><b>1.16.7</b><span>11-16</span></div>
+      <div class="cl-body">
+        <h3>便条里接着写也有圆圈了，页签改名「Qing 事项」</h3>
+        <ul>
+          <li>在钉在桌面的便条里按回车继续加一行，新行会自动补上圆圈；把某一行内容全删掉，这一行连同圆圈一起消失，光标回到上一行末尾。</li>
+          <li>好友「咻」来的事项现在默认钉在桌面上，收到就能看见、直接勾。</li>
+          <li>最外层页签从「备忘录」改名为「Qing 事项」：搜索、空状态、右键菜单、分享标签里的措辞也一起统一了。</li>
+          <li>官网的实机演示台重做了一遍：自动演出里加进了「勾 Qing 事项」这一段，面板里的示例换成了带圆圈的多行待办。</li>
+        </ul>
+      </div>
+    </article>
     </section>
 
   <footer class="foot">
     <div class="foot-left">
       <span class="mark small" aria-hidden="true"><i></i><b></b></span>
-      <span>Qing Tools <span class="dim">v1.16.6</span></span>
+      <span>Qing Tools <span class="dim">v1.16.7</span></span>
     </div>
     <div class="foot-right">
       <a href="index.html">回到首页</a>

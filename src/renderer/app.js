@@ -1821,7 +1821,7 @@ async function accLoadClaim() {
   if (!show) return;
   const c = info.counts || {};
   const parts = [];
-  if (c.notes) parts.push(c.notes + ' 条备忘录');
+  if (c.notes) parts.push(c.notes + ' 条事项');
   if (c.todos) parts.push(c.todos + ' 个待办');
   if (c.reminders) parts.push(c.reminders + ' 条提醒');
   if (c.anniversaries) parts.push(c.anniversaries + ' 个纪念日');
@@ -2306,7 +2306,7 @@ function renderShareHist(items, title) {
     .map((it) => {
       const out = it.dir === 'out';
       const who = it.peer ? it.peer.nick || it.peer.username : '?';
-      const kind = it.item && it.item.kind === 'todo' ? '待办' : '备忘录';
+      const kind = it.item && it.item.kind === 'todo' ? '待办' : '事项';
       return (
         '<div class="sh-row">' +
         '<i class="sh-dir' + (out ? ' out' : ' inn') + '">' + (out ? '↗' : '↙') + '</i>' +
@@ -2456,7 +2456,15 @@ async function pollShares() {
   for (const it of items) {
     const text = String((it.item && it.item.text) || '');
     const kind = it.item && it.item.kind === 'todo' ? 'todo' : 'note';
-    await api.notes.add(text, kind);
+    const added = await api.notes.add(text, kind);
+    // 好友咻来的事项默认钉在桌面上，收到就能看见
+    if (added && added.ok && added.note) {
+      try {
+        await api.notes.togglePin(added.note.id);
+      } catch (_) {
+        /* 钉失败不影响收件 */
+      }
+    }
     await api.account.shareRead(it.id);
   }
   const first = items[0];
@@ -4355,7 +4363,7 @@ async function handleAct(act, node) {
     }
     case 'note-to-chat': {
       if (!item) break;
-      await sendToChat({ text: notePlain(noteSelection() || item.text), label: '备忘录' });
+      await sendToChat({ text: notePlain(noteSelection() || item.text), label: 'Qing 事项' });
       break;
     }
     case 'note-edit': {
@@ -4465,13 +4473,13 @@ async function handleAct(act, node) {
       if (!item) break;
       await api.clips.writeText(notePlain(item.text || ''));
       closeNoteMenu();
-      toast('备忘录已复制');
+      toast('事项已复制');
       break;
     }
     case 'note-menu-chat': {
       if (!item) break;
       closeNoteMenu();
-      await sendToChat({ text: notePlain(item.text || ''), label: '备忘录' });
+      await sendToChat({ text: notePlain(item.text || ''), label: 'Qing 事项' });
       break;
     }
     case 'note-menu-pin': {
@@ -4485,14 +4493,14 @@ async function handleAct(act, node) {
       if (!item) break;
       closeNoteMenu();
       await api.notes.remove(id);
-      toast('已删除备忘录');
+      toast('已删除这条事项');
       break;
     }
     case 'note-copy': {
       if (!item) break;
       const sel = noteSelection();
       await api.clips.writeText(sel || item.text);
-      toast(sel ? '已复制选中的文字' : '备忘录已复制');
+      toast(sel ? '已复制选中的文字' : '事项已复制');
       break;
     }
     case 'clip-to-chat': {
@@ -8734,13 +8742,13 @@ function prettyKey(acc) {
 function palCommands() {
   const list = [
     { id: 'tab:mail', label: '打开 邮件', icon: '#i-mail', key: 'Ctrl+1' },
-    { id: 'tab:notes', label: '打开 备忘录', icon: '#i-note', key: 'Ctrl+2' },
+    { id: 'tab:notes', label: '打开 Qing 事项', icon: '#i-note', key: 'Ctrl+2' },
     { id: 'tab:clipboard', label: '打开 剪贴板', icon: '#i-clip', key: 'Ctrl+3' },
     { id: 'tab:files', label: '打开 文件', icon: '#i-files', key: 'Ctrl+4' },
     { id: 'tab:chat', label: '打开 小纸条', icon: '#i-chat', key: 'Ctrl+5' },
     { id: 'tab:tools', label: '打开 小工具', icon: '#i-timer', key: 'Ctrl+6' },
     { id: 'tab:settings', label: '打开 设置', icon: '#i-gear', key: 'Ctrl+7' },
-    { id: 'act:note-new', label: '新建一条备忘录', icon: '#i-plus' },
+    { id: 'act:note-new', label: '新建一条事项', icon: '#i-plus' },
     { id: 'act:timer-5', label: '计时 5 分钟', icon: '#i-timer' },
     { id: 'act:timer-25', label: '计时 25 分钟（番茄钟）', icon: '#i-timer' },
     { id: 'act:timer-custom', label: '自定义计时…', icon: '#i-timer' },
@@ -8772,12 +8780,12 @@ function palSearch(q) {
     .map((n) => ({
       id: 'note:' + n.id,
       kind: 'note',
-      label: oneLine(n.text) || '（空备忘录）',
+      label: oneLine(n.text) || '（空事项）',
       icon: '#i-note',
-      sub: '备忘录',
+      sub: 'Qing 事项',
       ref: n
     }));
-  if (notes.length) groups.push({ name: '备忘录', items: notes });
+  if (notes.length) groups.push({ name: 'Qing 事项', items: notes });
 
   const clips = (S.data.clips || [])
     .filter((c) => c.kind === 'text' && norm(c.text).includes(q))
@@ -8927,7 +8935,7 @@ async function runPalette(i) {
     el.palette.classList.add('hidden');
     if (c.kind === 'note') {
       const r = await api.clips.writeText(notePlain((c.ref && c.ref.text) || ''));
-      toast(r && r.ok === false ? '复制失败' : '备忘录已复制');
+      toast(r && r.ok === false ? '复制失败' : '事项已复制');
     } else if (c.kind === 'clip') {
       const r = await api.clips.copy(c.ref.id);
       toast(r === false ? '复制失败' : '已复制到剪贴板', r === false);

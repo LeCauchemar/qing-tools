@@ -246,27 +246,34 @@
       await sleep(2600);
       await waitUser();
 
-      // ④ 切到小纸条
+      // ④ 切到 Qing 事项（待办圆圈）
+      await click($('.p-tab[data-pane="notes"]', stage));
+      setPane('notes');
+      say('Qing 事项：待办一行一个圆圈，做完划掉变灰，钉到桌面也能勾');
+      await sleep(2400);
+      await waitUser();
+
+      // ⑤ 切到小纸条
       await click($('.p-tab[data-pane="chat"]', stage));
       setPane('chat');
       say('切到小纸条：群里谁发了什么，图片和表情包直接看');
       await sleep(2200);
       await waitUser();
 
-      // ⑤ 图片消息：把光标停在图上，讲清楚群里什么都能发
+      // ⑥ 图片消息：把光标停在图上，讲清楚群里什么都能发
       moveTo($('.p-msg.them .p-bub.img', stage));
       say('图片、动图、表情包直接在群里看，点一下能铺满整屏');
       await sleep(2000);
       await waitUser();
 
-      // ⑥ 小工具
+      // ⑦ 小工具
       await click($('.p-tab[data-pane="tools"]', stage));
       setPane('tools');
-      say('小工具：番茄钟、免打扰、待办，旁边还有 CPU / 内存小圆点');
+      say('小工具：番茄钟、免打扰、系统小圆点，都是一眼能看懂的');
       await sleep(2200);
       await waitUser();
 
-      // ⑦ 移开 → 收回；顺手弹一条通知
+      // ⑧ 移开 → 收回；顺手弹一条通知
       moveAway();
       await sleep(420);
       paint('idle');

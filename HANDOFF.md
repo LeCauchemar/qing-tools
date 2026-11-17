@@ -1,3 +1,9 @@
+## 2026-11-17 10:58 · 1.17.1 · DeepSeekRuntime
+- 改了什么：① 拍一拍显示账号昵称 —— `publicMessage()` 增加 `userName`（`messages.user_id` → `users.nick || username`），`chatMsgHtml` 的 nudge 与 `chatReact` 通知优先用它、回退 `deviceName`。② 修复文件「嗖」按钮点了没反应 —— `document` 的「点空白关闭」只排除了 `[data-act="note-share"]`，补上 `[data-act="file-send"]`。③ 修复拖拽 —— `files:dragOut` 从 `ipcMain.handle` 改成 `ipcMain.on` + `sendSync`（`startDrag` 必须在 `dragstart` 里同步调用），文件用 `{file}`、文件夹额外加 `{files:[path]}`。
+- 为什么：用户反馈拍一拍不显示人的名字（其实显示的是设备名）、嗖按钮无反应、文件拖不动（1.17.0 把 `{file}` 改成 `{files}` 后连文件也失效）。
+- 怎么验证：dev 复现「嗖」弹层被立即关闭 → 修后 `#sharePop` 打开 rect 168×66；`chatMsgHtml({kind:'nudge',userName:'陈宇清'})` → 「陈宇清 拍了拍 对方」、无 userName 回退设备名；装机版 1.17.1 三项同样通过。服务端已 `deploy.ps1` 部署。
+- 下一步 / 已知问题：真实拖拽（文件/文件夹 → 资源管理器）仍需人工试；历史 nudge 消息若发送者当年未登录（`user_id` 为空）仍显示设备名；`sendSync` 会在拖拽开始时阻塞渲染进程，属预期。
+
 ## 2026-11-16 17:58 · 1.17.0 · DeepSeekRuntime
 - 改了什么：① 文件区搜索提速 —— `runFsSearch()` 先渲染名称结果、内容命中后台补（`S.fs.seq` 序号丢弃迟到结果）；`main.js` 的 `files:search` 对 content 模式加 3s `AbortController`；`search.js` 在 signal 已取消时直接返回、不再回退整盘扫描（6.5s → 3.0s，且不阻塞输入）。② 暂存箱文件夹拖出 —— `files:dragOut` 改 `startDrag({files:[path]})`。③ 新功能「嗖一下」——服务端 `file_shares` 表 + `/api/files/{sign,share,inbox,inbox/:id/read}`（`upyun.mjs` 新增导出 `signUpload`）；客户端 `files:cloudSend / cloudInbox / cloudReceive`（`node:https` 流式 PUT，目录先 `Compress-Archive`；接收下载到 `userData/stash` 并解压）；渲染层文件行加「嗖」按钮、`#sharePop` 标题按 `S.shareTarget.kind` 切换、文件区顶部渲染待接收项 + 20s `pollFileShares`。
 - 为什么：用户反馈文件区搜索慢（内容搜索在扫整盘）、暂存箱文件夹拖不出来、要给好友传文件（命名定为「嗖一下」），且明确要求文件流量走又拍云 CDN、不走自建服务器。

@@ -5409,7 +5409,7 @@ function chatMsgHtml(m) {
       (s && (s.members || []).find((x) => (m.mentions || []).includes(x.id))?.name) || '对方';
     return (
       '<div class="msg sys"><div class="bub nudge">' +
-      esc(m.deviceName || '有人') + ' 拍了拍 ' + esc(target) + ' 👋</div></div>'
+      esc(m.userName || m.deviceName || '有人') + ' 拍了拍 ' + esc(target) + ' 👋</div></div>'
     );
   }
   const isImage = m.kind === 'image' || m.kind === 'sticker';
@@ -5676,7 +5676,7 @@ function chatReact(room, m) {
   const mine = ids.includes(room.deviceId);
   if (m.kind === 'nudge') {
     if (!mine) return;
-    const from = m.deviceName || '有人';
+    const from = m.userName || m.deviceName || '有人';
     shakeIsland(1500);
     showPeek({
       icon: '#i-bolt',
@@ -6749,7 +6749,8 @@ function chatBind() {
       el.sharePop &&
       !el.sharePop.classList.contains('hidden') &&
       !e.target.closest('#sharePop') &&
-      !e.target.closest('[data-act="note-share"]')
+      !e.target.closest('[data-act="note-share"]') &&
+      !e.target.closest('[data-act="file-send"]')
     )
       closeSharePop();
     if (el.lbMenu.classList.contains('hidden')) return;

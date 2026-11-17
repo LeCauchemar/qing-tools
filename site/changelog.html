@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>开发记录 · Qing Tools 从 1.0 到 1.17.0</title>
+<title>开发记录 · Qing Tools 从 1.0 到 1.17.1</title>
 <meta name="description" content="Qing Tools 十一天七十一个版本的开发过程：从一条会伸缩的药丸，到能收邮件、短信验证码、文件和群聊的常驻小面板，再到能登录、验证码跟着账号走的账号体系。">
 <meta name="theme-color" content="#05060b">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
@@ -31,7 +31,7 @@
     <button class="icon-btn" id="themeBtn" title="切换明暗" aria-label="切换明暗">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path class="sun" d="M12 4v2m0 12v2m8-8h-2M6 12H4m13.7-5.7-1.4 1.4M7.7 16.3l-1.4 1.4m11.4 0-1.4-1.4M7.7 7.7 6.3 6.3"/><circle cx="12" cy="12" r="3.6"/></svg>
     </button>
-    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.17.0-setup.exe">下载</a>
+    <a class="btn btn-primary btn-sm js-dl" href="https://qing.ccyyqq.com/island/update/QingTools-1.17.1-setup.exe">下载</a>
   </div>
 </header>
 
@@ -41,11 +41,11 @@
     <p class="kicker">开发记录</p>
     <h1>十一天，六十多个版本，<br><span class="grad">一条缝长成了一个工作台</span></h1>
     <p class="lede">
-      1.0 的时候它只会伸缩和显示未读；到 1.17.0，它替你收邮件、抽验证码、接手机短信、暂存文件、
+      1.0 的时候它只会伸缩和显示未读；到 1.17.1，它替你收邮件、抽验证码、接手机短信、暂存文件、
       在群里发一句就走，验证码还跟着账号在几台电脑之间跑。下面是中间每一步到底改了什么、为什么改。
     </p>
     <div class="cl-stats">
-      <div><b>73</b><span>个可安装版本（1.0 → 1.17.0）</span></div>
+      <div><b>74</b><span>个可安装版本（1.0 → 1.17.1）</span></div>
       <div><b>11</b><span>天（11-05 → 11-15）</span></div>
       <div><b>100 MB</b><span>安装包（砍过 21 MB）</span></div>
       <div><b>7</b><span>个页签</span></div>
@@ -555,12 +555,24 @@
         </ul>
       </div>
     </article>
+
+    <article class="cl-item v1">
+      <div class="cl-side"><b>1.17.1</b><span>11-17</span></div>
+      <div class="cl-body">
+        <h3>拍一拍显示账号昵称，嗖和拖拽都修好了</h3>
+        <ul>
+          <li><b>拍一拍显示的是账号昵称了。</b>以前那行提示取的是「设备名」（比如 chenyuqing-life），登录过的账号现在优先显示昵称或用户名；没登录的旧设备仍回退到设备名。</li>
+          <li><b>文件「嗖」按钮点了没反应。</b>原因是弹层刚显示就被页面上的「点空白处关闭」逻辑立刻关掉了——现在把「嗖」按钮和「咻」一样排除在外。</li>
+          <li><b>文件又能拖了。</b>拖拽改回在 dragstart 里同步启动（异步调用会让拖拽偶发失效）；文件走原来的单文件方式，文件夹额外带上多文件数组。</li>
+        </ul>
+      </div>
+    </article>
     </section>
 
   <footer class="foot">
     <div class="foot-left">
       <span class="mark small" aria-hidden="true"><i></i><b></b></span>
-      <span>Qing Tools <span class="dim">v1.17.0</span></span>
+      <span>Qing Tools <span class="dim">v1.17.1</span></span>
     </div>
     <div class="foot-right">
       <a href="index.html">回到首页</a>

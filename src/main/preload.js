@@ -122,7 +122,7 @@ contextBridge.exposeInMainWorld('island', {
     copyPath: (id) => invoke('files:copyPath', id),
     reveal: (id) => invoke('files:reveal', id),
     open: (id) => invoke('files:open', id),
-    dragOut: (id) => invoke('files:dragOut', id),
+    dragOut: (id) => ipcRenderer.sendSync('files:dragOut', id),
     uploadCloud: (id) => invoke('files:uploadCloud', id),
     probe: () => invoke('files:probe'),
     search: (query, opts) => invoke('files:search', query, opts),

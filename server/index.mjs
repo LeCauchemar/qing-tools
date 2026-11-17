@@ -989,6 +989,7 @@ function publicMessage(m) {
   } catch {
     reply = null;
   }
+  const sender = m.user_id ? q.userById.get(m.user_id) : null;
   return {
     id: m.id,
     kind: m.kind,
@@ -998,6 +999,8 @@ function publicMessage(m) {
     thumb: m.media_id ? mediaThumb(m.media_id) : null,
     deviceId: m.device_id,
     deviceName: m.device_name || '',
+    // 登录过的发送者带账号昵称：拍一拍这类「谁干的」提示优先用它，而不是设备名
+    userName: sender ? sender.nick || sender.username : '',
     userId: m.user_id || null,
     clientId: m.client_id || null,
     mentions,

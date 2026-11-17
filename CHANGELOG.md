@@ -1,6 +1,6 @@
 # Qing Tools 更新记录
 
-> Windows 顶部灵动岛 / 刘海工具。从 1.0 到 1.17.0，十一天里发了 72 个可安装版本（其中 1.9.x 一条线就 31 个）。
+> Windows 顶部灵动岛 / 刘海工具。从 1.0 到 1.17.1，十一天里发了 72 个可安装版本（其中 1.9.x 一条线就 31 个）。
 > 1.0 的原型目标是「屏幕顶端那条缝别浪费」；到 1.10.8 它已经是一个能收邮件、收验证码、收文件和手机短信的常驻小面板。
 >
 > 版本号规则：`1.<大阶段>.<小改动>`。同一天里可能有多个版本，每个都真装到机器上跑过才发。
@@ -335,7 +335,7 @@
 - 多行待办：`note.doneLines` 记录每行完成状态，主界面每行一个圆圈（`note-line-done` → IPC `notes:lineDone`），完成行删除线 + 灰字，可取消；全部行完成时整条 `done=true`。
 - 桌面便条：`sticky.js` 按 `kind==='todo'` 逐行画圆圈（`.chk`），点击走 `sticky:lineDone`；`broadcast` 与 `sticky:snapshot` 带 `kind/done/doneLines`，编辑正文后行状态归零。
 
-## 1.17.0 · 便条续写圆圈 + 页签改名（11-16）
+## 1.17.1 · 便条续写圆圈 + 页签改名（11-16）
 
 - 便条里继续加行：`syncTodoChk()` 检测行数与圆圈数不一致就重建（`caretOffset/placeCaret` 保光标）；整行删空时连行带圆圈一起删，光标回末尾，并把清理后的正文写回主进程。
 - 便条文本不再带前导空格（`todoDom` 用 CSS margin 控制间距），避免反复保存越积越多。
@@ -343,12 +343,19 @@
 - 页签「备忘录」→「Qing 事项」，搜索分组、空状态、右键菜单、分享标签、归属卡片文案一并统一。
 - 官网演示台：快捷条与页签改名，示例换成带圆圈的多行待办，自动演出新增「勾 Qing 事项」一段。
 
-## 1.17.0 · 文件区提速 + 嗖一下（11-16）
+## 1.17.1 · 文件区提速 + 嗖一下（11-16）
 
 - 文件区搜索：`runFsSearch` 先渲染名称结果（Everything 4ms），内容命中改后台补、序号过期即丢；主进程 `files:search` 对内容模式加 3 秒 `AbortController`，`SearchService.search()` 在 signal 已取消时直接返回，不再回退整盘扫描（实测 6.5s → 3.0s，且不阻塞首屏）。
 - 拖出：`files:dragOut` 由 `{file}` 改成 `{files:[path]}`，文件夹也能被资源管理器接收。
 - 「嗖一下」：服务端新增 `file_shares` 表 + `POST /api/files/sign`（只发签名）、`POST /api/files/share`、`GET /api/files/inbox`、`POST /api/files/inbox/:id/read`；客户端 `files:cloudSend` 用 `node:https` 流式直传又拍云（目录先 `Compress-Archive`），`files:cloudReceive` 下载并解压到 `userData/stash` 后入暂存箱；UI 在文件行加「嗖」按钮、复用 `#sharePop`（标题按目标切换「咻给谁 / 嗖给谁」），文件区顶部渲染待接收项。
 - 验证：签名接口 200、PUT 又拍云 200、CDN GET 200；`cloudSend` 端到端 `sent:1`；「发给自己」被 400 拦下。测试数据（两条 `file_shares`、两个云对象、本地暂存项）已清理。
+
+## 1.17.1 · 拍一拍昵称 / 嗖按钮 / 拖拽（11-17）
+
+- 拍一拍：`publicMessage()` 新增 `userName`（`messages.user_id` → `users.nick || username`），渲染 `chatMsgHtml` 与 `chatReact` 优先用它、回退 `deviceName`；历史消息拉取时同样补上。
+- 「嗖」没反应：`document` 的「点空白关闭」只排除了 `[data-act="note-share"]`，新增 `[data-act="file-send"]`。
+- 拖拽：`files:dragOut` 由 `handle` 改为 `ipcMain.on` + `sendSync`（startDrag 必须在 dragstart 里同步调用）；文件用 `{file}`，文件夹额外加 `{files:[path]}`。
+- 验证：`#sharePop` 打开后 rect 168×66 且不再被关；`chatMsgHtml({kind:'nudge',userName:'陈宇清'})` → 「陈宇清 拍了拍 对方」，无 `userName` 回退设备名；`api.files.dragOut` 为同步函数。
 
 ## 几个绕不过去的工程决定
 

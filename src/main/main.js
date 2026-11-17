@@ -1778,18 +1778,24 @@ function readClipboardFiles() {
     const err = await shell.openPath(f.path);
     return { ok: !err, message: err };
   });
-  ipcMain.handle('files:dragOut', (e, id) => {
+  // 同步 IPC：startDrag 必须在 dragstart 事件里同步调用，异步 invoke 会让拖拽偶发失效
+  ipcMain.on('files:dragOut', (e, id) => {
     const f = store.data.files.find((x) => x.id === id);
-    if (!f) return { ok: false };
+    if (!f) {
+      e.returnValue = { ok: false };
+      return;
+    }
     try {
       const iconPath = path.join(ASSETS, 'drag.png');
       let icon = nativeImage.createFromPath(iconPath);
       if (icon.isEmpty()) icon = nativeImage.createFromPath(path.join(ASSETS, 'icon.png'));
-      // 用 files 数组而不是单个 file：目录（文件夹）也能被资源管理器正确接收
-      win.webContents.startDrag({ files: [f.path], icon });
-      return { ok: true, isDir: !!f.isDir, path: f.path };
+      const item = { file: f.path, icon };
+      // 文件夹额外带上 files 数组（Windows 资源管理器只认这一种才会落成目录）
+      if (f.isDir) item.files = [f.path];
+      win.webContents.startDrag(item);
+      e.returnValue = { ok: true, isDir: !!f.isDir, path: f.path };
     } catch (err) {
-      return { ok: false, message: String(err) };
+      e.returnValue = { ok: false, message: String(err) };
     }
   });
 
